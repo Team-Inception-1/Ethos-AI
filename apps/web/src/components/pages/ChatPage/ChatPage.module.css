@@ -1,0 +1,42 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); height: calc(100vh - var(--topbar-height) - var(--space-16)); }
+.title { font-size: 24px; font-weight: 800; }
+.layout { display: grid; grid-template-columns: 280px 1fr; gap: var(--space-5); flex: 1; min-height: 0; }
+
+/* Threads */
+.threadList { display: flex; flex-direction: column; gap: var(--space-2); overflow-y: auto; }
+.thread { display: flex; align-items: center; gap: var(--space-3); cursor: pointer; }
+.threadAvatar { width: 40px; height: 40px; border-radius: 50%; background: var(--gradient-brand); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.threadMeta { flex: 1; min-width: 0; }
+.threadName { font-size: 14px; font-weight: 700; }
+.threadPrev { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.threadTime { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+
+/* Chat Window */
+.chatWindow { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
+.chatHeader { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.chatAvatar { width: 36px; height: 36px; border-radius: 50%; background: var(--gradient-brand); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.chatName { font-size: 14px; font-weight: 700; }
+.chatStatus { font-size: 12px; color: var(--emerald); }
+
+.messages { flex: 1; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+
+.msg { display: flex; flex-direction: column; max-width: 72%; }
+.msgSelf  { align-self: flex-end; align-items: flex-end; }
+.msgOther { align-self: flex-start; align-items: flex-start; }
+
+.msgBubble { padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); font-size: 14px; line-height: 1.5; animation: fadeUp 0.2s ease; }
+.msgSelf  .msgBubble { background: var(--blue-primary); color: #fff; border-bottom-right-radius: 4px; }
+.msgOther .msgBubble { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); border-bottom-left-radius: 4px; }
+.msgTime { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+.inputRow { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border); flex-shrink: 0; }
+.input { flex: 1; height: 40px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-primary); padding: 0 var(--space-4); font-size: 14px; transition: border-color 0.2s; }
+.input:focus { border-color: var(--border-focus); outline: none; }
+.attachBtn { width: 36px; height: 36px; background: none; border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: var(--transition-fast); }
+.attachBtn:hover { border-color: var(--border-hover); }
+.sendBtn { width: 36px; height: 36px; background: var(--blue-primary); border: none; border-radius: var(--radius-md); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition-fast); }
+.sendBtn:hover:not(:disabled) { background: var(--blue-light); }
+.sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.devHint { font-size: 11px; color: var(--text-muted); font-style: italic; padding: var(--space-2) var(--space-4); flex-shrink: 0; }
+.devHint code { background: var(--bg-elevated); padding: 1px 5px; border-radius: 3px; }
+@media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .threadList { display: none; } }

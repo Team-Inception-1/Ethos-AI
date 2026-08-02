@@ -1,0 +1,115 @@
+'use client';
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import ThemeToggle from '@/components/ui/ThemeToggle';
+import styles from './Navbar.module.css';
+
+const navLinks = [
+  { href: '/directory', label: 'Directory', labelBn: 'ডিরেক্টরি' },
+  { href: '/compare',   label: 'Compare',   labelBn: 'তুলনা' },
+  { href: '#how',       label: 'How It Works', labelBn: 'কীভাবে কাজ করে' },
+  { href: '/agency',    label: 'For Agencies', labelBn: 'এজেন্সি' },
+];
+
+export default function Navbar() {
+  const [lang, setLang] = useState<'en' | 'bn'>('en');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  return (
+    <header className={styles.header}>
+      <nav className={`${styles.nav} container`}>
+        {/* Logo */}
+        <Link href="/" className={styles.logo} aria-label="Ethos AI Home">
+          <span className={styles.logoIcon} aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+              <path d="M16 2L4 8v8c0 7 5.5 13.5 12 16 6.5-2.5 12-9 12-16V8L16 2z" fill="url(#shield-grad)" />
+              <path d="M11 16l3.5 3.5L21 12" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              <defs>
+                <linearGradient id="shield-grad" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#4F8EF7"/>
+                  <stop offset="1" stopColor="#8B5CF6"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </span>
+          <span className={styles.logoText}>
+            Ethos <span className={styles.logoAI}>AI</span>
+          </span>
+        </Link>
+
+        {/* Desktop Nav Links */}
+        <ul className={styles.links} role="list">
+          {navLinks.map((l) => (
+            <li key={l.href}>
+              <Link
+                href={l.href}
+                className={`${styles.link} ${pathname === l.href ? styles.active : ''}`}
+              >
+                {lang === 'en' ? l.label : l.labelBn}
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        {/* Right Controls */}
+        <div className={styles.controls}>
+          {/* Language Toggle */}
+          <button
+            id="lang-toggle"
+            onClick={() => setLang(l => l === 'en' ? 'bn' : 'en')}
+            className={styles.langBtn}
+            aria-label="Toggle language"
+          >
+            <span className={lang === 'en' ? styles.langActive : ''}>EN</span>
+            <span className={styles.langDivider}>|</span>
+            <span className={lang === 'bn' ? styles.langActive : ''}>বাং</span>
+          </button>
+
+          <ThemeToggle />
+
+          <Link href="/login" className={styles.loginBtn}>
+            {lang === 'en' ? 'Login' : 'লগইন'}
+          </Link>
+
+          <Link href="/register" className={styles.registerBtn}>
+            {lang === 'en' ? 'Get Started' : 'শুরু করুন'}
+          </Link>
+
+          {/* Mobile burger */}
+          <button
+            className={styles.burger}
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label="Toggle menu"
+            aria-expanded={menuOpen}
+          >
+            <span className={`${styles.bar} ${menuOpen ? styles.barOpen1 : ''}`} />
+            <span className={`${styles.bar} ${menuOpen ? styles.barOpen2 : ''}`} />
+            <span className={`${styles.bar} ${menuOpen ? styles.barOpen3 : ''}`} />
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className={styles.mobileMenu}>
+          {navLinks.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={styles.mobileLink}
+              onClick={() => setMenuOpen(false)}
+            >
+              {lang === 'en' ? l.label : l.labelBn}
+            </Link>
+          ))}
+          <div className={styles.mobileCtas}>
+            <Link href="/login"    className={`${styles.loginBtn} ${styles.w100}`}>Login</Link>
+            <Link href="/register" className={`${styles.registerBtn} ${styles.w100}`}>Get Started</Link>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}

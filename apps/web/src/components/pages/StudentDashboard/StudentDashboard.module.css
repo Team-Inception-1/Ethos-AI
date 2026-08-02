@@ -1,0 +1,202 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.greeting { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); }
+.greetingText     { font-size: 24px; font-weight: 800; }
+.greetingSubtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+/* Stats */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.statCard { display: flex; flex-direction: column; gap: var(--space-2); position: relative; overflow: hidden; }
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+.stat-blue::before   { background: var(--blue-primary); }
+.stat-purple::before { background: var(--purple-accent); }
+.stat-amber::before  { background: var(--amber); }
+.stat-emerald::before{ background: var(--emerald); }
+
+.statIconWrap { font-size: 24px; }
+.statValue    { font-size: 28px; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-primary); }
+.statLabel    { font-size: 12px; color: var(--text-muted); }
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-5);
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+/* App Card */
+.appCard {}
+
+.appInfo { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-6); }
+
+.appAgency { display: flex; align-items: center; gap: var(--space-3); }
+
+.agencyLogo {
+  width: 44px; height: 44px; border-radius: var(--radius-md);
+  background: var(--gradient-brand); color: #fff;
+  font-weight: 800; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.agencyName { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+
+.appTarget { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.appLabel  { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+
+/* Stage Bar */
+.stageSection { margin-bottom: var(--space-6); }
+
+.stageBar {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.stageWrap { display: flex; align-items: center; flex: 1; }
+.stageWrap:last-child { flex: 0; }
+
+.stageDot {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  position: relative;
+  transition: var(--transition-base);
+}
+
+.stageDone {
+  background: var(--emerald);
+  border-color: var(--emerald);
+  color: #fff;
+}
+
+.stageCurrent {
+  background: var(--blue-primary);
+  border-color: var(--blue-primary);
+  color: #fff;
+}
+
+.stagePulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--blue-primary);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%       { opacity: 0; transform: scale(1.5); }
+}
+
+.stageLine {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  margin: 0 2px;
+  transition: background 0.4s ease;
+}
+
+.stageLineDone { background: var(--emerald); }
+
+.stageLabels {
+  display: flex;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.stageLabel {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stageLabelActive { color: var(--blue-primary); font-weight: 600; }
+
+.appActions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+
+/* Activity */
+.activityCard {}
+
+.activityList { display: flex; flex-direction: column; gap: 0; margin-top: var(--space-4); }
+
+.activityItem {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.activityItem:last-child { border-bottom: none; }
+
+.activityDot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.activityBody { flex: 1; min-width: 0; }
+.activityText { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+.activityTime { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: block; }
+
+/* Quick Links */
+.quickLinks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.quickCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.quickIcon  { font-size: 20px; flex-shrink: 0; }
+.quickLabel { font-size: 13px; font-weight: 600; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .statsRow   { grid-template-columns: repeat(2, 1fr); }
+  .grid       { grid-template-columns: 1fr; }
+  .quickLinks { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .statsRow { grid-template-columns: 1fr 1fr; }
+  .quickLinks { grid-template-columns: 1fr 1fr; }
+}

@@ -1,0 +1,21 @@
+.page { display: flex; flex-direction: column; gap: var(--space-6); }
+.header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-4); }
+.sub { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+.statsRow { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--space-4); }
+.stat { display: flex; flex-direction: column; gap: var(--space-2); }
+.statIcon { font-size: 24px; }
+.statVal { font-size: 26px; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--gradient-brand); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.statLbl { font-size: 12px; color: var(--text-muted); }
+.tableCard { overflow-x: auto; }
+.tableHeader { padding: var(--space-5); border-bottom: 1px solid var(--border); }
+.tableTitle { font-size: 16px; font-weight: 700; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th { padding: var(--space-3) var(--space-5); text-align: left; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; border-bottom: 1px solid var(--border); }
+.table td { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.table tr:last-child td { border-bottom: none; }
+.studentName { font-weight: 700; }
+.program { font-size: 13px; color: var(--text-secondary); }
+.date { font-size: 12px; color: var(--text-muted); }
+.devHint { font-size: 12px; color: var(--text-muted); font-style: italic; }
+.devHint code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; }
+@media (max-width: 768px) { .statsRow { grid-template-columns: repeat(2,1fr); } }
