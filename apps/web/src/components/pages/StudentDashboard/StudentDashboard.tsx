@@ -6,14 +6,58 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import styles from './StudentDashboard.module.css';
 
-const stages = ['Submitted','Under Review','Offer Received','Payment Pending','Visa Processing','Approved'];
+// SVGs to replace emojis
+const ClipboardIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+  </svg>
+);
+
+const FolderIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+  </svg>
+);
+
+const RobotIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+    <circle cx="12" cy="5" r="2"></circle>
+    <path d="M12 7v4"></path>
+    <line x1="8" y1="16" x2="8" y2="16"></line>
+    <line x1="16" y1="16" x2="16" y2="16"></line>
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
+
+const ChatIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+  </svg>
+);
+
+const stages = ['Submitted', 'Under Review', 'Offer Received', 'Payment Pending', 'Visa Processing', 'Approved'];
 const currentStage = 2; // 0-indexed
 
 const stats = [
-  { label: 'Active Applications', value: '2',     icon: '📋', color: 'blue'    },
-  { label: 'Documents Uploaded',  value: '7',     icon: '📁', color: 'purple'  },
-  { label: 'Escrow Held',         value: '৳45K',  icon: '🔒', color: 'amber'   },
-  { label: 'AI Scans Done',       value: '3',     icon: '🤖', color: 'emerald' },
+  { label: 'Active Applications', value: '2',     icon: <ClipboardIcon />, color: 'blue'    },
+  { label: 'Documents Uploaded',  value: '7',     icon: <FolderIcon />,    color: 'purple'  },
+  { label: 'Escrow Held',         value: '৳45K',  icon: <LockIcon />,      color: 'amber'   },
+  { label: 'AI Scans Done',       value: '3',     icon: <RobotIcon />,     color: 'emerald' },
 ];
 
 const activity = [
@@ -25,7 +69,11 @@ const activity = [
 ];
 
 const typeColors: Record<string, string> = {
-  doc: '#4F8EF7', stage: '#10B981', payment: '#F59E0B', ai: '#8B5CF6', submit: '#06B6D4',
+  doc: 'var(--blue-primary)', 
+  stage: 'var(--emerald)', 
+  payment: 'var(--amber)', 
+  ai: 'var(--purple-accent)', 
+  submit: 'var(--cyan)',
 };
 
 export default function StudentDashboard() {
@@ -45,98 +93,108 @@ export default function StudentDashboard() {
       {/* Stats Row */}
       <div className={styles.statsRow} role="list" aria-label="Dashboard statistics">
         {stats.map(s => (
-          <GlassCard key={s.label} padding="md" className={`${styles.statCard} ${styles[`stat-${s.color}`]}`}>
-            <div className={styles.statIconWrap} aria-hidden="true">{s.icon}</div>
+          <div key={s.label} className={`${styles.statCard} ${styles[`stat-${s.color}`]}`}>
+            <div className={styles.statHeader}>
+              <div className={styles.statIconWrap} aria-hidden="true">{s.icon}</div>
+            </div>
             <div className={styles.statValue}>{s.value}</div>
             <div className={styles.statLabel}>{s.label}</div>
-          </GlassCard>
+          </div>
         ))}
       </div>
 
       <div className={styles.grid}>
         {/* Active Application Card */}
-        <GlassCard padding="lg" className={styles.appCard}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>Active Application</h2>
-            <Badge variant="pending" size="sm">Payment Pending</Badge>
-          </div>
+        <div className={styles.appCard}>
+          <div style={{ padding: 'var(--space-6)' }}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Active Application</h2>
+              <Badge variant="pending" size="sm">Payment Pending</Badge>
+            </div>
 
-          <div className={styles.appInfo}>
-            <div className={styles.appAgency}>
-              <div className={styles.agencyLogo} aria-hidden="true">G</div>
-              <div>
-                <div className={styles.agencyName}>Global Edu BD</div>
-                <Badge variant="verified" size="sm">Verified</Badge>
+            <div className={styles.appInfo}>
+              <div className={styles.appAgency}>
+                <div className={styles.agencyLogo} aria-hidden="true">G</div>
+                <div>
+                  <div className={styles.agencyName}>Global Edu BD</div>
+                  <Badge variant="verified" size="sm">Verified</Badge>
+                </div>
+              </div>
+              <div className={styles.appTarget}>
+                <span className={styles.appLabel}>Target</span>
+                <span>University of Toronto, Canada 🇨🇦</span>
               </div>
             </div>
-            <div className={styles.appTarget}>
-              <span className={styles.appLabel}>Target</span>
-              <span>University of Toronto, Canada 🇨🇦</span>
-            </div>
-          </div>
 
-          {/* Stage Progress */}
-          <div className={styles.stageSection} aria-label="Application progress">
-            <div className={styles.stageBar} role="progressbar" aria-valuemin={0} aria-valuemax={stages.length - 1} aria-valuenow={currentStage}>
-              {stages.map((s, i) => (
-                <div key={s} className={styles.stageWrap}>
-                  <div className={`${styles.stageDot} ${i < currentStage ? styles.stageDone : ''} ${i === currentStage ? styles.stageCurrent : ''}`} title={s}>
-                    {i < currentStage ? '✓' : i + 1}
-                    {i === currentStage && <span className={styles.stagePulse} aria-hidden="true" />}
+            {/* Stage Progress */}
+            <div className={styles.stageSection} aria-label="Application progress">
+              <div className={styles.stageBar} role="progressbar" aria-valuemin={0} aria-valuemax={stages.length - 1} aria-valuenow={currentStage}>
+                {stages.map((s, i) => (
+                  <div key={s} className={styles.stageWrap}>
+                    <div className={`${styles.stageDot} ${i < currentStage ? styles.stageDone : ''} ${i === currentStage ? styles.stageCurrent : ''}`} title={s}>
+                      {i < currentStage ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      ) : i + 1}
+                      {i === currentStage && <span className={styles.stagePulse} aria-hidden="true" />}
+                    </div>
+                    {i < stages.length - 1 && (
+                      <div className={`${styles.stageLine} ${i < currentStage ? styles.stageLineDone : ''}`} aria-hidden="true" />
+                    )}
                   </div>
-                  {i < stages.length - 1 && (
-                    <div className={`${styles.stageLine} ${i < currentStage ? styles.stageLineDone : ''}`} aria-hidden="true" />
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
+              <div className={styles.stageLabels} aria-hidden="true">
+                {stages.map((s, i) => (
+                  <span key={s} className={`${styles.stageLabel} ${i === currentStage ? styles.stageLabelActive : ''}`}>{s}</span>
+                ))}
+              </div>
             </div>
-            <div className={styles.stageLabels} aria-hidden="true">
-              {stages.map((s, i) => (
-                <span key={s} className={`${styles.stageLabel} ${i === currentStage ? styles.stageLabelActive : ''}`}>{s}</span>
-              ))}
-            </div>
-          </div>
 
-          <div className={styles.appActions}>
-            <Link href="/dashboard/applications/app-001">
-              <Button size="sm">View Details</Button>
-            </Link>
-            <Link href="/dashboard/payments">
-              <Button size="sm" variant="emerald">Pay Milestone ৳15,000</Button>
-            </Link>
+            <div className={styles.appActions}>
+              <Link href="/dashboard/applications/app-001" style={{ flex: 1 }}>
+                <Button size="md" variant="outline" fullWidth>View Details</Button>
+              </Link>
+              <Link href="/dashboard/payments" style={{ flex: 1 }}>
+                <Button size="md" variant="emerald" fullWidth glow>Pay Milestone ৳15,000</Button>
+              </Link>
+            </div>
           </div>
-        </GlassCard>
+        </div>
 
         {/* Activity Feed */}
-        <GlassCard padding="lg" className={styles.activityCard}>
-          <h2 className={styles.cardTitle}>Recent Activity</h2>
-          <ol className={styles.activityList} aria-label="Recent activity">
-            {activity.map((a, i) => (
-              <li key={i} className={styles.activityItem}>
-                <div className={styles.activityDot} style={{ background: typeColors[a.type] }} aria-hidden="true" />
-                <div className={styles.activityBody}>
-                  <p className={styles.activityText}>{a.text}</p>
-                  <time className={styles.activityTime}>{a.time}</time>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </GlassCard>
+        <div className={styles.activityCard}>
+          <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <h2 className={styles.cardTitle}>Recent Activity</h2>
+            <ol className={styles.activityList} aria-label="Recent activity">
+              {activity.map((a, i) => (
+                <li key={i} className={styles.activityItem}>
+                  <div className={styles.activityDot} style={{ color: typeColors[a.type] }} aria-hidden="true" />
+                  <div className={styles.activityBody}>
+                    <p className={styles.activityText}>{a.text}</p>
+                    <time className={styles.activityTime}>{a.time}</time>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
       </div>
 
       {/* Quick Links */}
       <div className={styles.quickLinks}>
         {[
-          { href: '/dashboard/documents', icon: '📁', label: 'Upload Documents' },
-          { href: '/dashboard/ai-tools',  icon: '🤖', label: 'AI Fraud Checker' },
-          { href: '/directory',           icon: '🔍', label: 'Find Agencies' },
-          { href: '/dashboard/chat',      icon: '💬', label: 'Chat with Agency' },
+          { href: '/dashboard/documents', icon: <FolderIcon />, label: 'Upload Documents' },
+          { href: '/dashboard/ai-tools',  icon: <RobotIcon />,  label: 'AI Fraud Checker' },
+          { href: '/directory',           icon: <SearchIcon />, label: 'Find Agencies' },
+          { href: '/dashboard/chat',      icon: <ChatIcon />,   label: 'Chat with Agency' },
         ].map(q => (
           <Link key={q.href} href={q.href}>
-            <GlassCard hover padding="sm" className={styles.quickCard}>
+            <div className={styles.quickCard} style={{ padding: 'var(--space-3)' }}>
               <span className={styles.quickIcon} aria-hidden="true">{q.icon}</span>
               <span className={styles.quickLabel}>{q.label}</span>
-            </GlassCard>
+            </div>
           </Link>
         ))}
       </div>

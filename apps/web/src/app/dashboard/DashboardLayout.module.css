@@ -1,6 +1,18 @@
 .layout {
   display: flex;
   min-height: 100vh;
+  background: var(--bg-base);
+  position: relative;
+}
+
+/* Ambient mesh gradient background for dashboards */
+.layout::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--gradient-mesh);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .main {
@@ -9,14 +21,16 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: margin-left 300ms var(--ease-out);
+  position: relative;
+  z-index: 1;
 }
 
 .content {
   flex: 1;
   padding: var(--space-8);
   overflow-y: auto;
-  background: var(--bg-base);
+  background: transparent;
   min-height: calc(100vh - var(--topbar-height));
   margin-top: var(--topbar-height);
 }

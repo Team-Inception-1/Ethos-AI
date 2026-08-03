@@ -14,7 +14,11 @@ const stats = [
 
 const features = [
   {
-    icon: '🛡️',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    ),
     title: 'Verified Agencies',
     titleBn: 'যাচাইকৃত এজেন্সি',
     desc: 'Every agency is verified against government registration, complaints history, and AI risk scoring before they appear in our directory.',
@@ -22,15 +26,24 @@ const features = [
     color: 'emerald',
   },
   {
-    icon: '🔒',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    ),
     title: 'Escrow Payments',
     titleBn: 'এস্ক্রো পেমেন্ট',
     desc: 'Never pay upfront. Your money is held in escrow and released milestone by milestone — only when conditions are met.',
-    descBn: 'আগেভাগে পরিশোধ করবেন না। আপনার অর্থ এস্ক্রোতে রাখা হয় এবং মাইলস্টোন অনুযায়ী মুক্তি দেওয়া হয়।',
+    descBn: 'আগেভাগে পরিশোধ করবেন ঘন না। আপনার অর্থ এস্ক্রোতে রাখা হয় এবং মাইলস্টোন অনুযায়ী মুক্তি দেওয়া হয়।',
     color: 'blue',
   },
   {
-    icon: '🤖',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10a9.96 9.96 0 0 1-5-1.34L2 22l1.34-5A9.96 9.96 0 0 1 2 12 10 10 0 0 1 12 2z"/>
+        <circle cx="8.5" cy="12.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="12.5" r="1.2" fill="currentColor"/>
+      </svg>
+    ),
     title: 'AI Fraud Shield',
     titleBn: 'AI জালিয়াতি ঢাল',
     desc: 'Upload any offer letter or agreement. Our AI detects fake documents, hidden fees, and predatory clauses instantly.',
@@ -38,7 +51,11 @@ const features = [
     color: 'purple',
   },
   {
-    icon: '💬',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    ),
     title: 'Bangla AI Assistant',
     titleBn: 'বাংলা AI সহকারী',
     desc: 'Get plain-language explanations of your application status, agreements, and next steps — in Bangla or English.',
@@ -80,19 +97,34 @@ function StatCard({ value, suffix, label, labelBn, lang, trigger }: typeof stats
   );
 }
 
-export default function LandingPage() {
-  const [lang, setLang] = useState<'en'|'bn'>('en');
-  const statsRef = useRef<HTMLDivElement>(null);
-  const [statsTrigger, setStatsTrigger] = useState(false);
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setStatsTrigger(true); },
-      { threshold: 0.4 }
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -50px 0px' }
     );
-    if (statsRef.current) obs.observe(statsRef.current);
+    if (ref.current) obs.observe(ref.current);
     return () => obs.disconnect();
   }, []);
+
+  return { ref, isVisible };
+}
+
+export default function LandingPage() {
+  const [lang, setLang] = useState<'en'|'bn'>('en');
+  
+  const statsReveal = useScrollReveal();
+  const featuresReveal = useScrollReveal();
+  const stepsReveal = useScrollReveal();
+  const ctaReveal = useScrollReveal();
 
   return (
     <main className={styles.main}>
@@ -102,14 +134,14 @@ export default function LandingPage() {
           <div className={styles.orb1} />
           <div className={styles.orb2} />
           <div className={styles.orbPurple} />
-          {Array.from({ length: 60 }).map((_, i) => (
+          {Array.from({ length: 40 }).map((_, i) => (
             <div key={i} className={styles.star} style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animationDelay: `${Math.random() * 4}s`,
               width: `${Math.random() * 2 + 1}px`,
               height: `${Math.random() * 2 + 1}px`,
-              opacity: Math.random() * 0.6 + 0.2,
+              opacity: Math.random() * 0.6 + 0.1,
             }} />
           ))}
         </div>
@@ -117,7 +149,7 @@ export default function LandingPage() {
         <div className={`${styles.heroContent} container`}>
           <div className={styles.heroPill}>
             <span className={styles.pillDot} aria-hidden="true" />
-            {lang === 'en' ? '🇧🇩  Built for Bangladeshi Students' : '🇧🇩  বাংলাদেশী শিক্ষার্থীদের জন্য নির্মিত'}
+            {lang === 'en' ? 'Built for Bangladeshi Students' : 'বাংলাদেশী শিক্ষার্থীদের জন্য নির্মিত'}
           </div>
 
           <h1 className={`${styles.heroTitle} display`}>
@@ -149,7 +181,7 @@ export default function LandingPage() {
 
           <div className={styles.heroTrust}>
             <div className={styles.trustAvatars} aria-label="Recent users">
-              {['A','B','C','D'].map(l => <div key={l} className={styles.trustAvatar}>{l}</div>)}
+              {['A','M','S','R'].map(l => <div key={l} className={styles.trustAvatar}>{l}</div>)}
             </div>
             <span className={styles.trustText}>
               {lang === 'en' ? 'Trusted by 2,400+ students this year' : 'এই বছর ২,৪০০+ শিক্ষার্থী বিশ্বাস করেছেন'}
@@ -159,9 +191,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ── */}
-      <section className={styles.featuresSection} aria-label="Features">
+      <section className={styles.featuresSection} aria-label="Features" ref={featuresReveal.ref}>
         <div className="container">
-          <div className={styles.sectionHeader}>
+          <div className={`${styles.sectionHeader} ${featuresReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}>
             <h2>{lang === 'en' ? 'Everything You Need to Study Safely' : 'নিরাপদে পড়াশোনার জন্য সবকিছু'}</h2>
             <p className={styles.sectionSubtitle}>
               {lang === 'en'
@@ -170,32 +202,44 @@ export default function LandingPage() {
             </p>
           </div>
           <div className={styles.featuresGrid}>
-            {features.map((f) => (
-              <GlassCard key={f.title} hover className={styles.featureCard}>
-                <div className={`${styles.featureIcon} ${styles[`icon-${f.color}`]}`} aria-hidden="true">{f.icon}</div>
-                <h3 className={styles.featureTitle}>{lang === 'en' ? f.title : f.titleBn}</h3>
-                <p className={styles.featureDesc}>{lang === 'en' ? f.desc : f.descBn}</p>
-              </GlassCard>
+            {features.map((f, i) => (
+              <div 
+                key={f.title} 
+                className={`${featuresReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`} 
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <GlassCard hover className={styles.featureCard} padding="lg">
+                  <div className={`${styles.featureIcon} ${styles[`icon-${f.color}`]}`} aria-hidden="true">{f.icon}</div>
+                  <h3 className={styles.featureTitle}>{lang === 'en' ? f.title : f.titleBn}</h3>
+                  <p className={styles.featureDesc}>{lang === 'en' ? f.desc : f.descBn}</p>
+                </GlassCard>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* ── Stats ── */}
-      <section className={styles.statsSection} aria-label="Statistics" ref={statsRef}>
+      <section className={styles.statsSection} aria-label="Statistics" ref={statsReveal.ref}>
         <div className="container">
           <div className={styles.statsGrid}>
-            {stats.map(s => (
-              <StatCard key={s.label} {...s} lang={lang} trigger={statsTrigger} />
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                className={`${statsReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <StatCard {...s} lang={lang} trigger={statsReveal.isVisible} />
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* ── How It Works ── */}
-      <section className={styles.stepsSection} id="how" aria-label="How it works">
+      <section className={styles.stepsSection} id="how" aria-label="How it works" ref={stepsReveal.ref}>
         <div className="container">
-          <div className={styles.sectionHeader}>
+          <div className={`${styles.sectionHeader} ${stepsReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}>
             <h2>{lang === 'en' ? 'How Ethos AI Works' : 'Ethos AI কীভাবে কাজ করে'}</h2>
             <p className={styles.sectionSubtitle}>
               {lang === 'en' ? 'Four simple steps to a safer study-abroad journey.' : 'নিরাপদ বিদেশ যাত্রার চারটি সহজ ধাপ।'}
@@ -203,10 +247,14 @@ export default function LandingPage() {
           </div>
           <div className={styles.stepsGrid}>
             {steps.map((s, i) => (
-              <div key={s.n} className={styles.step}>
+              <div 
+                key={s.n} 
+                className={`${styles.step} ${stepsReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
                 <div className={styles.stepNumber} aria-hidden="true">{s.n}</div>
                 {i < steps.length - 1 && <div className={styles.stepConnector} aria-hidden="true" />}
-                <GlassCard padding="md" className={styles.stepCard}>
+                <GlassCard padding="lg" className={styles.stepCard} variant="elevated">
                   <h3 className={styles.stepTitle}>{s.title}</h3>
                   <p className={styles.stepDesc}>{s.desc}</p>
                 </GlassCard>
@@ -217,25 +265,27 @@ export default function LandingPage() {
       </section>
 
       {/* ── Agency CTA ── */}
-      <section className={styles.agencyCtaSection} aria-label="Agency CTA">
+      <section className={styles.agencyCtaSection} aria-label="Agency CTA" ref={ctaReveal.ref}>
         <div className="container">
-          <GlassCard glow padding="lg" className={styles.agencyCta}>
-            <div className={styles.agencyCtaContent}>
-              <div>
-                <h2>{lang === 'en' ? 'Are You a Consultancy Agency?' : 'আপনি কি একটি কনসালটেন্সি এজেন্সি?'}</h2>
-                <p className={styles.agencyCtaDesc}>
-                  {lang === 'en'
-                    ? 'Join Ethos AI to get verified, build trust with students, and grow your business with our analytics dashboard.'
-                    : 'যাচাই পেতে, শিক্ষার্থীদের সাথে আস্থা তৈরি করতে এবং আমাদের অ্যানালিটিক্স ড্যাশবোর্ড দিয়ে ব্যবসা বৃদ্ধি করতে Ethos AI-তে যোগ দিন।'}
-                </p>
+          <div className={`${ctaReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}>
+            <GlassCard glow padding="lg" className={styles.agencyCta} variant="frosted">
+              <div className={styles.agencyCtaContent}>
+                <div>
+                  <h2>{lang === 'en' ? 'Are You a Consultancy Agency?' : 'আপনি কি একটি কনসালটেন্সি এজেন্সি?'}</h2>
+                  <p className={styles.agencyCtaDesc}>
+                    {lang === 'en'
+                      ? 'Join Ethos AI to get verified, build trust with students, and grow your business with our analytics dashboard.'
+                      : 'যাচাই পেতে, শিক্ষার্থীদের সাথে আস্থা তৈরি করতে এবং আমাদের অ্যানালিটিক্স ড্যাশবোর্ড দিয়ে ব্যবসা বৃদ্ধি করতে Ethos AI-তে যোগ দিন।'}
+                  </p>
+                </div>
+                <Link href="/register?role=agency">
+                  <Button variant="emerald" size="lg">
+                    {lang === 'en' ? 'Apply for Verification →' : 'যাচাইকরণের জন্য আবেদন করুন →'}
+                  </Button>
+                </Link>
               </div>
-              <Link href="/register?role=agency">
-                <Button variant="emerald" size="lg">
-                  {lang === 'en' ? 'Apply for Verification →' : 'যাচাইকরণের জন্য আবেদন করুন →'}
-                </Button>
-              </Link>
-            </div>
-          </GlassCard>
+            </GlassCard>
+          </div>
         </div>
       </section>
 

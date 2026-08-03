@@ -1,46 +1,123 @@
+/* ============================================================
+   GlassCard v2.0 — Premium Glassmorphism Card
+   ============================================================ */
+
+/* ── Base Card ── */
 .card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  transition: var(--transition-base);
   position: relative;
   overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-glass);
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
 }
 
-[data-theme='light'] .card {
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: var(--shadow-sm);
+/* Inner highlight — frosted glass top edge */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-highlight);
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 1;
 }
 
-/* Padding variants */
+/* ── Variants ── */
+.elevated {
+  background: var(--glass-bg-elevated);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+}
+
+.frosted {
+  background: var(--glass-bg-frosted);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border-color: var(--glass-border-hover);
+}
+
+.bordered {
+  background: var(--glass-bg);
+  border: none;
+  position: relative;
+}
+
+/* Animated gradient border */
+.bordered::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(79,142,247,0.2),
+    rgba(139,92,246,0.15),
+    rgba(16,185,129,0.1),
+    rgba(79,142,247,0.2)
+  );
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* ── Padding Variants ── */
 .pad-none { padding: 0; }
 .pad-sm   { padding: var(--space-4); }
 .pad-md   { padding: var(--space-6); }
-.pad-lg   { padding: var(--space-8); }
+.pad-lg   { padding: var(--space-8) var(--space-6); }
 
-/* Hoverable */
+@media (min-width: 768px) {
+  .pad-lg { padding: var(--space-8); }
+}
+
+/* ── Hoverable ── */
 .hoverable {
   cursor: pointer;
 }
+
 .hoverable:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-md), 0 0 32px var(--blue-glow-sm);
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
   transform: translateY(-2px);
 }
+
 .hoverable:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.995);
+  transition-duration: 100ms;
 }
 
-[data-theme='light'] .hoverable:hover {
-  background: #fff;
-  box-shadow: var(--shadow-md), 0 0 24px var(--blue-glow-sm);
-}
-
-/* Glow */
+/* ── Glow ── */
 .glow {
-  border-color: rgba(79, 142, 247, 0.2);
-  box-shadow: 0 0 32px var(--blue-glow-sm);
+  border-color: rgba(79,142,247,0.15);
+  box-shadow: var(--shadow-glass), var(--shadow-glow);
+}
+
+.glow:hover {
+  box-shadow: var(--shadow-glass), var(--shadow-glow-lg);
+}
+
+/* ── Color accents ── */
+.accent-blue    { border-top: 2px solid var(--blue-primary); }
+.accent-emerald { border-top: 2px solid var(--emerald); }
+.accent-purple  { border-top: 2px solid var(--purple-accent); }
+.accent-amber   { border-top: 2px solid var(--amber); }
+.accent-danger  { border-top: 2px solid var(--red-danger); }
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .pad-md { padding: var(--space-4); }
+  .pad-lg { padding: var(--space-5); }
 }

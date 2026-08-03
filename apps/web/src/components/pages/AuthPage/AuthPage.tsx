@@ -12,10 +12,49 @@ interface AuthPageProps {
   mode: Mode;
 }
 
-const roles: { id: UserRole; label: string; labelBn: string; icon: string; desc: string }[] = [
-  { id: 'student', icon: '🎓', label: 'Student', labelBn: 'শিক্ষার্থী', desc: 'Applying to study abroad' },
-  { id: 'parent', icon: '👨‍👧', label: 'Parent', labelBn: 'অভিভাবক', desc: 'Managing child application' },
-  { id: 'agency', icon: '🏢', label: 'Agency', labelBn: 'এজেন্সি', desc: 'Consultancy service provider' },
+// Icons replaced with SVGs
+const StudentIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+  </svg>
+);
+
+const ParentIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+    <circle cx="9" cy="7" r="4"></circle>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+  </svg>
+);
+
+const AgencyIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+    <path d="M9 22v-4h6v4"/>
+    <path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/>
+    <path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M12 10h.01"/>
+    <path d="M8 14h.01"/><path d="M16 14h.01"/><path d="M12 14h.01"/>
+  </svg>
+);
+
+const AdminIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+);
+
+const QuoteIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity="0.1" style={{ position: 'absolute', top: 16, left: 16, zIndex: 0 }}>
+    <path d="M14.017 21L16.411 14.603H10.893V3H21v11.397L18.606 21h-4.589zm-10.893 0L5.518 14.603H0V3h10.107v11.397L7.714 21H3.124z"/>
+  </svg>
+);
+
+const roles: { id: UserRole; label: string; labelBn: string; icon: React.ReactNode; desc: string }[] = [
+  { id: 'student', icon: <StudentIcon />, label: 'Student', labelBn: 'শিক্ষার্থী', desc: 'Applying to study abroad' },
+  { id: 'parent', icon: <ParentIcon />, label: 'Parent', labelBn: 'অভিভাবক', desc: 'Managing child application' },
+  { id: 'agency', icon: <AgencyIcon />, label: 'Agency', labelBn: 'এজেন্সি', desc: 'Consultancy service provider' },
 ];
 
 export default function AuthPage({ mode }: AuthPageProps) {
@@ -125,25 +164,34 @@ export default function AuthPage({ mode }: AuthPageProps) {
           </span>
         </Link>
         <div className={styles.leftContent}>
-          <blockquote className={styles.quote}>
-            <p>
-              {lang === 'en'
-                ? '"I finally trusted a consultancy. Ethos AI showed me it was verified before I paid a single taka."'
-                : '"আমি অবশেষে একটি কনসালটেন্সিকে বিশ্বাস করতে পেরেছি। একটি টাকা দেওয়ার আগেই Ethos AI আমাকে দেখিয়েছে এটি যাচাইকৃত।"'}
-            </p>
-            <footer>— Riya Ahmed, {lang === 'en' ? 'IELTS 7.5, Canada 2025' : 'IELTS ৭.৫, কানাডা ২০২৫'}</footer>
-          </blockquote>
+          <div className={styles.quoteCard}>
+            <QuoteIcon />
+            <blockquote className={styles.quote}>
+              <p>
+                {lang === 'en'
+                  ? '"I finally trusted a consultancy. Ethos AI showed me it was verified before I paid a single taka."'
+                  : '"আমি অবশেষে একটি কনসালটেন্সিকে বিশ্বাস করতে পেরেছি। একটি টাকা দেওয়ার আগেই Ethos AI আমাকে দেখিয়েছে এটি যাচাইকৃত।"'}
+              </p>
+              <footer>
+                <div className={styles.quoteAvatar}>RA</div>
+                <div>
+                  <strong>Riya Ahmed</strong>
+                  <div>{lang === 'en' ? 'IELTS 7.5, Canada 2025' : 'IELTS ৭.৫, কানাডা ২০২৫'}</div>
+                </div>
+              </footer>
+            </blockquote>
+          </div>
         </div>
         <div className={styles.leftStats}>
-          <div>
+          <div className={styles.statItem}>
             <span className={styles.statNum}>2,400+</span>
             <span className={styles.statLbl}>{lang === 'en' ? 'Protected' : 'সুরক্ষিত'}</span>
           </div>
-          <div>
+          <div className={styles.statItem}>
             <span className={styles.statNum}>340+</span>
             <span className={styles.statLbl}>{lang === 'en' ? 'Agencies' : 'এজেন্সি'}</span>
           </div>
-          <div>
+          <div className={styles.statItem}>
             <span className={styles.statNum}>98%</span>
             <span className={styles.statLbl}>{lang === 'en' ? 'Success' : 'সাফল্য'}</span>
           </div>
@@ -155,6 +203,45 @@ export default function AuthPage({ mode }: AuthPageProps) {
         <div className={styles.formWrap}>
           {/* Lang Toggle */}
           <div className={styles.formHeader}>
+            <div className={styles.formTitleWrap}>
+              {step === 'form' ? (
+                <>
+                  <h1 className={styles.formTitle}>
+                    {mode === 'login'
+                      ? lang === 'en'
+                        ? 'Welcome Back'
+                        : 'স্বাগতম'
+                      : lang === 'en'
+                      ? 'Create Account'
+                      : 'অ্যাকাউন্ট তৈরি করুন'}
+                  </h1>
+                  <p className={styles.formSub}>
+                    {mode === 'login'
+                      ? lang === 'en'
+                        ? 'Sign in to your Ethos AI account'
+                        : 'আপনার Ethos AI অ্যাকাউন্টে সাইন ইন করুন'
+                      : lang === 'en'
+                      ? 'Join 2,400+ students already protected'
+                      : 'ইতিমধ্যে সুরক্ষিত ২,৪০০+ শিক্ষার্থীদের সাথে যোগ দিন'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={() => setStep('form')} className={styles.backBtn}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    {lang === 'en' ? 'Back' : 'ফিরে যান'}
+                  </button>
+                  <h1 className={styles.formTitle}>{lang === 'en' ? 'Verify OTP' : 'OTP যাচাই করুন'}</h1>
+                  <p className={styles.formSub}>
+                    {lang === 'en'
+                      ? 'We sent a 6-digit verification code to your phone & email.'
+                      : 'আমরা আপনার ফোন ও ইমেইলে একটি ৬ সংখ্যার কোড পাঠিয়েছি।'}
+                  </p>
+                </>
+              )}
+            </div>
             <button className={styles.langBtn} onClick={() => setLang((l) => (l === 'en' ? 'bn' : 'en'))}>
               {lang === 'en' ? 'বাং' : 'EN'}
             </button>
@@ -162,25 +249,6 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
           {step === 'form' ? (
             <>
-              <h1 className={styles.formTitle}>
-                {mode === 'login'
-                  ? lang === 'en'
-                    ? 'Welcome Back'
-                    : 'স্বাগতম'
-                  : lang === 'en'
-                  ? 'Create Account'
-                  : 'অ্যাকাউন্ট তৈরি করুন'}
-              </h1>
-              <p className={styles.formSub}>
-                {mode === 'login'
-                  ? lang === 'en'
-                    ? 'Sign in to your Ethos AI account'
-                    : 'আপনার Ethos AI অ্যাকাউন্টে সাইন ইন করুন'
-                  : lang === 'en'
-                  ? 'Join 2,400+ students already protected'
-                  : 'ইতিমধ্যে সুরক্ষিত ২,৪০০+ শিক্ষার্থীদের সাথে যোগ দিন'}
-              </p>
-
               {/* Role Selector (register only) */}
               {mode === 'register' && (
                 <div className={styles.roleGrid} role="radiogroup" aria-label="Account type">
@@ -203,7 +271,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 </div>
               )}
 
-              {errorMsg && <div style={{ color: 'var(--rose)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
+              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
 
               <form className={styles.form} onSubmit={handleFormSubmit}>
                 {mode === 'register' && (
@@ -284,31 +352,36 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
               {/* 1-Click Fast Demo Login */}
               <div className={styles.demoPanel}>
-                <span className={styles.demoTitle}>⚡ Quick 1-Click Demo Login</span>
+                <span className={styles.demoTitle}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                  Quick 1-Click Demo Login
+                </span>
                 <div className={styles.demoGrid}>
                   <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('student')}>
-                    <span className={styles.demoIcon}>🎓</span>
+                    <span className={styles.demoIcon}><StudentIcon /></span>
                     <div>
                       <div>Riya Ahmed</div>
                       <span className={styles.demoRoleLabel}>Student Profile</span>
                     </div>
                   </button>
                   <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('parent')}>
-                    <span className={styles.demoIcon}>👨‍👧</span>
+                    <span className={styles.demoIcon}><ParentIcon /></span>
                     <div>
                       <div>Farhana Ahmed</div>
                       <span className={styles.demoRoleLabel}>Parent Guardian</span>
                     </div>
                   </button>
                   <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('agency')}>
-                    <span className={styles.demoIcon}>🏢</span>
+                    <span className={styles.demoIcon}><AgencyIcon /></span>
                     <div>
                       <div>Global Edu BD</div>
                       <span className={styles.demoRoleLabel}>Verified Agency</span>
                     </div>
                   </button>
                   <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('admin')}>
-                    <span className={styles.demoIcon}>🛡️</span>
+                    <span className={styles.demoIcon}><AdminIcon /></span>
                     <div>
                       <div>Admin Panel</div>
                       <span className={styles.demoRoleLabel}>Platform Admin</span>
@@ -338,19 +411,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           ) : (
             /* OTP Step */
             <>
-              <div className={styles.otpBack}>
-                <button type="button" onClick={() => setStep('form')} className={styles.backBtn}>
-                  ← {lang === 'en' ? 'Back' : 'ফিরে যান'}
-                </button>
-              </div>
-              <h1 className={styles.formTitle}>{lang === 'en' ? 'Verify OTP' : 'OTP যাচাই করুন'}</h1>
-              <p className={styles.formSub}>
-                {lang === 'en'
-                  ? 'We sent a 6-digit verification code to your phone & email.'
-                  : 'আমরা আপনার ফোন ও ইমেইলে একটি ৬ সংখ্যার কোড পাঠিয়েছি।'}
-              </p>
-
-              {errorMsg && <div style={{ color: 'var(--rose)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
+              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
 
               <div className={styles.otpGrid} role="group" aria-label="OTP input">
                 {otp.map((v, i) => (
@@ -379,7 +440,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
               <p className={styles.resend}>
                 {lang === 'en' ? "Didn't receive code? " : 'কোড পাননি? '}
                 {otpCountdown > 0 ? (
-                  <span style={{ color: 'var(--blue-primary)', fontWeight: 600 }}>Resend in {otpCountdown}s</span>
+                  <span style={{ color: 'var(--blue-light)', fontWeight: 600 }}>Resend in {otpCountdown}s</span>
                 ) : (
                   <button type="button" onClick={resendOtp} className={styles.switchLink}>
                     {lang === 'en' ? 'Resend OTP' : 'OTP পুনরায় পাঠান'}

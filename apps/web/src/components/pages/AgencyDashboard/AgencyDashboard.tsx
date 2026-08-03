@@ -25,10 +25,26 @@ export default function AgencyDashboard() {
       {/* Stats */}
       <div className={styles.statsRow}>
         {[
-          { label:'Profile Views', value:'1,284', icon:'👁️' },
-          { label:'Inquiries',     value:'47',    icon:'📩' },
-          { label:'Active Apps',   value:'12',    icon:'📋' },
-          { label:'Conversion',    value:'34%',   icon:'📈' },
+          { 
+            label:'Profile Views', 
+            value:'1,284', 
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> 
+          },
+          { 
+            label:'Inquiries',     
+            value:'47',    
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> 
+          },
+          { 
+            label:'Active Apps',   
+            value:'12',    
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg> 
+          },
+          { 
+            label:'Conversion',    
+            value:'34%',   
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> 
+          },
         ].map(s => (
           <GlassCard key={s.label} padding="md" className={styles.stat}>
             <div className={styles.statIcon} aria-hidden="true">{s.icon}</div>

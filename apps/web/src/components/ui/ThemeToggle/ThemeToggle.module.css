@@ -1,9 +1,14 @@
+/* ============================================================
+   ThemeToggle v2.0 — Glassmorphic Theme Switch
+   ============================================================ */
+
 .toggle {
   cursor: pointer;
   background: none;
   border: none;
   padding: 2px;
   border-radius: var(--radius-full);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .track {
@@ -11,16 +16,22 @@
   align-items: center;
   width: 48px;
   height: 26px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--glass-bg-elevated);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-full);
   padding: 2px;
-  transition: background 0.3s ease;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
   position: relative;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .toggle:hover .track {
-  border-color: var(--border-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: 0 0 12px var(--blue-glow-sm);
 }
 
 .thumb {
@@ -30,7 +41,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+  transition:
+    transform 350ms var(--ease-spring),
+    background 300ms var(--ease-out),
+    box-shadow 300ms var(--ease-out);
   position: absolute;
   top: 2px;
   left: 2px;
@@ -40,10 +54,12 @@
   background: var(--blue-primary);
   color: #fff;
   transform: translateX(0);
+  box-shadow: 0 0 8px var(--blue-glow);
 }
 
 .light {
   background: #F59E0B;
   color: #fff;
   transform: translateX(22px);
+  box-shadow: 0 0 8px rgba(245,158,11,0.3);
 }
