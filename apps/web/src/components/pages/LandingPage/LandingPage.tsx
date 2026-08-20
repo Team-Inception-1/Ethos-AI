@@ -134,16 +134,22 @@ export default function LandingPage() {
           <div className={styles.orb1} />
           <div className={styles.orb2} />
           <div className={styles.orbPurple} />
-          {Array.from({ length: 40 }).map((_, i) => (
-            <div key={i} className={styles.star} style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 4}s`,
-              width: `${Math.random() * 2 + 1}px`,
-              height: `${Math.random() * 2 + 1}px`,
-              opacity: Math.random() * 0.6 + 0.1,
-            }} />
-          ))}
+          {Array.from({ length: 40 }).map((_, i) => {
+            const random = (offset: number) => {
+              const x = Math.sin(i * 1000 + offset) * 10000;
+              return parseFloat((x - Math.floor(x)).toFixed(4));
+            };
+            return (
+              <div key={i} className={styles.star} style={{
+                left: `${(random(1) * 100).toFixed(4)}%`,
+                top: `${(random(2) * 100).toFixed(4)}%`,
+                animationDelay: `${(random(3) * 4).toFixed(4)}s`,
+                width: `${(random(4) * 2 + 1).toFixed(4)}px`,
+                height: `${(random(5) * 2 + 1).toFixed(4)}px`,
+                opacity: random(6) * 0.6 + 0.1,
+              }} />
+            );
+          })}
         </div>
 
         <div className={`${styles.heroContent} container`}>
