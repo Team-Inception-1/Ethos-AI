@@ -18,9 +18,10 @@
 
 | Task ID | Task | Assignee | Criteria |
 |---|---|---|---|
-| K-13 | Add Bangla voice assistant for guardian updates | Tasin + Prova | 1, 2, 7 |
+| K-13 | Add Bangla voice assistant for guardian updates | Prova | 1, 2, 7 |
 | K-14 | Add real-time dispute chat between student and agency | Tasin | 1, 2, 3 |
 | K-15 | Add production payment gateway integration (SSLCommerz/bKash) | Tasin | 3 |
+| K-16 | Add CI workflow for lint, test, and build checks | Prova | 4, 5 |
 
 ### 📝 To Do
 
@@ -28,7 +29,7 @@
 |---|---|---|---|
 | K-08 | Build PostgreSQL schema + Prisma migrations + seed data | Tasin | 3 |
 | K-09 | Connect frontend pages to real API client (remove mock data) | Prova | 2, 3, 5 |
-| K-10 | Add end-to-end happy-path test for full student workflow | Prova + Tasin | 2, 4, 5 |
+| K-10 | Add end-to-end happy-path test for full student workflow | Prova | 2, 4, 5 |
 
 ### 🚀 In Progress
 
@@ -52,7 +53,18 @@
 |---|---|---|---|
 | K-01 | Project setup, folder structure, baseline architecture docs | Tasin | 8 |
 | K-02 | UI design system (glassmorphism components + theme support) | Prova | 7 |
-| K-03 | Initial README with setup instructions and module overview | Prova + Tasin | 8 |
+| K-03 | Initial README with setup instructions and module overview | Prova | 8 |
+
+---
+
+## ⚖️ Equal Task Distribution Summary
+
+| Member | Assigned Tasks | Task IDs |
+|---|---:|---|
+| **Tasin** | **8** | K-01, K-04, K-06, K-07, K-08, K-12, K-14, K-15 |
+| **Prova** | **8** | K-02, K-03, K-05, K-09, K-10, K-11, K-13, K-16 |
+
+Both team members now have equal ownership by task count.
 
 ---
 
@@ -73,8 +85,8 @@ The board supports this integrated flow across criteria:
 |---|---|
 | 1. Core Features Implemented | K-04, K-05, K-06, K-07 |
 | 2. Feature Integration & Workflow | K-05, K-06, K-07, K-10 |
-| 3. Backend / Database Functionality | K-04, K-06, K-07, K-08, K-09 |
-| 4. Git & Team Collaboration | K-10 (shared workflow validation), PR review process |
-| 5. Code Quality & SWE Practices | K-09, K-12 |
-| 7. UI/UX & Usability | K-02, K-05, K-11 |
+| 3. Backend / Database Functionality | K-04, K-06, K-07, K-08, K-09, K-14, K-15 |
+| 4. Git & Team Collaboration | K-10, K-16 |
+| 5. Code Quality & SWE Practices | K-09, K-10, K-12, K-16 |
+| 7. UI/UX & Usability | K-02, K-05, K-11, K-13 |
 | 8. Project Organization & Documentation | K-01, K-03, this Kanban document |
