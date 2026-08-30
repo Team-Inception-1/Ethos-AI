@@ -3,11 +3,11 @@
 .list { display: flex; flex-direction: column; gap: var(--space-4); }
 .appRow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; cursor: pointer; }
 .appLeft { display: flex; align-items: center; gap: var(--space-4); }
-.agencyLogo { width: 48px; height: 48px; border-radius: var(--radius-md); background: var(--gradient-brand); color: #fff; font-weight: 800; font-size: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.agencyName { font-size: 16px; font-weight: 700; }
+.agencyLogo { width: 48px; height: 48px; border-radius: var(--radius-md); background: var(--blue-primary); border: 2px solid var(--ink); box-shadow: var(--shadow-xs); color: #fff; font-weight: 800; font-size: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.agencyName { font-size: 16px; font-weight: 800; }
 .target { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
 .date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .appRight { display: flex; align-items: center; gap: var(--space-4); }
 .emptyHint { padding: var(--space-4); }
 .hint { font-size: 13px; color: var(--text-muted); font-style: italic; }
-.hint code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.hint code { background: var(--bg-elevated); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 12px; }

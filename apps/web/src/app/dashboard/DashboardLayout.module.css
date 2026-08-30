@@ -5,14 +5,8 @@
   position: relative;
 }
 
-/* Ambient mesh gradient background for dashboards */
 .layout::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: var(--gradient-mesh);
-  pointer-events: none;
-  z-index: 0;
+  content: none;
 }
 
 .main {
@@ -21,7 +15,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  transition: margin-left 300ms var(--ease-out);
+  transition: margin-left 220ms var(--ease-out);
   position: relative;
   z-index: 1;
 }

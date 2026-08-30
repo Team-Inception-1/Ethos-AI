@@ -1,18 +1,18 @@
 .page { display: flex; flex-direction: column; gap: var(--space-6); }
 .header { display: flex; justify-content: space-between; align-items: center; }
-.uploadZone { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); border: 2px dashed rgba(79,142,247,0.3); cursor: pointer; transition: var(--transition-base); }
-.uploadZone:hover { border-color: var(--blue-primary); background: rgba(79,142,247,0.05); }
+.uploadZone { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); border: var(--border-width) dashed var(--border); border-radius: var(--radius-lg); padding: var(--space-8); cursor: pointer; transition: var(--transition-base); }
+.uploadZone:hover { border-color: var(--blue-primary); background: var(--bg-hover); transform: translate(-1px, -1px); }
 .uploadIcon { font-size: 36px; }
-.uploadLabel { font-size: 15px; font-weight: 500; }
-.uploadLink { color: var(--blue-primary); cursor: pointer; }
+.uploadLabel { font-size: 15px; font-weight: 700; }
+.uploadLink { color: var(--blue-primary); font-weight: 700; text-decoration: underline; cursor: pointer; }
 .uploadHint { font-size: 12px; color: var(--text-muted); }
 .devHint { font-size: 12px; color: var(--text-muted); font-style: italic; }
-.devHint code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; }
+.devHint code { background: var(--bg-elevated); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
 .docGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
 .docCard { display: flex; flex-direction: column; gap: var(--space-3); }
 .docIcon { font-size: 28px; }
 .docMeta { flex: 1; }
-.docName { font-size: 14px; font-weight: 700; }
+.docName { font-size: 14px; font-weight: 800; }
 .docInfo { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .docActions { display: flex; gap: var(--space-2); }
 @media (max-width: 640px) { .docGrid { grid-template-columns: 1fr; } }

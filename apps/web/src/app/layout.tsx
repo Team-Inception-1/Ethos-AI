@@ -24,12 +24,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#040712" media="(prefers-color-scheme: dark)" />
-        <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#15141B" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#FBF3E3" media="(prefers-color-scheme: light)" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Hind+Siliguri:wght@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=Hind+Siliguri:wght@500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>

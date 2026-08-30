@@ -3,17 +3,17 @@
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
 .toolCard { display: flex; flex-direction: column; gap: var(--space-5); }
 .toolHeader { display: flex; gap: var(--space-4); align-items: flex-start; }
-.toolIconWrap { font-size: 32px; width: 52px; height: 52px; border-radius: var(--radius-lg); background: rgba(79,142,247,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.toolTitle { font-size: 17px; font-weight: 700; }
+.toolIconWrap { font-size: 32px; width: 52px; height: 52px; border-radius: var(--radius-lg); background: var(--blue-primary); border: 2px solid var(--ink); box-shadow: var(--shadow-xs); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.toolTitle { font-size: 17px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; }
 .toolSubtitle { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
 
 /* Upload Zone */
-.uploadZone { border: 2px dashed rgba(79,142,247,0.3); border-radius: var(--radius-lg); padding: var(--space-10) var(--space-6); display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; cursor: pointer; transition: var(--transition-base); }
-.uploadZone:hover { border-color: var(--blue-primary); background: rgba(79,142,247,0.04); }
+.uploadZone { border: var(--border-width) dashed var(--border); border-radius: var(--radius-lg); padding: var(--space-10) var(--space-6); display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; cursor: pointer; transition: var(--transition-base); }
+.uploadZone:hover { border-color: var(--blue-primary); background: var(--bg-hover); transform: translate(-1px, -1px); }
 .uploadIcon { font-size: 32px; }
 .uploadZone p { font-size: 14px; color: var(--text-secondary); }
 .uploadHint { font-size: 12px; color: var(--text-muted) !important; }
-.link { color: var(--blue-primary); }
+.link { color: var(--blue-primary); font-weight: 700; text-decoration: underline; }
 
 /* Results */
 .results { display: flex; flex-direction: column; gap: var(--space-4); animation: fadeUp 0.4s ease; }
@@ -24,21 +24,21 @@
 @keyframes gaugeAnim { from { stroke-dashoffset: 157; } to { stroke-dashoffset: 121; } }
 
 .flags { display: flex; flex-direction: column; gap: var(--space-2); }
-.flagOk   { font-size: 13px; color: var(--emerald); }
-.flagWarn { font-size: 13px; color: var(--amber); }
+.flagOk   { font-size: 13px; font-weight: 700; color: var(--emerald-dark); }
+.flagWarn { font-size: 13px; font-weight: 700; color: var(--amber-glow); }
 
 /* Clauses */
 .clauses { display: flex; flex-direction: column; gap: var(--space-4); animation: fadeUp 0.4s ease; }
-.clause { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border-left: 3px solid var(--border); }
+.clause { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); background: var(--bg-elevated); border-radius: var(--radius-md); border: 2px solid var(--border); border-left: 5px solid var(--blue-primary); }
 .clauseText { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 
 /* Counselor Banner */
 .counselorBanner {}
 .counselorContent { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); flex-wrap: wrap; }
-.counselorTitle { font-size: 20px; font-weight: 800; margin-bottom: var(--space-2); }
+.counselorTitle { font-size: 20px; font-weight: 800; margin-bottom: var(--space-2); font-family: 'Space Grotesk', sans-serif; }
 .counselorDesc { font-size: 14px; color: var(--text-secondary); max-width: 500px; }
 
 .devHint { font-size: 12px; color: var(--text-muted); font-style: italic; margin-top: auto; }
-.devHint code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; }
+.devHint code { background: var(--bg-elevated); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
 
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
