@@ -1,153 +1,127 @@
 /* ============================================================
-   Badge v2.0 — Premium Glass Badges
+   Badge v3.0 — Neubrutalist Badges
    ============================================================ */
 
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-family: 'Inter', sans-serif;
-  font-weight: 600;
+  font-weight: 800;
   white-space: nowrap;
   border-radius: var(--radius-full);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition:
-    background var(--transition-fast),
-    box-shadow var(--transition-fast);
+  border: 2px solid var(--ink);
+  transition: transform 100ms var(--ease-out);
   line-height: 1;
   letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 /* Sizes */
 .sm {
-  height: 22px;
-  padding: 0 8px;
-  font-size: 11px;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 10px;
 }
 
 .md {
-  height: 28px;
-  padding: 0 12px;
-  font-size: 12px;
+  height: 30px;
+  padding: 0 13px;
+  font-size: 11px;
 }
 
 /* ── Icon ── */
 .icon {
-  font-size: 0.85em;
+  font-size: 0.9em;
   line-height: 1;
   flex-shrink: 0;
 }
 
 /* ── Dot indicator ── */
 .dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+  border: 1.5px solid var(--ink);
 }
 
-/* ── Variant Styles (Glassmorphic) ── */
+/* ── Variant Styles (flat, saturated) ── */
 
 /* Verified — Emerald */
 .verified {
-  background: rgba(16,185,129,0.12);
-  color: var(--emerald-light);
-  border: 1px solid rgba(16,185,129,0.2);
+  background: var(--emerald);
+  color: #08331F;
 }
-.verified .dot { background: var(--emerald); box-shadow: 0 0 6px var(--emerald-glow); }
+.verified .dot { background: #08331F; border-color: #08331F; }
 
 /* Pending — Amber */
 .pending {
-  background: rgba(245,158,11,0.12);
-  color: var(--amber-light);
-  border: 1px solid rgba(245,158,11,0.2);
+  background: var(--amber);
+  color: #3D2E00;
 }
-.pending .dot { background: var(--amber); box-shadow: 0 0 6px var(--amber-glow); }
+.pending .dot { background: #3D2E00; border-color: #3D2E00; }
 
 /* Rejected — Red */
 .rejected {
-  background: rgba(239,68,68,0.12);
-  color: var(--red-light);
-  border: 1px solid rgba(239,68,68,0.2);
+  background: var(--red-danger);
+  color: #fff;
 }
-.rejected .dot { background: var(--red-danger); }
+.rejected .dot { background: #fff; border-color: #fff; }
 
 /* Success — Emerald */
 .success {
-  background: rgba(16,185,129,0.12);
-  color: var(--emerald-light);
-  border: 1px solid rgba(16,185,129,0.2);
+  background: var(--emerald);
+  color: #08331F;
 }
-.success .dot { background: var(--emerald); }
+.success .dot { background: #08331F; border-color: #08331F; }
 
 /* Warning — Amber */
 .warning {
-  background: rgba(245,158,11,0.12);
-  color: var(--amber-light);
-  border: 1px solid rgba(245,158,11,0.2);
+  background: var(--amber);
+  color: #3D2E00;
 }
-.warning .dot { background: var(--amber); }
+.warning .dot { background: #3D2E00; border-color: #3D2E00; }
 
 /* Danger — Red */
 .danger {
-  background: rgba(239,68,68,0.12);
-  color: var(--red-light);
-  border: 1px solid rgba(239,68,68,0.2);
+  background: var(--red-danger);
+  color: #fff;
 }
-.danger .dot { background: var(--red-danger); }
+.danger .dot { background: #fff; border-color: #fff; }
 
 /* Info — Cyan */
 .info {
-  background: rgba(6,182,212,0.12);
-  color: #67E8F9;
-  border: 1px solid rgba(6,182,212,0.2);
+  background: var(--cyan-info);
+  color: #062B32;
 }
-.info .dot { background: var(--cyan-info); }
+.info .dot { background: #062B32; border-color: #062B32; }
 
-/* Neutral — Glass */
+/* Neutral — Flat panel */
 .neutral {
   background: var(--glass-bg-elevated);
   color: var(--text-secondary);
-  border: 1px solid var(--glass-border);
 }
-.neutral .dot { background: var(--text-muted); }
+.neutral .dot { background: var(--text-muted); border-color: var(--text-muted); }
 
-/* AI — Brand Gradient */
+/* AI — Yellow pop */
 .ai {
-  background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(139,92,246,0.15));
-  color: var(--purple-light);
-  border: 1px solid rgba(139,92,246,0.25);
+  background: var(--yellow);
+  color: #3D2E00;
 }
-.ai .dot { background: var(--purple-accent); box-shadow: 0 0 6px var(--purple-glow); }
+.ai .dot { background: #3D2E00; border-color: #3D2E00; }
 
-/* ── Pulse animation for verified/ai badges ── */
+/* ── Wiggle animation for verified/ai badges ── */
 .verified,
 .ai {
-  animation: badgePulse 3s ease-in-out infinite;
+  animation: badgeWiggle 4s ease-in-out infinite;
 }
 
-@keyframes badgePulse {
-  0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50%       { box-shadow: 0 0 8px rgba(16,185,129,0.1); }
+@keyframes badgeWiggle {
+  0%, 92%, 100% { transform: rotate(0deg); }
+  94% { transform: rotate(-4deg); }
+  96% { transform: rotate(4deg); }
+  98% { transform: rotate(-2deg); }
 }
 
-.ai {
-  animation-name: badgePulseAI;
-}
-
-@keyframes badgePulseAI {
-  0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50%       { box-shadow: 0 0 8px rgba(139,92,246,0.1); }
-}
-
-/* ── Light theme adjustments ── */
-[data-theme='light'] .verified { background: rgba(16,185,129,0.08); color: var(--emerald-dark); }
-[data-theme='light'] .pending  { background: rgba(245,158,11,0.08); color: #B45309; }
-[data-theme='light'] .rejected { background: rgba(239,68,68,0.08);  color: #DC2626; }
-[data-theme='light'] .success  { background: rgba(16,185,129,0.08); color: var(--emerald-dark); }
-[data-theme='light'] .warning  { background: rgba(245,158,11,0.08); color: #B45309; }
-[data-theme='light'] .danger   { background: rgba(239,68,68,0.08);  color: #DC2626; }
-[data-theme='light'] .info     { background: rgba(6,182,212,0.08);  color: #0E7490; }
-[data-theme='light'] .neutral  { background: rgba(0,0,0,0.04);      color: var(--text-secondary); }
-[data-theme='light'] .ai       { background: linear-gradient(135deg, rgba(79,142,247,0.08), rgba(139,92,246,0.08)); color: var(--purple-dark); }
+/* ── Light theme adjustments (colors stay flat/saturated, no change needed) ── */

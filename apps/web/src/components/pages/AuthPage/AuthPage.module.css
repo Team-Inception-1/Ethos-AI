@@ -1,5 +1,5 @@
 /* ============================================================
-   AuthPage v2.0 — Premium Glassmorphism Auth
+   AuthPage v3.0 — Neubrutalist Auth
    ============================================================ */
 
 .page {
@@ -12,45 +12,19 @@
 }
 
 .bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: var(--gradient-mesh);
+  display: none;
 }
 
-.orb1 {
-  position: absolute;
-  top: -10%;
-  left: -10%;
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(ellipse, rgba(79,142,247,0.12) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(80px);
-  animation: float 10s ease-in-out infinite;
-}
-
-.orb2 {
-  position: absolute;
-  bottom: -10%;
-  right: -5%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(ellipse, rgba(139,92,246,0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(60px);
-  animation: float 14s ease-in-out infinite reverse;
+.orb1, .orb2 {
+  display: none;
 }
 
 /* ── Left Panel ── */
 .leftPanel {
   position: relative;
   z-index: 1;
-  background: linear-gradient(135deg, rgba(79,142,247,0.06) 0%, rgba(139,92,246,0.04) 100%);
-  border-right: 1px solid var(--glass-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--yellow);
+  border-right: var(--border-width) solid var(--ink);
   display: flex;
   flex-direction: column;
   padding: var(--space-12) var(--space-16);
@@ -62,26 +36,23 @@
   align-items: center;
   gap: var(--space-3);
   text-decoration: none;
-  transition: opacity var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .brandLogo:hover {
-  opacity: 0.85;
+  transform: translate(-1px, -1px);
 }
 
 .brandName {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 24px;
   font-weight: 800;
-  color: var(--text-primary);
+  color: #14120E;
   letter-spacing: -0.02em;
 }
 
 .brandAI {
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--blue-dark);
 }
 
 .leftContent {
@@ -91,28 +62,21 @@
 }
 
 .quoteCard {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: #fff;
+  border: var(--border-width) solid var(--ink);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: var(--shadow-glass);
+  box-shadow: 6px 6px 0 0 var(--ink);
   position: relative;
-  overflow: hidden;
 }
 
 .quoteCard::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--glass-highlight);
-  pointer-events: none;
+  content: none;
 }
 
 .quoteIcon {
   color: var(--blue-primary);
-  opacity: 0.3;
+  opacity: 0.8;
   margin-bottom: var(--space-4);
 }
 
@@ -122,17 +86,17 @@
 }
 
 .quote p {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 20px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: #14120E;
   line-height: 1.5;
   letter-spacing: -0.01em;
 }
 
 .quote footer {
   font-size: 14px;
-  color: var(--text-muted);
+  color: #4A4740;
   margin-top: var(--space-4);
   display: flex;
   align-items: center;
@@ -140,10 +104,11 @@
 }
 
 .quoteAvatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: var(--gradient-brand);
+  background: var(--blue-primary);
+  border: 2px solid var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -156,7 +121,7 @@
   display: flex;
   gap: var(--space-10);
   padding-top: var(--space-6);
-  border-top: 1px solid var(--glass-border);
+  border-top: var(--border-width) solid var(--ink);
 }
 
 .statItem {
@@ -165,19 +130,16 @@
 }
 
 .statNum {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 28px;
   font-weight: 800;
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #14120E;
 }
 
 .statLbl {
   font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 500;
+  color: #4A4740;
+  font-weight: 600;
 }
 
 /* ── Right Panel ── */
@@ -197,12 +159,10 @@
   flex-direction: column;
   gap: var(--space-6);
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  border: var(--border-width) solid var(--ink);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: var(--shadow-glass), 0 0 40px rgba(0,0,0,0.2);
+  box-shadow: 7px 7px 0 0 var(--ink);
 }
 
 .formHeader {
@@ -219,27 +179,23 @@
 
 .langBtn {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
   background: var(--glass-bg-elevated);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   padding: 6px 14px;
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .langBtn:hover {
-  background: rgba(79,142,247,0.1);
-  border-color: rgba(79,142,247,0.3);
+  transform: translate(-1px, -1px);
   color: var(--blue-primary);
 }
 
 .formTitle {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 28px;
   font-weight: 800;
   color: var(--text-primary);
@@ -265,29 +221,25 @@
   gap: var(--space-2);
   padding: var(--space-4) var(--space-3);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   background: var(--glass-bg-elevated);
   cursor: pointer;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   text-align: center;
 }
 
 .roleCard:hover {
-  border-color: var(--glass-border-hover);
-  background: rgba(255,255,255,0.06);
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .roleActive {
-  border-color: rgba(79,142,247,0.5) !important;
-  background: rgba(79,142,247,0.08) !important;
-  box-shadow: inset 0 0 0 1px rgba(79,142,247,0.5), 0 4px 16px var(--blue-glow-sm);
+  background: var(--yellow) !important;
+  box-shadow: 3px 3px 0 0 var(--ink) !important;
 }
 
 .roleActive .roleIcon {
-  color: var(--blue-primary);
+  color: #14120E;
 }
 
 .roleIcon {
@@ -295,7 +247,7 @@
   transition: color var(--transition-fast);
 }
 
-.roleLabel { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.roleLabel { font-size: 13px; font-weight: 700; color: var(--text-primary); }
 .roleDesc  { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
 
 /* ── Form ── */
@@ -314,42 +266,38 @@
 
 .label {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
 }
 
 .input {
   width: 100%;
-  height: 46px;
+  height: 48px;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   padding: 0 var(--space-4);
   font-size: 14px;
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background var(--transition-fast);
+  font-weight: 500;
+  transition: box-shadow var(--transition-fast);
 }
 .input::placeholder { color: var(--text-muted); }
 .input:focus {
-  border-color: var(--glass-border-focus);
-  box-shadow: 0 0 0 3px var(--blue-glow-sm);
-  background: var(--glass-bg-elevated);
+  box-shadow: 3px 3px 0 0 var(--blue-primary);
   outline: none;
 }
 
 .phoneWrap { display: flex; align-items: center; gap: var(--space-2); }
 .phonePrefix {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-secondary);
   background: var(--glass-bg-elevated);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-md);
   padding: 0 var(--space-3);
-  height: 46px;
+  height: 48px;
   display: flex;
   align-items: center;
   white-space: nowrap;
@@ -359,13 +307,13 @@
 
 .forgotLink {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--blue-light);
+  font-weight: 700;
+  color: var(--blue-primary);
   text-align: right;
   align-self: flex-end;
   transition: opacity var(--transition-fast);
 }
-.forgotLink:hover { opacity: 0.8; }
+.forgotLink:hover { opacity: 0.75; }
 
 .switchMode {
   text-align: center;
@@ -376,15 +324,15 @@
 
 .switchLink {
   color: var(--blue-primary);
-  font-weight: 600;
+  font-weight: 800;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
   font-size: inherit;
-  transition: color var(--transition-fast);
+  text-decoration: underline;
 }
-.switchLink:hover { color: var(--blue-light); }
+.switchLink:hover { opacity: 0.8; }
 
 /* ── OTP ── */
 .otpBack { margin-bottom: -var(--space-2); }
@@ -396,14 +344,12 @@
   border: none;
   color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   padding: 4px 8px;
   margin-left: -8px;
   border-radius: var(--radius-sm);
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 .backBtn:hover {
   color: var(--text-primary);
@@ -421,30 +367,24 @@
   width: 100%;
   aspect-ratio: 1;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 22px;
   font-weight: 700;
   text-align: center;
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background var(--transition-fast);
+  transition: box-shadow var(--transition-fast);
 }
 
 .otpBox:focus {
-  border-color: var(--glass-border-focus);
-  box-shadow: 0 0 0 3px var(--blue-glow-sm);
-  background: var(--glass-bg-elevated);
+  box-shadow: 2px 2px 0 0 var(--blue-primary);
   outline: none;
 }
 
 .otpFilled {
-  border-color: rgba(16,185,129,0.4);
-  background: rgba(16,185,129,0.06);
-  color: var(--emerald-light);
+  background: var(--emerald);
+  color: #08331F;
 }
 
 .resend {
@@ -457,8 +397,8 @@
 .demoPanel {
   margin-top: var(--space-4);
   padding: var(--space-5);
-  background: rgba(79,142,247,0.04);
-  border: 1px dashed rgba(79,142,247,0.2);
+  background: var(--glass-bg-elevated);
+  border: 2px dashed var(--ink);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
@@ -467,8 +407,8 @@
 
 .demoTitle {
   font-size: 12px;
-  font-weight: 700;
-  color: var(--blue-light);
+  font-weight: 800;
+  color: var(--blue-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: flex;
@@ -488,25 +428,19 @@
   gap: var(--space-3);
   padding: var(--space-3);
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   text-align: left;
 }
 
 .demoBtn:hover {
-  border-color: rgba(79,142,247,0.4);
-  background: rgba(79,142,247,0.08);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--blue-glow-sm);
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .demoBtn:hover .demoIcon {
@@ -520,7 +454,7 @@
 
 .demoRoleLabel {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
   display: block;
   margin-top: 2px;
@@ -537,7 +471,6 @@
     border: none;
     box-shadow: none;
     background: transparent;
-    backdrop-filter: none;
   }
   .demoGrid { grid-template-columns: 1fr; }
 }

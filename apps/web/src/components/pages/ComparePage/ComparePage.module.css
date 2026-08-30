@@ -14,11 +14,11 @@
 
 .table th, .table td {
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   vertical-align: middle;
 }
 
-.table thead tr { border-bottom: 2px solid var(--border); }
+.table thead tr { border-bottom: var(--border-width) solid var(--border); }
 
 .rowHeader {
   text-align: left;
@@ -26,27 +26,28 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-weight: 700;
+  font-weight: 800;
   width: 160px;
   min-width: 140px;
 }
 
 .colHeader {
   min-width: 200px;
-  background: rgba(79,142,247,0.03);
+  background: var(--bg-elevated);
 }
 
 .agencyHead { display: flex; align-items: center; gap: var(--space-3); }
 
 .agencyAvatar {
   width: 40px; height: 40px; border-radius: var(--radius-md);
-  background: var(--gradient-brand); color: #fff;
+  background: var(--blue-primary); border: 2px solid var(--ink);
+  color: #fff;
   font-weight: 800; font-size: 16px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 
-.agencyName { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.agencyName { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
 
 .addCol { min-width: 140px; }
 
@@ -55,28 +56,28 @@
   align-items: center;
   justify-content: center;
   height: 72px;
-  border: 2px dashed var(--border);
+  border: var(--border-width) dashed var(--border);
   border-radius: var(--radius-md);
   color: var(--text-muted);
   font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
   transition: var(--transition-fast);
 }
-.addSlot:hover { border-color: var(--blue-primary); color: var(--blue-primary); }
+.addSlot:hover { border-color: var(--blue-primary); color: var(--blue-primary); background: var(--bg-hover); }
 
-.rowEven { background: rgba(255,255,255,0.02); }
-[data-theme='light'] .rowEven { background: rgba(0,0,0,0.02); }
+.rowEven { background: var(--bg-elevated); }
 
 .rowLabel {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .cell { text-align: center; }
 
-.ratingVal  { font-weight: 700; font-size: 16px; }
-.successVal { font-weight: 700; font-size: 16px; color: var(--emerald); }
+.ratingVal  { font-weight: 800; font-size: 16px; }
+.successVal { font-weight: 800; font-size: 16px; color: var(--emerald-dark); }
 .policyText { font-size: 12px; color: var(--text-secondary); }
-.responseVal { font-weight: 600; color: var(--blue-primary); }
+.responseVal { font-weight: 700; color: var(--blue-primary); }

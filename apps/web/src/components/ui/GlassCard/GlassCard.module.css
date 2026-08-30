@@ -1,75 +1,36 @@
 /* ============================================================
-   GlassCard v2.0 — Premium Glassmorphism Card
+   GlassCard v3.0 — Neubrutalist Card
+   (component name kept for compatibility; renders as a flat
+   bordered card with a hard offset shadow)
    ============================================================ */
 
 /* ── Base Card ── */
 .card {
   position: relative;
-  overflow: hidden;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
+  border: var(--border-width) solid var(--border);
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--shadow-glass);
+  box-shadow: var(--shadow-md);
   transition:
-    background var(--transition-base),
-    border-color var(--transition-base),
-    box-shadow var(--transition-base),
-    transform var(--transition-base);
-}
-
-/* Inner highlight — frosted glass top edge */
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--glass-highlight);
-  pointer-events: none;
-  border-radius: inherit;
-  z-index: 1;
+    transform 120ms var(--ease-out),
+    box-shadow 120ms var(--ease-out);
 }
 
 /* ── Variants ── */
 .elevated {
   background: var(--glass-bg-elevated);
-  backdrop-filter: blur(var(--glass-blur-heavy));
-  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  box-shadow: var(--shadow-lg);
 }
 
 .frosted {
   background: var(--glass-bg-frosted);
-  backdrop-filter: blur(var(--glass-blur-heavy));
-  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
-  border-color: var(--glass-border-hover);
+  border-color: var(--border);
+  box-shadow: var(--shadow-lg);
 }
 
 .bordered {
   background: var(--glass-bg);
-  border: none;
-  position: relative;
-}
-
-/* Animated gradient border */
-.bordered::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    rgba(79,142,247,0.2),
-    rgba(139,92,246,0.15),
-    rgba(16,185,129,0.1),
-    rgba(79,142,247,0.2)
-  );
-  background-size: 300% 300%;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  animation: gradientShift 8s ease infinite;
+  border: var(--border-width) solid var(--border);
 }
 
 /* ── Padding Variants ── */
@@ -88,33 +49,31 @@
 }
 
 .hoverable:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--glass-border-hover);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-  transform: translateY(-2px);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .hoverable:active {
-  transform: translateY(0) scale(0.995);
-  transition-duration: 100ms;
+  transform: translate(1px, 1px);
+  box-shadow: var(--shadow-xs);
+  transition-duration: 60ms;
 }
 
-/* ── Glow ── */
+/* ── Glow → accent-colored hard shadow ── */
 .glow {
-  border-color: rgba(79,142,247,0.15);
-  box-shadow: var(--shadow-glass), var(--shadow-glow);
+  box-shadow: var(--shadow-glow);
 }
 
 .glow:hover {
-  box-shadow: var(--shadow-glass), var(--shadow-glow-lg);
+  box-shadow: var(--shadow-glow-lg);
 }
 
-/* ── Color accents ── */
-.accent-blue    { border-top: 2px solid var(--blue-primary); }
-.accent-emerald { border-top: 2px solid var(--emerald); }
-.accent-purple  { border-top: 2px solid var(--purple-accent); }
-.accent-amber   { border-top: 2px solid var(--amber); }
-.accent-danger  { border-top: 2px solid var(--red-danger); }
+/* ── Color accents (thick top bar) ── */
+.accent-blue    { border-top: 6px solid var(--blue-primary); }
+.accent-emerald { border-top: 6px solid var(--emerald); }
+.accent-purple  { border-top: 6px solid var(--purple-accent); }
+.accent-amber   { border-top: 6px solid var(--amber); }
+.accent-danger  { border-top: 6px solid var(--red-danger); }
 
 /* ── Responsive ── */
 @media (max-width: 480px) {

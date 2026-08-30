@@ -1,5 +1,5 @@
 /* ============================================================
-   Navbar v2.0 — Premium Frosted Glass Navigation
+   Navbar v3.0 — Neubrutalist Navigation
    ============================================================ */
 
 .header {
@@ -10,12 +10,8 @@
   z-index: var(--z-navbar);
   height: var(--navbar-height);
   background: var(--glass-bg);
-  border-bottom: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur-heavy));
-  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
-  transition:
-    background var(--transition-base),
-    box-shadow var(--transition-base);
+  border-bottom: var(--border-width) solid var(--ink);
+  transition: background var(--transition-base);
 }
 
 /* ── Inner Nav ── */
@@ -34,32 +30,28 @@
   gap: var(--space-2);
   text-decoration: none;
   flex-shrink: 0;
-  transition: opacity var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .logo:hover {
-  opacity: 0.85;
+  transform: translate(-1px, -1px);
 }
 
 .logoIcon {
   display: flex;
   align-items: center;
-  filter: drop-shadow(0 0 8px var(--blue-glow-sm));
 }
 
 .logoText {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 19px;
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
 .logoAI {
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--blue-primary);
   font-weight: 800;
 }
 
@@ -78,37 +70,32 @@
   align-items: center;
   padding: 8px 14px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-secondary);
   border-radius: var(--radius-md);
+  border: 2px solid transparent;
   transition:
     color var(--transition-fast),
-    background var(--transition-fast);
+    background var(--transition-fast),
+    border-color var(--transition-fast);
   position: relative;
 }
 
 .link:hover {
   color: var(--text-primary);
   background: var(--glass-bg-hover);
+  border-color: var(--ink);
 }
 
 .link.active {
-  color: var(--blue-primary);
-  background: rgba(79,142,247,0.08);
+  color: var(--text-inverse);
+  background: var(--yellow);
+  border-color: var(--ink);
 }
 
-/* Active indicator pill */
+/* Active indicator pill removed — border/background is the indicator now */
 .link.active::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 2px;
-  background: var(--blue-primary);
-  border-radius: var(--radius-full);
-  box-shadow: 0 0 8px var(--blue-glow);
+  content: none;
 }
 
 /* ── Right Controls ── */
@@ -126,19 +113,16 @@
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   color: var(--text-muted);
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .langBtn:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--glass-border-hover);
+  transform: translate(-1px, -1px);
 }
 
 .langActive {
@@ -152,18 +136,16 @@
 
 /* Role selector */
 .roleSelectNav {
-  height: 32px;
+  height: 34px;
   padding: 0 8px;
   border-radius: var(--radius-sm);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   color: var(--text-secondary);
   cursor: pointer;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast);
+  transition: transform var(--transition-fast);
   -webkit-appearance: none;
   appearance: none;
   padding-right: 24px;
@@ -173,13 +155,11 @@
 }
 
 .roleSelectNav:hover {
-  border-color: var(--glass-border-hover);
-  background-color: var(--glass-bg-hover);
+  transform: translate(-1px, -1px);
 }
 
 .roleSelectNav:focus {
-  border-color: var(--glass-border-focus);
-  box-shadow: 0 0 0 3px var(--blue-glow-sm);
+  box-shadow: 2px 2px 0 0 var(--blue-primary);
   outline: none;
 }
 
@@ -191,27 +171,24 @@
   padding: 4px 12px 4px 4px;
   border-radius: var(--radius-full);
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+  border: 2px solid var(--ink);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .userPill:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--glass-border-hover);
-  box-shadow: var(--shadow-sm);
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .userAvatarPill {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: var(--gradient-brand);
+  background: var(--blue-primary);
+  border: 2px solid var(--ink);
   color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,7 +196,7 @@
 
 .userNamePill {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
@@ -227,7 +204,7 @@
 .loginBtn {
   padding: 8px 16px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-secondary);
   border-radius: var(--radius-md);
   transition:
@@ -243,23 +220,23 @@
 .registerBtn {
   padding: 8px 20px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
   color: #fff;
-  background: var(--gradient-brand);
+  background: var(--blue-primary);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-md);
-  box-shadow: 0 2px 12px var(--blue-glow-sm);
-  transition:
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
+  box-shadow: 3px 3px 0 0 var(--ink);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .registerBtn:hover {
-  box-shadow: 0 4px 20px var(--blue-glow);
-  transform: translateY(-1px);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--ink);
 }
 
 .registerBtn:active {
-  transform: translateY(0);
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 0 var(--ink);
 }
 
 /* ── Mobile Burger ── */
@@ -280,11 +257,11 @@
 }
 
 .bar {
-  width: 20px;
-  height: 2px;
-  background: var(--text-secondary);
+  width: 22px;
+  height: 3px;
+  background: var(--text-primary);
   border-radius: var(--radius-full);
-  transition: all 250ms var(--ease-out);
+  transition: all 220ms var(--ease-out);
   transform-origin: center;
 }
 
@@ -310,14 +287,12 @@
   bottom: 0;
   z-index: calc(var(--z-navbar) - 1);
   background: var(--glass-bg-frosted);
-  backdrop-filter: blur(var(--glass-blur-heavy));
-  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
-  border-top: 1px solid var(--glass-border);
+  border-top: var(--border-width) solid var(--ink);
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  animation: mobileMenuIn 300ms var(--ease-out) forwards;
+  animation: mobileMenuIn 220ms var(--ease-out) forwards;
   overflow-y: auto;
 }
 
@@ -337,17 +312,20 @@
   align-items: center;
   padding: 14px var(--space-4);
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-secondary);
   border-radius: var(--radius-md);
+  border: 2px solid transparent;
   transition:
     color var(--transition-fast),
-    background var(--transition-fast);
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .mobileLink:hover {
   color: var(--text-primary);
   background: var(--glass-bg-hover);
+  border-color: var(--ink);
 }
 
 .mobileCtas {
@@ -356,7 +334,7 @@
   gap: var(--space-3);
   margin-top: var(--space-6);
   padding-top: var(--space-6);
-  border-top: 1px solid var(--glass-border);
+  border-top: var(--border-width) solid var(--ink);
 }
 
 .w100 {

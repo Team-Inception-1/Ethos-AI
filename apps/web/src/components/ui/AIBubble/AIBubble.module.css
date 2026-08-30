@@ -1,5 +1,5 @@
 /* ============================================================
-   AIBubble v2.0 — Premium Glass AI Assistant
+   AIBubble v3.0 — Neubrutalist AI Assistant
    ============================================================ */
 
 /* ── Floating Trigger ── */
@@ -8,52 +8,50 @@
   bottom: 24px;
   right: 24px;
   z-index: var(--z-bubble);
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border: none;
+  border: var(--border-width) solid var(--ink);
   color: #fff;
-  background: var(--gradient-brand);
-  box-shadow: 0 4px 24px var(--blue-glow), var(--shadow-md);
+  background: var(--blue-primary);
+  box-shadow: 4px 4px 0 0 var(--ink);
   transition:
-    transform 300ms var(--ease-spring),
-    box-shadow var(--transition-base),
-    background var(--transition-base);
+    transform 150ms var(--ease-spring),
+    box-shadow var(--transition-base);
   -webkit-tap-highlight-color: transparent;
 }
 
 .trigger:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 32px var(--blue-glow-intense), var(--shadow-lg);
+  transform: translate(-2px, -2px) rotate(-4deg);
+  box-shadow: 6px 6px 0 0 var(--ink);
 }
 
 .trigger:active {
-  transform: scale(0.95);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--ink);
 }
 
 .triggerOpen {
-  background: var(--glass-bg-frosted);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  color: var(--text-primary);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-glass);
+  background: var(--yellow);
+  color: #3D2E00;
+  border: var(--border-width) solid var(--ink);
+  box-shadow: 4px 4px 0 0 var(--ink);
 }
 
 .triggerOpen:hover {
-  box-shadow: var(--shadow-glass);
+  box-shadow: 6px 6px 0 0 var(--ink);
 }
 
 /* Pulse ring */
 .pulse {
   position: absolute;
-  inset: -4px;
+  inset: -6px;
   border-radius: 50%;
-  border: 2px solid rgba(79,142,247,0.4);
+  border: 3px solid var(--blue-primary);
   animation: bubblePulse 2.5s ease-in-out infinite;
   pointer-events: none;
 }
@@ -61,10 +59,10 @@
 @keyframes bubblePulse {
   0%, 100% {
     transform: scale(1);
-    opacity: 0.6;
+    opacity: 0.7;
   }
   50% {
-    transform: scale(1.15);
+    transform: scale(1.18);
     opacity: 0;
   }
 }
@@ -72,7 +70,7 @@
 /* ── Chat Panel ── */
 .panel {
   position: fixed;
-  bottom: 92px;
+  bottom: 96px;
   right: 24px;
   z-index: var(--z-bubble);
   width: 380px;
@@ -82,21 +80,18 @@
   flex-direction: column;
   overflow: hidden;
 
-  /* Glassmorphism */
   background: var(--glass-bg-frosted);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur-heavy));
-  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
-  box-shadow: var(--shadow-xl), 0 0 40px var(--blue-glow-sm);
+  border: var(--border-width) solid var(--ink);
+  box-shadow: 7px 7px 0 0 var(--ink);
 
   /* Entry animation */
-  animation: panelSlideUp 350ms var(--ease-out) forwards;
+  animation: panelSlideUp 220ms var(--ease-out) forwards;
 }
 
 @keyframes panelSlideUp {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.95);
+    transform: translateY(16px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -110,8 +105,8 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--glass-border);
-  background: linear-gradient(135deg, rgba(79,142,247,0.06), rgba(139,92,246,0.04));
+  border-bottom: var(--border-width) solid var(--ink);
+  background: var(--yellow);
 }
 
 .headerLeft {
@@ -121,28 +116,23 @@
 }
 
 .aiAvatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-md);
-  background: var(--gradient-brand);
+  background: var(--blue-primary);
+  border: 2px solid var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   color: #fff;
-  box-shadow: 0 0 12px var(--blue-glow);
-  animation: breatheAvatar 3s ease-in-out infinite;
-}
-
-@keyframes breatheAvatar {
-  0%, 100% { box-shadow: 0 0 12px var(--blue-glow); }
-  50%       { box-shadow: 0 0 20px var(--blue-glow-intense); }
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .aiName {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 800;
+  color: #3D2E00;
 }
 
 .aiStatus {
@@ -150,15 +140,16 @@
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  color: var(--emerald);
+  font-weight: 700;
+  color: #08331F;
 }
 
 .statusDot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--emerald);
-  box-shadow: 0 0 6px var(--emerald-glow);
+  border: 1.5px solid #08331F;
 }
 
 .langSwitch {
@@ -166,18 +157,15 @@
   padding: 4px 10px;
   border-radius: var(--radius-sm);
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast);
+  font-weight: 700;
+  color: #3D2E00;
+  background: #fff;
+  border: 2px solid var(--ink);
+  transition: transform 100ms var(--ease-out);
 }
 
 .langSwitch:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--glass-border-hover);
+  transform: translate(-1px, -1px);
 }
 
 /* ── Messages ── */
@@ -190,15 +178,18 @@
   gap: var(--space-3);
   min-height: 240px;
   max-height: 340px;
+  background: var(--bg-base);
 }
 
 .msg {
   max-width: 85%;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
+  border: 2px solid var(--ink);
   font-size: 13px;
+  font-weight: 500;
   line-height: 1.5;
-  animation: msgFadeIn 250ms var(--ease-out) forwards;
+  animation: msgFadeIn 200ms var(--ease-out) forwards;
 }
 
 @keyframes msgFadeIn {
@@ -209,15 +200,15 @@
 .msgAI {
   align-self: flex-start;
   background: var(--glass-bg-elevated);
-  border: 1px solid var(--glass-border);
   color: var(--text-primary);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .msgUser {
   align-self: flex-end;
-  background: var(--gradient-brand);
+  background: var(--blue-primary);
   color: #fff;
-  border: none;
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 /* ── Input Row ── */
@@ -226,22 +217,21 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  border-top: 1px solid var(--glass-border);
-  background: rgba(255,255,255,0.01);
+  border-top: var(--border-width) solid var(--ink);
+  background: var(--glass-bg-frosted);
 }
 
 .input {
   flex: 1;
-  height: 38px;
+  height: 40px;
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-primary);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+  background: var(--bg-base);
+  border: 2px solid var(--ink);
+  transition: box-shadow var(--transition-fast);
 }
 
 .input::placeholder {
@@ -249,22 +239,22 @@
 }
 
 .input:focus {
-  border-color: var(--glass-border-focus);
-  box-shadow: 0 0 0 3px var(--blue-glow-sm);
+  box-shadow: 2px 2px 0 0 var(--blue-primary);
   outline: none;
 }
 
 .sendBtn {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border: none;
-  background: var(--gradient-brand);
+  border: 2px solid var(--ink);
+  background: var(--blue-primary);
   color: #fff;
+  box-shadow: 2px 2px 0 0 var(--ink);
   transition:
     transform var(--transition-fast),
     box-shadow var(--transition-fast),
@@ -273,16 +263,17 @@
 }
 
 .sendBtn:hover:not(:disabled) {
-  transform: scale(1.05);
-  box-shadow: 0 0 16px var(--blue-glow);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--ink);
 }
 
 .sendBtn:active:not(:disabled) {
-  transform: scale(0.95);
+  transform: translate(1px, 1px);
+  box-shadow: 0 0 0 0 var(--ink);
 }
 
 .sendBtn:disabled {
-  opacity: 0.3;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -291,7 +282,7 @@
   .panel {
     right: 12px;
     left: 12px;
-    bottom: 84px;
+    bottom: 88px;
     width: auto;
     max-height: 70vh;
   }
@@ -299,7 +290,7 @@
   .trigger {
     bottom: 16px;
     right: 16px;
-    width: 52px;
-    height: 52px;
+    width: 56px;
+    height: 56px;
   }
 }

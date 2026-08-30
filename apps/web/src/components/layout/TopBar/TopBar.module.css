@@ -1,5 +1,5 @@
 /* ============================================================
-   TopBar v2.0 — Premium Glass Dashboard Header
+   TopBar v3.0 — Neubrutalist Dashboard Header
    ============================================================ */
 
 .topbar {
@@ -15,12 +15,9 @@
   padding: 0 var(--space-6);
   gap: var(--space-4);
 
-  /* Glassmorphism */
   background: var(--glass-bg);
-  border-bottom: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur-heavy));
-  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
-  transition: left 300ms var(--ease-out);
+  border-bottom: var(--border-width) solid var(--ink);
+  transition: left 220ms var(--ease-out);
 }
 
 /* ── Left ── */
@@ -33,7 +30,7 @@
 
 .pageTitle {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -64,19 +61,18 @@
 }
 
 .searchInput {
-  height: 36px;
+  height: 38px;
   width: 220px;
   padding: 0 var(--space-4) 0 36px;
   border-radius: var(--radius-md);
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-primary);
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   transition:
     width var(--transition-base),
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background var(--transition-fast);
+    box-shadow var(--transition-fast);
 }
 
 .searchInput::placeholder {
@@ -85,55 +81,48 @@
 
 .searchInput:focus {
   width: 280px;
-  border-color: var(--glass-border-focus);
-  box-shadow: 0 0 0 3px var(--blue-glow-sm);
-  background: var(--glass-bg-hover);
+  box-shadow: 2px 2px 0 0 var(--blue-primary);
   outline: none;
 }
 
 /* ── Icon Button ── */
 .iconBtn {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border: 1px solid var(--glass-border);
+  border: 2px solid var(--ink);
   background: var(--glass-bg);
   color: var(--text-secondary);
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast),
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .iconBtn:hover {
-  background: var(--glass-bg-hover);
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 0 var(--ink);
   color: var(--text-primary);
-  border-color: var(--glass-border-hover);
 }
 
 /* Notification badge */
 .notifBadge {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: -4px;
+  right: -4px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
   border-radius: var(--radius-full);
   font-size: 10px;
-  font-weight: 700;
-  line-height: 18px;
+  font-weight: 800;
+  line-height: 16px;
   text-align: center;
   color: #fff;
   background: var(--red-danger);
-  box-shadow: 0 0 8px var(--red-glow);
-  border: 2px solid var(--bg-base);
+  border: 2px solid var(--ink);
 }
 
 /* ── Avatar ── */
@@ -142,39 +131,38 @@
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   color: #fff;
-  background: var(--gradient-brand);
-  border: none;
-  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 3px rgba(79,142,247,0.3);
+  background: var(--blue-primary);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 0 var(--ink);
   transition:
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .avatar:hover {
-  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 3px rgba(79,142,247,0.5);
-  transform: scale(1.05);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--ink);
 }
 
 .avatarDot {
   position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 10px;
-  height: 10px;
+  bottom: -2px;
+  right: -2px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: var(--emerald);
-  border: 2px solid var(--bg-base);
-  box-shadow: 0 0 6px var(--emerald-glow);
+  border: 2px solid var(--ink);
 }
 
 /* ── Responsive ── */

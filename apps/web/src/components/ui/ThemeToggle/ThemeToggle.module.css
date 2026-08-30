@@ -1,5 +1,5 @@
 /* ============================================================
-   ThemeToggle v2.0 — Glassmorphic Theme Switch
+   ThemeToggle v3.0 — Neubrutalist Theme Switch
    ============================================================ */
 
 .toggle {
@@ -14,52 +14,47 @@
 .track {
   display: flex;
   align-items: center;
-  width: 48px;
-  height: 26px;
+  width: 52px;
+  height: 30px;
   background: var(--glass-bg-elevated);
-  border: 1px solid var(--glass-border);
+  border: 2.5px solid var(--ink);
   border-radius: var(--radius-full);
   padding: 2px;
   transition:
-    background var(--transition-base),
-    border-color var(--transition-base),
     box-shadow var(--transition-base);
   position: relative;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .toggle:hover .track {
-  border-color: var(--glass-border-hover);
-  box-shadow: 0 0 12px var(--blue-glow-sm);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--ink);
 }
 
 .thumb {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
+  border: 2px solid var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
   transition:
-    transform 350ms var(--ease-spring),
-    background 300ms var(--ease-out),
-    box-shadow 300ms var(--ease-out);
+    transform 300ms var(--ease-spring),
+    background 200ms var(--ease-out);
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 1px;
+  left: 1px;
 }
 
 .dark {
   background: var(--blue-primary);
   color: #fff;
   transform: translateX(0);
-  box-shadow: 0 0 8px var(--blue-glow);
 }
 
 .light {
-  background: #F59E0B;
-  color: #fff;
+  background: var(--yellow);
+  color: #3D2E00;
   transform: translateX(22px);
-  box-shadow: 0 0 8px rgba(245,158,11,0.3);
 }

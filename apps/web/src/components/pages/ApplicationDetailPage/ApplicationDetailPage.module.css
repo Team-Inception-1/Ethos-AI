@@ -1,37 +1,37 @@
 .page { display: flex; flex-direction: column; gap: var(--space-6); }
 .header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-4); }
 .subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
-.cardTitle { font-size: 16px; font-weight: 700; margin-bottom: var(--space-5); }
+.cardTitle { font-size: 16px; font-weight: 800; margin-bottom: var(--space-5); font-family: 'Space Grotesk', sans-serif; }
 
 /* Stage */
 .stageCard {}
 .stageBar { display: flex; align-items: center; margin-bottom: var(--space-3); }
 .stageWrap { display: flex; align-items: center; flex: 1; }
 .stageWrap:last-child { flex: 0; }
-.stageDot { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-elevated); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; position: relative; transition: var(--transition-base); }
-.done    { background: var(--emerald); border-color: var(--emerald); color: #fff; }
-.current { background: var(--blue-primary); border-color: var(--blue-primary); color: #fff; }
+.stageDot { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-elevated); border: 2.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--text-muted); flex-shrink: 0; position: relative; transition: var(--transition-base); }
+.done    { background: var(--emerald); border-color: var(--ink); color: #062B1C; }
+.current { background: var(--blue-primary); border-color: var(--ink); color: #fff; box-shadow: var(--shadow-xs); }
 .pulse   { position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--blue-primary); animation: pulse-ring 2s infinite; }
 @keyframes pulse-ring { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 0; transform: scale(1.5); } }
-.line { flex: 1; height: 2px; background: var(--border); margin: 0 2px; }
+.line { flex: 1; height: 3px; background: var(--border); margin: 0 2px; }
 .lineDone { background: var(--emerald); }
 .stageLabels { display: flex; justify-content: space-between; }
 .stageLabel { font-size: 10px; color: var(--text-muted); flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.labelActive { color: var(--blue-primary); font-weight: 600; }
+.labelActive { color: var(--blue-primary); font-weight: 800; }
 
 /* Tabs */
-.tabs { display: flex; gap: var(--space-1); border-bottom: 1px solid var(--border); }
-.tab { padding: var(--space-3) var(--space-4); font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: var(--transition-fast); }
+.tabs { display: flex; gap: var(--space-1); border-bottom: var(--border-width) solid var(--border); }
+.tab { padding: var(--space-3) var(--space-4); font-size: 14px; font-weight: 700; color: var(--text-muted); cursor: pointer; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -3px; transition: var(--transition-fast); }
 .tab:hover { color: var(--text-primary); }
 .tabActive { color: var(--blue-primary); border-bottom-color: var(--blue-primary); }
 
 /* History */
 .historyList { display: flex; flex-direction: column; gap: var(--space-4); }
 .historyItem { display: flex; gap: var(--space-4); }
-.historyDot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue-primary); flex-shrink: 0; margin-top: 8px; box-shadow: 0 0 0 4px rgba(79,142,247,0.15); }
+.historyDot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue-primary); border: 2px solid var(--ink); flex-shrink: 0; margin-top: 8px; }
 .historyCard { flex: 1; }
 .historyHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); flex-wrap: wrap; gap: var(--space-2); }
-.historyStage { font-size: 14px; font-weight: 700; }
+.historyStage { font-size: 14px; font-weight: 800; }
 .historyTime  { font-size: 11px; color: var(--text-muted); }
 .historyNote  { font-size: 13px; color: var(--text-secondary); }
 .historyActor { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
@@ -40,14 +40,14 @@
 .milestones { display: flex; flex-direction: column; gap: var(--space-4); }
 .milestoneCard {}
 .milestoneHeader { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); }
-.milestoneName { font-size: 15px; font-weight: 700; }
+.milestoneName { font-size: 15px; font-weight: 800; }
 .milestoneCondition { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .milestoneRight { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); }
-.milestoneAmount { font-size: 18px; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; }
+.milestoneAmount { font-size: 18px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; }
 .milestoneActions { display: flex; gap: var(--space-3); margin-top: var(--space-3); }
 
 /* Placeholder */
 .placeholder { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
 .placeholderIcon { font-size: 48px; }
 .placeholder p { font-size: 13px; color: var(--text-muted); font-style: italic; }
-.placeholder code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.placeholder code { background: var(--bg-elevated); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 12px; }

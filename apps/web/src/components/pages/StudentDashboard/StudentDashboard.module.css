@@ -1,5 +1,5 @@
 /* ============================================================
-   StudentDashboard v2.0 — Premium Glassmorphism
+   StudentDashboard v3.0 — Neubrutalist
    ============================================================ */
 
 .page { display: flex; flex-direction: column; gap: var(--space-8); }
@@ -13,7 +13,7 @@
 }
 
 .greetingText {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 28px;
   font-weight: 800;
   color: var(--text-primary);
@@ -38,30 +38,27 @@
   flex-direction: column;
   gap: var(--space-2);
   position: relative;
-  overflow: hidden;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border: var(--border-width) solid var(--ink);
+  box-shadow: var(--shadow-md);
   transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .statCard:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .statCard::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
+  height: 6px;
 }
-.stat-blue::before   { background: var(--blue-primary); box-shadow: 0 0 8px var(--blue-glow); }
-.stat-purple::before { background: var(--purple-accent); box-shadow: 0 0 8px var(--purple-glow); }
-.stat-amber::before  { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
-.stat-emerald::before{ background: var(--emerald); box-shadow: 0 0 8px var(--emerald-glow); }
+.stat-blue::before   { background: var(--blue-primary); }
+.stat-purple::before { background: var(--purple-accent); }
+.stat-amber::before  { background: var(--amber); }
+.stat-emerald::before{ background: var(--emerald); }
 
 .statHeader {
   display: flex;
@@ -74,18 +71,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-md);
+  border: 2px solid var(--ink);
 }
 
-.stat-blue .statIconWrap   { background: rgba(79,142,247,0.1); color: var(--blue-primary); }
-.stat-purple .statIconWrap { background: rgba(139,92,246,0.1); color: var(--purple-accent); }
-.stat-amber .statIconWrap  { background: rgba(245,158,11,0.1); color: var(--amber); }
-.stat-emerald .statIconWrap{ background: rgba(16,185,129,0.1); color: var(--emerald); }
+.stat-blue .statIconWrap   { background: var(--blue-primary); color: #fff; }
+.stat-purple .statIconWrap { background: var(--purple-accent); color: #fff; }
+.stat-amber .statIconWrap  { background: var(--amber); color: #3D2E00; }
+.stat-emerald .statIconWrap{ background: var(--emerald); color: #08331F; }
 
 .statValue {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 32px;
   font-weight: 800;
   color: var(--text-primary);
@@ -94,7 +92,7 @@
 
 .statLabel {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
@@ -122,10 +120,8 @@
 /* ── App Card ── */
 .appCard {
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: var(--shadow-glass);
+  border: var(--border-width) solid var(--ink);
+  box-shadow: var(--shadow-lg);
 }
 
 .appInfo {
@@ -134,7 +130,7 @@
   gap: var(--space-5);
   margin-bottom: var(--space-8);
   padding-bottom: var(--space-6);
-  border-bottom: 1px dashed var(--glass-border);
+  border-bottom: 2px dashed var(--ink);
 }
 
 .appAgency {
@@ -147,7 +143,8 @@
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: var(--gradient-brand);
+  background: var(--blue-primary);
+  border: 2px solid var(--ink);
   color: #fff;
   font-weight: 800;
   font-size: 20px;
@@ -155,7 +152,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(79,142,247,0.3);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .agencyName {
@@ -171,14 +168,14 @@
   gap: 2px;
   font-size: 15px;
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 .appLabel {
   font-size: 11px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Stage Bar */
@@ -194,12 +191,12 @@
 .stageWrap:last-child { flex: 0; }
 
 .stageDot {
-  width: 32px; height: 32px;
+  width: 34px; height: 34px;
   border-radius: 50%;
   background: var(--glass-bg-elevated);
-  border: 2px solid var(--glass-border);
+  border: 2.5px solid var(--ink);
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700;
+  font-size: 12px; font-weight: 800;
   color: var(--text-muted);
   flex-shrink: 0;
   position: relative;
@@ -207,17 +204,14 @@
 }
 
 .stageDone {
-  background: rgba(16,185,129,0.1);
-  border-color: var(--emerald);
-  color: var(--emerald-light);
-  box-shadow: 0 0 12px var(--emerald-glow);
+  background: var(--emerald);
+  color: #08331F;
 }
 
 .stageCurrent {
   background: var(--blue-primary);
-  border-color: var(--blue-primary);
   color: #fff;
-  box-shadow: 0 0 16px var(--blue-glow);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .stagePulse {
@@ -235,15 +229,16 @@
 
 .stageLine {
   flex: 1;
-  height: 2px;
-  background: var(--glass-border);
+  height: 3px;
+  background: var(--ink);
+  opacity: 0.25;
   margin: 0 4px;
-  transition: background 0.4s ease;
+  transition: opacity 0.3s ease;
 }
 
 .stageLineDone {
   background: var(--emerald);
-  box-shadow: 0 0 8px var(--emerald-glow);
+  opacity: 1;
 }
 
 .stageLabels {
@@ -260,12 +255,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .stageLabelActive {
-  color: var(--blue-light);
-  font-weight: 700;
+  color: var(--blue-primary);
+  font-weight: 800;
 }
 
 .appActions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
@@ -273,9 +268,8 @@
 /* ── Activity ── */
 .activityCard {
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border: var(--border-width) solid var(--ink);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
 }
@@ -293,21 +287,21 @@
   display: flex;
   gap: var(--space-4);
   padding: var(--space-4) 0;
-  border-bottom: 1px dashed var(--glass-border);
+  border-bottom: 2px dashed var(--ink);
   position: relative;
 }
 .activityItem:last-child { border-bottom: none; }
 
 .activityDot {
-  width: 10px; height: 10px;
+  width: 11px; height: 11px;
   border-radius: 50%;
+  border: 2px solid var(--ink);
   flex-shrink: 0;
   margin-top: 5px;
-  box-shadow: 0 0 8px currentColor;
 }
 
 .activityBody { flex: 1; min-width: 0; }
-.activityText { font-size: 14px; color: var(--text-primary); line-height: 1.5; font-weight: 500; }
+.activityText { font-size: 14px; color: var(--text-primary); line-height: 1.5; font-weight: 600; }
 .activityTime { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block; }
 
 /* ── Quick Links ── */
@@ -323,37 +317,33 @@
   gap: var(--space-4);
   cursor: pointer;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  transition:
-    transform var(--transition-base),
-    box-shadow var(--transition-base),
-    border-color var(--transition-base),
-    background var(--transition-base);
+  border: var(--border-width) solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .quickCard:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
-  border-color: var(--glass-border-hover);
-  background: var(--glass-bg-hover);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
 }
 
 .quickIcon {
   font-size: 20px;
   flex-shrink: 0;
-  color: var(--blue-primary);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-md);
-  background: rgba(79,142,247,0.1);
+  border: 2px solid var(--ink);
+  background: var(--blue-primary);
 }
 
 .quickLabel {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
