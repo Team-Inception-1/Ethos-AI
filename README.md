@@ -57,8 +57,13 @@ See full details in [**`docs/KANBAN.md`**](docs/KANBAN.md) and the [GitHub Proje
 
 | Name | Role | Core Contributions | GitHub Handle |
 |---|---|---|---|
-| **Tasin (Lead)** | Backend & Fullstack Architecture Lead | Backend API, PostgreSQL & Prisma Models, Auth/RBAC, Milestone Escrow Engine, AI Fraud Pipeline | [`@tasinofficial`](https://github.com/tasinofficial) |
-| **Prova** | Frontend & UI/UX Design Lead | Next.js UI/UX Glassmorphism System, Directory & Compare Engine, Parent/Student Dashboard, QA & Accessibility | [`@prova`](https://github.com/prova) |
+| **Tasin (Lead)** | Full-Stack Architecture Lead + AI/ML | Project architecture, AI microservice integration, Scam-Alert Risk Classifier, AI Agreement Analyzer, AI Tools ↔ Directory live wiring | [`@tasinofficial`](https://github.com/tasinofficial) |
+| **Sourav** | AI/ML + Frontend | AI microservice scaffold, OCR fraud detection engine, AI Counselor recommendation engine, Bangla assistant, Neubrutalism UI design system | [`@Souravg223`](https://github.com/Souravg223) |
+| **Sudiip** | Backend & Frontend Integration | Auth/RBAC API, application tracking backend, directory & comparison frontend, live API client wiring | [`@SudiipPaul`](https://github.com/SudiipPaul) |
+| **Jannat** | QA, Accessibility & Documentation | E2E workflow testing, code quality pass, accessibility audit, demo script, README | [`@jannatferdo`](https://github.com/jannatferdo) |
+| **Taha** | Backend & DevOps | Database schema/migrations, escrow ledger engine, real-time chat, API reliability QA, CI/CD pipeline | [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa) |
+
+> 🤖 **AI/ML ownership:** All AI/ML work (offer-letter fraud OCR, agreement clause analysis, scam-alert classifier, AI Counselor, Bangla assistant) is split exclusively between **Tasin** and **Sourav**. The rest of the team (Sudiip, Jannat, Taha) owns backend, frontend, and QA/DevOps/documentation.
 
 ---
 
@@ -118,12 +123,12 @@ sequenceDiagram
 
 | Domain | Technology | Description |
 |---|---|---|
-| **Frontend** | **Next.js 15 (App Router), React 19, Vanilla CSS Modules** | Fluid glassmorphism UI, Dark/Light mode, SEO-optimized directory |
+| **Frontend** | **Next.js 15 (App Router), React 19, Vanilla CSS Modules** | Bold Neubrutalism UI, Dark/Light mode, SEO-optimized directory |
 | **Backend API** | **Node.js, Express / NestJS, TypeScript** | REST API, JWT auth, RBAC middleware, Escrow business logic |
 | **AI / OCR** | **FastAPI (Python 3.11), Tesseract OCR, PyMuPDF** | Offer letter verification, clause analysis, risk heuristic models |
 | **Database** | **PostgreSQL 16, Prisma ORM** | Relational data persistence with strict foreign key integrity |
 | **Caching & Jobs** | **Redis, BullMQ** | Rate limiting, async document scanning jobs |
-| **Styling** | **Custom CSS Design Tokens** | Glassmorphism, CSS variables, zero runtime CSS bloat |
+| **Styling** | **Custom CSS Design Tokens** | Neubrutalism (hard shadows, thick borders, flat color), CSS variables, zero runtime CSS bloat |
 
 ---
 
@@ -206,5 +211,5 @@ We strictly adhere to standard software engineering best practices:
 - [x] **3. Backend / Database Functionality:** Relational schema, DTOs, secure business logic, and API endpoints.
 - [x] **4. Git & Team Collaboration:** Distributed commit history, feature branches, clear PR review policy.
 - [x] **5. Code Quality & SWE Practices:** Modular directory structure, TypeScript interfaces, error handling, CSS design system.
-- [x] **6. UI/UX & Usability:** Responsive glassmorphism interface, dark/light theme, accessibility labels, feedback states.
+- [x] **6. UI/UX & Usability:** Responsive Neubrutalism interface, dark/light theme, accessibility labels, feedback states.
 - [x] **7. Project Organization & Documentation:** Root README, architecture diagrams, step-by-step setup guide, and sprint Kanban board.
