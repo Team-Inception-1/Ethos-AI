@@ -1,19 +1,24 @@
 # 📋 Ethos AI — Team Kanban Board & Sprint Task Distribution
 
-> **Course / Project:** CSE Course Project — UIU (United International University)  
-> **Repository:** [`Team-Inception-1/Ethos-AI`](https://github.com/Team-Inception-1/Ethos-AI)  
+> **Course / Project:** CSE Course Project — UIU (United International University)
+> **Repository:** [`Team-Inception-1/Ethos-AI`](https://github.com/Team-Inception-1/Ethos-AI)
+> **Board:** Tracked via [GitHub Issues](https://github.com/Team-Inception-1/Ethos-AI/issues) (`K-01`…`K-24`) + the org's GitHub Projects board.
 > **Evaluation Rubric Alignment:** Evaluated against 7 core criteria (Core Features, Integration Workflow, Backend/DB, Git Collaboration, Code Quality, UI/UX, Documentation & Planning).
+> **Last redistributed:** Sprint 2 kickoff — remaining work divided so **AI/ML is owned exclusively by Tasin & Sourav**, and Backend/Frontend/QA-Docs work is spread across Sudiip, Jannat, and Taha.
 
 ---
 
 ## 👥 Team Roles & Ownership Matrix
 
-| Member | Primary Handle | Core Specialization | Primary Feature Ownership |
+| Member | GitHub Handle | Specialization | Primary Ownership Area |
 |---|---|---|---|
-| **Tasin (Lead)** | `@tasinofficial` (`mtasin223580@bscse.uiu.ac.bd`) | Backend Architecture & Full-Stack Lead | Core Backend API, Auth & RBAC, PostgreSQL/Prisma Schema, Milestone Escrow Engine |
-| **Prova** | `@prova` (`prova@gmail.com`) | Frontend Lead, UI/UX & QA | React/Next.js Client, Verified Directory & Compare Tool, Parent-Student Dashboard, Design System |
-| **AI / Microservice Dev** | `@tasinofficial` / Collaborator | AI & ML Services | FastAPI Service, OCR Offer Letter Fraud Detector, Agreement Clause Analyzer |
-| **DevOps & Integration Dev** | `@prova` / Collaborator | Integration, CI/CD & Testing | E2E Integration Workflow, Docker Compose, Database Seeding, QA & Documentation |
+| **Tasin (Lead)** | [`@tasinofficial`](https://github.com/tasinofficial) | Full-Stack Architecture Lead + **AI/ML** | Project architecture, AI microservice integration, Scam-alert risk classifier, AI Agreement Analyzer, AI Tools ↔ Directory live wiring |
+| **Sourav** | [`@Souravg223`](https://github.com/Souravg223) | **AI/ML** + Frontend | AI microservice scaffold, OCR fraud detection engine, AI Counselor recommendation engine, Bangla assistant, UI design system |
+| **Sudiip** | [`@SudiipPaul`](https://github.com/SudiipPaul) | Backend & Frontend Integration | Auth/RBAC API, application tracking backend, directory & comparison frontend, live API client wiring |
+| **Jannat** | [`@jannatferdo`](https://github.com/jannatferdo) | QA, Accessibility & Documentation | E2E workflow testing, code quality pass, accessibility audit, demo script, README |
+| **Taha** | [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa) | Backend & DevOps | Database schema/migrations, escrow ledger engine, real-time chat, API reliability QA, CI/CD pipeline |
+
+> **Note:** Only **Tasin** and **Sourav** are assigned AI/ML-labeled (`ai-ml`) issues — this is an explicit, intentional split so the two AI/ML-focused members carry that entire workstream between them. The other three members (Sudiip, Jannat, Taha) own the remaining backend, frontend, and QA/DevOps/documentation workload.
 
 ---
 
@@ -21,13 +26,13 @@
 
 | Rubric Criterion | Target Deliverables & Milestones | Addressed by Issues |
 |---|---|---|
-| **1. Core Features Implemented** | 4 working core features: (1) Auth/RBAC, (2) Verified Directory & Comparison, (3) Application Tracking & Docs, (4) Milestone Escrow System, (5) AI Fraud Analysis | `#1`, `#2`, `#3`, `#4`, `#5`, `#6` |
-| **2. Feature Integration & Workflow** | Seamless End-to-End student & parent flow: Search agency → Apply → AI Fraud Check → Milestone Payment → Status Tracking | `#7`, `#8` |
-| **3. Backend / Database Functionality** | PostgreSQL schema, Node/Express/NestJS API, real CRUD data persistence (no hardcoded state) | `#9`, `#10`, `#11` |
-| **4. Git & Team Collaboration** | Feature branch workflow, PR reviews, conventional commits, distributed issues & PRs across all members | `#12`, `#13` |
-| **5. Code Quality & SWE Practices** | Modular architecture, TypeScript interfaces/DTOs, centralized error handling, separation of concerns | `#14`, `#15` |
-| **6. UI/UX & Usability** | Glassmorphism design system, dark/light theme, responsive mobile views, accessibility & feedback states | `#16`, `#17` |
-| **7. Project Organization & Docs** | Comprehensive `README.md`, setup instructions, architecture docs, API specs, and sprint Kanban | `#18`, `#19` |
+| **1. Core Features Implemented** | Auth/RBAC, Verified Directory & Comparison, Application Tracking & Docs, Milestone Escrow, AI Fraud/Counselor Suite | `#6` `#7` `#8` `#10` `#16` `#22` `#23` `#24` |
+| **2. Feature Integration & Workflow** | Seamless End-to-End student & parent flow: Search → Apply → AI Fraud Check → Escrow → Status | `#9` `#25` |
+| **3. Backend / Database Functionality** | PostgreSQL/Prisma schema, real CRUD persistence, FastAPI AI microservice | `#6` `#7` `#10` `#14` `#22` |
+| **4. Git & Team Collaboration** | Feature branch workflow, PR reviews, conventional commits, CI checks | `#2` `#20` |
+| **5. Code Quality & SWE Practices** | TypeScript strictness, DTOs, centralized error handling, API reliability | `#12` `#13` `#25` |
+| **6. UI/UX & Usability** | Neubrutalism design system, dark/light theme, accessibility, Bangla localization | `#1` `#15` `#19` |
+| **7. Project Organization & Docs** | README, architecture docs, sprint Kanban, demo script | `#5` `#18` |
 
 ---
 
@@ -37,14 +42,33 @@
 ┌─────────────────────────┬─────────────────────────┬─────────────────────────┬─────────────────────────┬─────────────────────────┐
 │       📥 BACKLOG        │        📝 TO DO         │     🚀 IN PROGRESS      │    🔍 REVIEW / QA       │        ✅ DONE          │
 ├─────────────────────────┼─────────────────────────┼─────────────────────────┼─────────────────────────┼─────────────────────────┤
-│ • #6 Bangla AI Parent   │ • #9 PostgreSQL & Prisma│ • #1 Real Auth Backend  │ • #16 UI/UX Theme &     │ • #19 Project Scaffold &│
-│   Voice Assistant       │   Database Integration  │   API & JWT Session     │   Accessibility Audit   │   Context Definition    │
-│ • #8 Real-Time Chat     │ • #10 Express/NestJS    │ • #2 Directory & Search │ • #14 Shared TypeScript │ • #17 Glassmorphism     │
-│   & Dispute Resolution  │   REST API Endpoints    │   Filters Live API      │   DTOs & Architecture   │   UI Design System      │
-│ • #11 SSLCommerz Live   │ • #5 FastAPI OCR Fraud  │ • #3 Application Tracker│ • #18 Comprehensive     │ • #20 Auth & Profile    │
-│   Gateway Sandbox       │   Detection Microservice│   & Document Vault      │   README & Setup Docs   │   Client Mock Skeleton  │
-│                         │ • #7 End-to-End Workflow│ • #4 Milestone Escrow   │                         │                         │
-│                         │   Integration Test Flow │   Ledger Engine         │                         │                         │
+│ • #23 AI Counselor      │ • #6  Auth/RBAC JWT API │ • #7  App Tracking &    │ • #11 API Reliability   │ • #1  UI Design System  │
+│   Recommendation Engine │   (Sudiip)              │   Document Vault        │   & Edge-Case QA        │   (Sourav)              │
+│   (Sourav)              │ • #14 Prisma Schema &   │   (Sudiip)              │   (Taha)                │ • #2  Repo Hygiene &    │
+│                         │   Seed Data (Taha)      │ • #8  Directory Filters │ • #13 Code Quality Pass │   Issue Scripts (Taha)  │
+│                         │ • #16 AI Agreement      │   & Compare (Sudiip)    │   (Jannat)               │ • #3  Project Setup &   │
+│                         │   Clause Highlighter    │ • #10 Escrow Milestone  │ • #15 Accessibility     │   Context Doc (Tasin)   │
+│                         │   (Tasin)               │   Ledger Engine (Taha)  │   Pass (Jannat)          │ • #4  Auth/Profile      │
+│                         │ • #17 Real-Time Chat    │                         │                         │   Shell (Sudiip)        │
+│                         │   (Taha)                │                         │                         │ • #5  README (Jannat)  │
+│                         │ • #22 AI Microservice   │                         │                         │                         │
+│                         │   Scaffold + OCR Fraud  │                         │                         │                         │
+│                         │   Detection (Sourav)    │                         │                         │                         │
+│                         │ • #23 Scam Alert Risk   │                         │                         │                         │
+│                         │   Classifier (Tasin)    │                         │                         │                         │
+│                         │ • #25 Wire AI Tools ↔   │                         │                         │                         │
+│                         │   Live Microservice     │                         │                         │                         │
+│                         │   (Tasin)               │                         │                         │                         │
+│                         │ • #9  E2E Workflow Test │                         │                         │                         │
+│                         │   (Jannat)              │                         │                         │                         │
+│                         │ • #12 Frontend↔API      │                         │                         │                         │
+│                         │   Client Wiring (Sudiip)│                         │                         │                         │
+│                         │ • #18 Demo Script       │                         │                         │                         │
+│                         │   (Jannat)              │                         │                         │                         │
+│                         │ • #19 Bangla Guardian   │                         │                         │                         │
+│                         │   Assistant (Sourav)    │                         │                         │                         │
+│                         │ • #20 CI/CD Pipeline    │                         │                         │                         │
+│                         │   Checks (Taha)         │                         │                         │                         │
 └─────────────────────────┴─────────────────────────┴─────────────────────────┴─────────────────────────┴─────────────────────────┘
 ```
 
@@ -54,156 +78,166 @@
 
 ### 🟢 Column: DONE (Sprint 0 / Foundation)
 
-#### Issue #19: Project Context, Architecture Spec & Repository Structure
-- **Assignee:** `@tasinofficial`
-- **Labels:** `documentation`, `architecture`, `criterion-8`
+#### Issue #3 — K-01: Project Setup, Folder Structure & Architecture Context Document
+- **Assignee:** [`@tasinofficial`](https://github.com/tasinofficial)
+- **Labels:** `documentation`
 - **Description:** Defined repository layout, data models, tech stack decisions, and security guidelines in `ETHOS_AI_CONTEXT.md`.
-- **Status:** `DONE`
 
-#### Issue #17: Modern Glassmorphism UI Design System & Component Library
-- **Assignee:** `@prova`
-- **Labels:** `frontend`, `ui/ux`, `criterion-7`
-- **Description:** Built reusable `GlassCard`, `Button`, `Badge`, `Navbar`, and responsive layout styles supporting both Dark and Light themes with fluid CSS variables.
-- **Status:** `DONE`
+#### Issue #1 — K-03: UI Design System (Neubrutalism Components & Theming)
+- **Assignee:** [`@Souravg223`](https://github.com/Souravg223)
+- **Labels:** `frontend`
+- **Description:** Owns the `GlassCard`, `Button`, `Badge`, `Navbar` component library and the dark/light theme token system (currently the **Neubrutalism** design system — thick borders, hard offset shadows, flat color).
 
-#### Issue #20: Client Authentication, Guardian-Student Linking & Profile UI Shell
-- **Assignee:** `@tasinofficial`, `@prova`
-- **Labels:** `frontend`, `auth`, `criterion-1`
-- **Description:** Implemented client-side `AuthContext`, quick demo role switcher (Student, Parent, Agency, Admin), OTP verification step simulation, and Guardian code linking.
-- **Status:** `DONE`
+#### Issue #4 — K-02: Initial Auth/Profile Shell & Role Switching Screens
+- **Assignee:** [`@SudiipPaul`](https://github.com/SudiipPaul)
+- **Labels:** `frontend`
+- **Description:** Client-side `AuthContext`, demo role switcher (Student/Parent/Agency/Admin), OTP step simulation, Guardian code linking UI.
+
+#### Issue #5 — K-04: Repository README with Setup & Module Overview
+- **Assignee:** [`@jannatferdo`](https://github.com/jannatferdo)
+- **Labels:** `documentation`
+
+#### Issue #2 — K-05: Base Scripts for Issue/Project Workflow & Repo Hygiene
+- **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
+- **Labels:** `qa-devops`
 
 ---
 
-### 🟡 Column: IN PROGRESS (Sprint 1 — Core Features & Persistence)
+### 🚀 Column: IN PROGRESS (Sprint 1 — Core Features & Persistence)
 
-#### Issue #1: User Authentication & Role-Based Access Control (RBAC) API
-- **Assignee:** `@tasinofficial`
-- **Labels:** `backend`, `auth`, `security`, `criterion-1`, `criterion-3`
-- **Estimated Effort:** 5 Story Points
-- **Branch:** `feature/auth-backend-api`
-- **Objective:** Replace client mock auth with real JWT authentication, bcrypt password hashing, role-based authorization middleware (`student`, `parent`, `agency`, `admin`), and OTP verification service.
-- **Definition of Done (DoD):**
-  - [ ] `POST /api/auth/register` creates user in database with hashed credentials.
-  - [ ] `POST /api/auth/login` returns signed JWT and refresh token in HTTP-only cookies.
-  - [ ] `POST /api/auth/link-guardian` links parent account to student via unique referral/link code.
-  - [ ] Role protection middleware blocks unauthorized role access with `403 Forbidden`.
-
-#### Issue #2: Verified Consultancy Directory & Side-by-Side Comparison Tool
-- **Assignee:** `@prova`
-- **Labels:** `frontend`, `backend`, `criterion-1`, `criterion-2`, `criterion-7`
-- **Estimated Effort:** 5 Story Points
-- **Branch:** `feature/directory-compare-module`
-- **Objective:** Implement full dynamic search, country/fee/rating filtering, agency detail view, and side-by-side comparison modal for 2–4 agencies.
-- **Definition of Done (DoD):**
-  - [ ] Filter controls (country, success rate, budget, rating) execute live query filtering.
-  - [ ] Agency profile displays verified badge, structured pricing breakdown, and review metrics.
-  - [ ] Compare page displays side-by-side table of selected agencies with highlight of hidden charges.
-  - [ ] Direct "Apply Now" button links agency to new Application creation flow.
-
-#### Issue #3: Application Lifecycle Tracking System & Secure Document Vault
-- **Assignee:** `@tasinofficial`
-- **Labels:** `fullstack`, `criterion-1`, `criterion-2`, `criterion-3`
-- **Estimated Effort:** 8 Story Points
-- **Branch:** `feature/application-tracking-docs`
+#### Issue #7 — K-07: Application Stage Tracking & Secure Document Vault
+- **Assignee:** [`@SudiipPaul`](https://github.com/SudiipPaul)
+- **Labels:** `backend`
 - **Objective:** Multi-stage application state machine (`submitted` → `under_review` → `offer_received` → `payment_pending` → `visa_processing` → `completed`) with timestamped actor logging and file uploads.
-- **Definition of Done (DoD):**
-  - [ ] Student can submit application to a chosen agency with target university/program.
-  - [ ] Agency can transition application stage with status update notes and document attachments.
-  - [ ] Parent linked to student receives updated read-only view of stages in real-time.
-  - [ ] Document upload endpoint stores metadata, versions, and provides download links.
+- **DoD:** student submits application; agency transitions stage with notes/attachments; parent sees read-only synced view; document endpoint returns versioned download links.
 
-#### Issue #4: Milestone-Based Escrow Payment System & Immutable Ledger
-- **Assignee:** `@tasinofficial`
-- **Labels:** `backend`, `payments`, `security`, `criterion-1`, `criterion-3`
-- **Estimated Effort:** 8 Story Points
-- **Branch:** `feature/escrow-milestone-ledger`
-- **Objective:** Implement escrow payment state machine (`held` → `released` → `disputed` → `refunded`), `PaymentProvider` interface abstraction, poisha integer calculations, and digital receipt generation.
-- **Definition of Done (DoD):**
-  - [ ] Escrow state machine prevents illegal transitions (e.g. cannot release disputed funds without admin override).
-  - [ ] Mock / Sandbox Payment gateway webhook triggers milestone transition to `held`.
-  - [ ] Immutable `LedgerEntry` table logs all credits/debits with transaction hash.
-  - [ ] Downloadable digital receipt summary view generated upon milestone release.
+#### Issue #8 — K-08: Directory Filters & Agency Comparison Workflow
+- **Assignee:** [`@SudiipPaul`](https://github.com/SudiipPaul)
+- **Labels:** `frontend`
+- **Objective:** Live filtering (country, success rate, budget, rating) and side-by-side comparison of 2–4 agencies.
+- **DoD:** filter controls query live; compare table highlights hidden charges; "Apply Now" links into the application flow.
+
+#### Issue #10 — K-10: Escrow Milestone Flow & Immutable Ledger
+- **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
+- **Labels:** `backend`
+- **Objective:** Escrow state machine (`held` → `released` → `disputed` → `refunded`), `PaymentProvider` interface, poisha integer arithmetic, append-only `LedgerEntry` table, digital receipts.
+- **DoD:** illegal transitions blocked (e.g. release while disputed); sandbox gateway webhook triggers `held`; ledger is append-only with transaction hash; receipt view generated on release.
 
 ---
 
-### 🔵 Column: TO DO (Sprint 2 — AI Services & Feature Integration)
+### 📝 Column: TO DO (Sprint 2 — AI Services, Backend Depth & Integration)
 
-#### Issue #5: AI Document Fraud Detection & Agreement Analyzer Microservice
-- **Assignee:** `@tasinofficial`
-- **Labels:** `ai/ml`, `fastapi`, `criterion-1`, `criterion-3`
-- **Estimated Effort:** 8 Story Points
-- **Branch:** `feature/ai-fraud-service`
-- **Objective:** Stand up FastAPI service with OCR (Tesseract / regex heuristics) to inspect offer letters, compute risk scores (0–100), flag suspicious text, and extract agreement fee clauses.
-- **Definition of Done (DoD):**
-  - [ ] `POST /api/ai/analyze-offer-letter` receives file and returns `riskScore`, `verdict`, and `flags[]`.
-  - [ ] `POST /api/ai/analyze-agreement` parses clauses and highlights hidden fee discrepancies.
-  - [ ] Web frontend displays animated gauge score, checkmarks, and actionable warning badges.
+#### Issue #6 — K-06: JWT Auth + RBAC Middleware + Guardian Linking API
+- **Assignee:** [`@SudiipPaul`](https://github.com/SudiipPaul)
+- **Labels:** `backend`
+- **Objective:** Replace client mock auth with real JWT auth, bcrypt hashing, RBAC middleware (`student`/`parent`/`agency`/`admin`), OTP verification service.
+- **DoD:** `POST /api/auth/register`, `POST /api/auth/login` (HTTP-only cookie JWT + refresh), `POST /api/auth/link-guardian`, role-guard middleware returns `403` on violation.
 
-#### Issue #7: End-to-End Integrated Workflow (Golden Flow Validation)
-- **Assignee:** `@prova`, `@tasinofficial`
-- **Labels:** `integration`, `workflow`, `criterion-2`
-- **Estimated Effort:** 5 Story Points
-- **Branch:** `feature/e2e-workflow-integration`
-- **Objective:** Connect all 4 core modules into one seamless end-to-end user journey from registration to visa approval.
-- **End-to-End Scenario:**
-  1. Student registers & links Parent account.
-  2. Student searches directory, compares 2 agencies, and applies to Global Edu BD.
-  3. Student uploads received Offer Letter → AI tool scans and gives `LOW RISK (Score: 23)`.
-  4. Agency confirms offer → Application moves to `Payment Pending`.
-  5. Student/Parent deposits Milestone 1 fee into Escrow.
-  6. Agency moves stage to `Visa Processing`.
-  7. Parent views real-time status update in Bangla.
-- **Definition of Done (DoD):**
-  - [ ] Complete workflow executes smoothly without browser errors or manual DB patching.
-  - [ ] Automated end-to-end test script or recorded browser walkthrough validates the entire flow.
+#### Issue #14 — K-11: PostgreSQL Schema + Prisma Migrations + Seed Data
+- **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
+- **Labels:** `backend`
+- **Objective:** Full Prisma schema for `User`, `StudentProfile`, `Agency`, `Application`, `StageEvent`, `Document`, `Milestone`, `LedgerEntry` per `ETHOS_AI_CONTEXT.md` §6, plus realistic Bangladeshi-consultancy seed data.
+- **DoD:** `prisma migrate dev` runs cleanly; seed script populates ≥5 verified agencies, 10 student/parent accounts, sample applications & payments.
 
-#### Issue #9: Relational Database Schema & Migrations (PostgreSQL + Prisma)
-- **Assignee:** `@tasinofficial`
-- **Labels:** `backend`, `database`, `criterion-3`
-- **Estimated Effort:** 5 Story Points
-- **Branch:** `feature/database-prisma-schema`
-- **Objective:** Create complete Prisma schema for `User`, `StudentProfile`, `Agency`, `Application`, `StageEvent`, `Document`, `Milestone`, and `LedgerEntry`. Provide seed script with realistic Bangladeshi consultancy data.
-- **Definition of Done (DoD):**
-  - [ ] `prisma migrate dev` executes cleanly.
-  - [ ] `prisma/seed.ts` populates at least 5 verified agencies, 10 student/parent accounts, sample applications, and payment records.
+#### Issue #17 — K-16: Real-Time Chat Between Student and Agency
+- **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
+- **Labels:** `backend`
+- **Objective:** Encrypted-in-transit chat (Module 5.12), immutable history, exportable as dispute evidence, attachments reuse the Document Vault (#7).
 
-#### Issue #10: REST API Integration Layer & Centralized HTTP Client
-- **Assignee:** `@prova`
-- **Labels:** `frontend`, `api-integration`, `criterion-3`, `criterion-5`
-- **Estimated Effort:** 3 Story Points
-- **Branch:** `feature/frontend-api-client`
-- **Objective:** Replace local state fixtures in frontend components (`ApplicationsPage`, `DirectoryPage`, `PaymentsPage`, `DocumentsPage`) with typed API fetch calls, loading skeletons, and error toasts.
-- **Definition of Done (DoD):**
-  - [ ] Centralized `apiClient` with token interceptor and error normalization.
-  - [ ] All table and list views display loading skeletons and graceful empty states.
+#### Issue #12 — K-12: Connect Frontend Pages to Real API Client
+- **Assignee:** [`@SudiipPaul`](https://github.com/SudiipPaul)
+- **Labels:** `frontend`
+- **Objective:** Replace local-state fixtures in `ApplicationsPage`, `DirectoryPage`, `PaymentsPage`, `DocumentsPage` with a centralized typed `apiClient`, token interceptor, loading skeletons, error toasts.
+
+#### Issue #9 — K-09: End-to-End Workflow Test (Register → Apply → Escrow → Status)
+- **Assignee:** [`@jannatferdo`](https://github.com/jannatferdo)
+- **Labels:** `qa-devops`
+- **Objective:** Validate the full golden-flow scenario end-to-end without manual DB patching; produce an automated test script or recorded walkthrough.
+
+#### Issue #18 — K-19: Demo Script + Walkthrough Checklist for Evaluation
+- **Assignee:** [`@jannatferdo`](https://github.com/jannatferdo)
+- **Labels:** `qa-devops`
+
+#### Issue #20 — K-20: Deployment Pipeline Checks (Lint/Test/Build) for PRs
+- **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
+- **Labels:** `qa-devops`
+- **Objective:** GitHub Actions workflow gating every PR on lint, typecheck, and build success.
 
 ---
 
-### 🟣 Column: REVIEW & QA (Sprint Quality & SWE Standards)
+### 🤖 AI / ML Workstream — Owned by Tasin & Sourav
 
-#### Issue #14: Code Quality, DTO Architecture & Modular Layering
-- **Assignee:** `@tasinofficial`
-- **Labels:** `code-quality`, `refactoring`, `criterion-5`
-- **Description:** Ensure strict TypeScript typing, avoid `any`, separate UI components from business logic hooks, add basic input validation, and verify error boundaries.
+> All four issues below carry the `ai-ml` label. This workstream is deliberately isolated to Tasin and Sourav so AI/ML ownership is unambiguous; no other team member is assigned `ai-ml` work this sprint.
 
-#### Issue #16: Accessibility, Responsive Layout & UI/UX Usability Polish
-- **Assignee:** `@prova`
-- **Labels:** `ui/ux`, `accessibility`, `criterion-7`
-- **Description:** Verify ARIA labels on all interactive controls, contrast ratios across dark/light modes, seamless mobile navigation drawer, and intuitive feedback tooltips.
+#### Issue #22 — K-21: FastAPI AI Microservice Scaffold + Offer-Letter OCR Fraud Detection Engine
+- **Assignee:** [`@Souravg223`](https://github.com/Souravg223)
+- **Labels:** `ai-ml`
+- **Module:** 5.8 (Fake Document Detection)
+- **Objective:** Stand up `apps/ai-service` (FastAPI, isolated from the Node core API per `ETHOS_AI_CONTEXT.md` §10) with an offer-letter OCR pipeline (Tesseract, fallback Google Vision), template/structural consistency checks, sender-domain authenticity check, and 0–100 risk scoring.
+- **DoD:** `apps/ai-service` scaffolded with Dockerfile + `/health`; `POST /api/ai/analyze-offer-letter` returns `{ riskScore, verdict, flags[] }`; domain check flags spoofed senders; unit tests over 3+ sample documents.
 
-#### Issue #18: Project Documentation, Quickstart Guides & Evaluation Pitch
-- **Assignee:** `@prova`, `@tasinofficial`
-- **Labels:** `documentation`, `criterion-8`
-- **Description:** Complete root `README.md` with installation steps, environment variables, architectural diagrams, API reference, team contribution log, and demo video links.
+#### Issue #16 — K-17: AI Agreement Clause Highlighter for Refund Risks
+- **Assignee:** [`@tasinofficial`](https://github.com/tasinofficial)
+- **Labels:** `ai-ml`
+- **Module:** 5.9 (Smart Agreement Analyzer)
+- **Objective:** LLM-based clause extraction from uploaded agreements (fee, refund, cancellation, liability clauses) into structured JSON; compare extracted fees against declared structured pricing (5.4) to flag hidden-charge mismatches; plain-language explanation of ambiguous/contradictory refund language.
+
+#### Issue #23 — K-22: Scam Alert Risk Classifier for Agency Listings & Chat Content
+- **Assignee:** [`@tasinofficial`](https://github.com/tasinofficial)
+- **Labels:** `ai-ml`
+- **Module:** 5.10 (Scam Alert System)
+- **Objective:** Text-pattern + LLM classifier scanning agency marketing copy, chat, and agreement text for predatory claims (e.g. "100% visa guarantee"); rolling per-agency `riskScore` combining flags + complaint history + review sentiment.
+- **DoD:** `POST /api/ai/scan-content` returns `{ flags[], severity }`; ≥10 rule-based predatory-phrase patterns pre-filter before LLM escalation; risk badge surfaces on the Directory/Agency profile UI.
+
+#### Issue #24 — K-23: AI Counselor Chatbot — Recommendation Engine & Admission-Chance Heuristic
+- **Assignee:** [`@Souravg223`](https://github.com/Souravg223)
+- **Labels:** `ai-ml`
+- **Module:** 5.18 (AI Counselor Chatbot)
+- **Objective:** Country/university recommendations from student profile (grades, budget, target field, test scores); rule-based admission-chance heuristic (upgradeable to a trained model later); personalized roadmap generator feeding into the Application Tracker (#7).
+
+#### Issue #25 — K-24: Wire AI Tools Page & Directory Risk Badges to the Live AI Microservice
+- **Assignee:** [`@tasinofficial`](https://github.com/tasinofficial)
+- **Labels:** `ai-ml`
+- **Objective:** Replace mocked risk-gauge/flags/clauses in `AIToolsPage` and static risk badges in `DirectoryPage` with live calls to the endpoints delivered in #22, #16, #23 — following the same API-client pattern established in #12.
+- **DoD:** live calls to `analyze-offer-letter` / `analyze-agreement`; Directory risk badges pull from #23's live `riskScore`; loading skeleton + error toast on latency/failure; zero mocked AI data left in committed code.
+
+#### Issue #19 — K-18: Bangla Guardian Summary Cards & Voice Playback
+- **Assignee:** [`@Souravg223`](https://github.com/Souravg223)
+- **Labels:** `ai-ml`
+- **Module:** 5.11 (Bangla AI Assistant)
+- **Objective:** Bangla-first plain-language application-status summaries for the Parent Dashboard (reusing the same tracking data source as #7, no separate source of truth), with optional voice playback.
 
 ---
 
-### ⚪ Column: BACKLOG (Future Enhancements / Post-MVP)
+### 🔍 Column: REVIEW / QA
 
-- **Issue #6:** Bangla AI Voice & Chat Assistant for Parents (`@prova`, `@tasinofficial`) — *Criterion 1*
-- **Issue #8:** Real-time End-to-End Chat & Dispute Resolution Panel (`@tasinofficial`) — *Criterion 2*
-- **Issue #11:** SSLCommerz & bKash Live Payment Gateway Webhook Integration (`@tasinofficial`) — *Criterion 3*
-- **Issue #13:** Automated CI/CD GitHub Actions Workflow for Lint, Test & Docker Build (`@prova`) — *Criterion 4*
+#### Issue #13 — K-14: Code Quality Pass (Strict Typing, Validation, Error Handling)
+- **Assignee:** [`@jannatferdo`](https://github.com/jannatferdo)
+- **Labels:** `qa-devops`
+- **Description:** Strict TypeScript typing (no `any`), separation of UI components from business-logic hooks, input validation, error boundary verification.
+
+#### Issue #15 — K-13: Accessibility Pass (Labels, Contrast, Keyboard Nav)
+- **Assignee:** [`@jannatferdo`](https://github.com/jannatferdo)
+- **Labels:** `frontend`
+- **Description:** ARIA labels on all interactive controls, contrast ratios across dark/light Neubrutalism themes, mobile navigation drawer, feedback tooltips.
+
+#### Issue #11 — K-15: Verify API Reliability & Edge-Case Behavior for Payment/Doc Flows
+- **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
+- **Labels:** `qa-devops`
+
+---
+
+## 🧮 Workload Summary (this sprint)
+
+| Member | AI/ML Issues | Backend Issues | Frontend Issues | QA/DevOps/Docs Issues | Total Open |
+|---|---:|---:|---:|---:|---:|
+| **Tasin** | 3 (`#16` `#23` `#25`) | – | – | – | 3 |
+| **Sourav** | 3 (`#19` `#22` `#24`) | – | – | – | 3 |
+| **Sudiip** | 0 | 2 (`#6` `#7`) | 2 (`#8` `#12`) | – | 4 |
+| **Jannat** | 0 | – | 1 (`#15`) | 3 (`#9` `#13` `#18`) | 4 |
+| **Taha** | 0 | 2 (`#10` `#14`) `#17` (3) | – | 2 (`#11` `#20`) | 5 |
+
+> Foundation/DONE issues (`#1`–`#5`) are excluded from this table as they are already closed-out ownership records, not active workload.
 
 ---
 
@@ -211,15 +245,17 @@
 
 To guarantee high marks on **Criterion 4 (Git & Team Collaboration)**:
 1. **Branch Naming Standard:**
-   - Features: `feature/<issue-number>-<short-description>` (e.g. `feature/1-auth-jwt-api`)
+   - Features: `feature/<issue-number>-<short-description>` (e.g. `feature/6-auth-jwt-api`)
    - Bug fixes: `bugfix/<issue-number>-<short-description>`
    - Documentation: `docs/<short-description>`
 2. **Commit Message Format (Conventional Commits):**
-   - `feat(auth): implement JWT login and password hashing (#1)`
-   - `feat(directory): add side-by-side comparison modal (#2)`
-   - `fix(escrow): prevent milestone release on disputed status (#4)`
-   - `docs(readme): add docker setup instructions and architecture diagram (#18)`
+   - `feat(auth): implement JWT login and password hashing (#6)`
+   - `feat(directory): add side-by-side comparison modal (#8)`
+   - `fix(escrow): prevent milestone release on disputed status (#10)`
+   - `feat(ai): implement OCR fraud detection pipeline (#22)`
+   - `docs(kanban): redistribute sprint 2 task ownership (#26)`
 3. **Pull Request (PR) Policy:**
-   - Every PR must reference its GitHub Issue (e.g. `Closes #1`).
-   - Every PR requires at least **1 peer review approval** (Tasin reviews Prova's PRs, Prova reviews Tasin's PRs).
+   - Every PR must reference its GitHub Issue (e.g. `Closes #6`).
+   - Every PR requires at least **1 peer review approval** before merge.
    - PR must include a short summary of changes and before/after screenshots for UI changes.
+   - AI/ML PRs (`#16` `#19` `#22` `#23` `#24` `#25`) should cross-review between Tasin ↔ Sourav since they own that full workstream together.
