@@ -1,0 +1,13 @@
+{
+  "agreement_text": "SERVICE AGREEMENT\n\n1. FEES: The total service fee is Tk 65,000, payable on signing.\n2. In addition, a documentation charge of Tk 5,000 will apply per submitted application.\n3. REFUND POLICY: A partial refund may be issued at the Agency's discretion.\n4. LIABILITY: The Agency is not liable for delays caused by the university.",
+  "declared_pricing": [
+    {
+      "service_name": "Application processing",
+      "amount_poisha": 6500000,
+      "when_charged": "on_signup",
+      "refundable": false,
+      "conditions": "Non-refundable after 7 days"
+    }
+  ],
+  "language": "en"
+}
