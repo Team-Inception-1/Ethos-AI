@@ -181,6 +181,7 @@
 - **Labels:** `ai-ml`
 - **Module:** 5.9 (Smart Agreement Analyzer)
 - **Objective:** LLM-based clause extraction from uploaded agreements (fee, refund, cancellation, liability clauses) into structured JSON; compare extracted fees against declared structured pricing (5.4) to flag hidden-charge mismatches; plain-language explanation of ambiguous/contradictory refund language.
+- **Status:** ✅ Implemented in `apps/ai-service` (FastAPI). Pluggable `AgreementLLM` provider abstraction (Gemini + offline `FakeAgreementLLM` fallback), `POST /api/ai/analyze-agreement` (multipart) and `/analyze-agreement/text` (JSON) endpoints, hidden-fee + ambiguous/contradictory-refund flag logic, 22 passing unit/API tests (fully offline). See `apps/ai-service/README.md` for the API contract consumed by #25.
 
 #### Issue #23 — K-22: Scam Alert Risk Classifier for Agency Listings & Chat Content
 - **Assignee:** [`@tasinofficial`](https://github.com/tasinofficial)
