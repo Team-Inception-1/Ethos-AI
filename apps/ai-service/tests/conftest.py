@@ -37,4 +37,4 @@ def settings_no_key() -> Settings:
 
 @pytest.fixture
 def settings_with_key() -> Settings:
-    return Settings(gemini_api_key="dummy-key-for-tests", gemini_model="gemini-2.0-flash")
+    return Settings(gemini_api_key="dummy-key-for-tests", gemini_model="gemini-3.6-flash")

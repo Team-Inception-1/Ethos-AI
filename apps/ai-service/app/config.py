@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # --- LLM provider -------------------------------------------------
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.6-flash"
 
     # --- Service metadata ----------------------------------------------
     service_name: str = "ethos-ai-service"

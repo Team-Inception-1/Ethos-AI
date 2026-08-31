@@ -51,7 +51,7 @@ async def main() -> int:
         print("SKIP: GEMINI_API_KEY not set in this environment.")
         return 0
 
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
     llm = GeminiAgreementLLM(api_key=api_key, model=model)
 
     print(f"Calling live Gemini API (model={model})...")
