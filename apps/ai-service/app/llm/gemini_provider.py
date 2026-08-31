@@ -46,7 +46,11 @@ _RESPONSE_SCHEMA = {
                         "enum": ["fee", "refund", "cancellation", "liability", "other"],
                     },
                     "quote": {"type": "string"},
-                    "amount_poisha": {"type": ["integer", "null"]},
+                    # Gemini's schema format doesn't support JSON Schema's
+                    # `"type": ["integer", "null"]` union syntax — nullability
+                    # is expressed via a separate `nullable` flag alongside a
+                    # single `type` instead.
+                    "amount_poisha": {"type": "integer", "nullable": True},
                     "summary_en": {"type": "string"},
                 },
                 "required": ["clause_type", "quote", "summary_en"],
