@@ -8,10 +8,10 @@ Tesseract/LLM providers directly.
 Run locally:
     uvicorn app.main:app --reload --port 8001
 
-This module currently only mounts the Agreement Analyzer router (#16).
-The OCR fraud-detection router (#22) and scam-alert router (#23) will be
-added as sibling routers under the same `/api/ai` prefix by their owners —
-see docs/KANBAN.md for ownership.
+This module mounts the Agreement Analyzer router (#16) and the Scam Alert
+router (#23). The OCR fraud-detection router (#22) will be added as a
+sibling router under the same `/api/ai` prefix by its owner — see
+docs/KANBAN.md for ownership.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routers.agreement import router as agreement_router
+from app.routers.scam import router as scam_router
 from app.schemas import HealthResponse
 
 settings = get_settings()
@@ -42,6 +43,7 @@ app.add_middleware(
 )
 
 app.include_router(agreement_router)
+app.include_router(scam_router)
 
 
 @app.get("/health", response_model=HealthResponse)

@@ -189,6 +189,7 @@
 - **Module:** 5.10 (Scam Alert System)
 - **Objective:** Text-pattern + LLM classifier scanning agency marketing copy, chat, and agreement text for predatory claims (e.g. "100% visa guarantee"); rolling per-agency `riskScore` combining flags + complaint history + review sentiment.
 - **DoD:** `POST /api/ai/scan-content` returns `{ flags[], severity }`; ≥10 rule-based predatory-phrase patterns pre-filter before LLM escalation; risk badge surfaces on the Directory/Agency profile UI.
+- **Status:** ✅ Implemented in `apps/ai-service` (FastAPI). Two-tier detection: 14 regex predatory-phrase patterns (exceeds the ≥10 DoD) across guarantee-claim/urgency-pressure/unverifiable-credential/payment-pressure categories, always followed by pluggable `ScamLLM` escalation (Gemini + offline `FakeScamLLM` fallback) for subtler phrasing. `POST /api/ai/scan-content` returns `{ flags[], severity }`; optional `agency_id` folds flags into a rolling in-memory `AgencyRiskScore` exposed via `GET /api/ai/agencies/{id}/risk-score`; `POST /api/ai/agencies/{id}/risk-events` lets the core Node API push complaint/review-sentiment events into the same score. 32 passing unit/API tests (fully offline). Frontend risk-badge wiring is #25's job — this issue delivers the backend contract only.
 
 #### Issue #24 — K-23: AI Counselor Chatbot — Recommendation Engine & Admission-Chance Heuristic
 - **Assignee:** [`@Souravg223`](https://github.com/Souravg223)

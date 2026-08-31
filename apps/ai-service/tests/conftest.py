@@ -11,7 +11,9 @@ import pytest
 
 from app.config import Settings
 from app.llm.fake_provider import FakeAgreementLLM
+from app.llm.fake_scam_provider import FakeScamLLM
 from app.services.agreement_analysis import AgreementAnalysisService
+from app.services.scam_classifier import ScamClassifierService
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -38,3 +40,13 @@ def settings_no_key() -> Settings:
 @pytest.fixture
 def settings_with_key() -> Settings:
     return Settings(gemini_api_key="dummy-key-for-tests", gemini_model="gemini-3.6-flash")
+
+
+@pytest.fixture
+def fake_scam_llm() -> FakeScamLLM:
+    return FakeScamLLM()
+
+
+@pytest.fixture
+def scam_classifier_service(fake_scam_llm: FakeScamLLM) -> ScamClassifierService:
+    return ScamClassifierService(llm=fake_scam_llm)
