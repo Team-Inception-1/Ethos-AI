@@ -1,0 +1,476 @@
+// Ethos AI — PostgreSQL Prisma Schema
+// Aligned with ETHOS_AI_CONTEXT.md §6 & Issue #14 (K-11)
+// Monetary values are stored as 64-bit integers in Poisha (1 BDT = 100 Poisha)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// 1. User & Authentication Models (Module 5.1)
+// -----------------------------------------------------------------------------
+
+enum UserRole {
+  STUDENT
+  PARENT
+  AGENCY
+  ADMIN
+}
+
+model User {
+  id              String          @id @default(uuid())
+  email           String          @unique
+  phone           String          @unique
+  name            String
+  passwordHash    String?
+  role            UserRole        @default(STUDENT)
+  isVerified      Boolean         @default(false)
+  avatarUrl       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relationships
+  studentProfile  StudentProfile?
+  agencyProfile   Agency?         @relation("AgencyOwner")
+  parentLinksAsParent  ParentLink[] @relation("ParentUser")
+  parentLinksAsStudent ParentLink[] @relation("StudentUser")
+  
+  applicationsAsStudent Application[] @relation("StudentApplications")
+  stageEvents           StageEvent[]  @relation("ActorStageEvents")
+  documents             Document[]    @relation("DocumentOwner")
+  reviewsWritten        Review[]      @relation("StudentReviews")
+  chatMessages          ChatMessage[] @relation("SenderMessages")
+  complaintsFiled       Complaint[]   @relation("Complainant")
+  verificationReports   VerificationReport[] @relation("PurchaserReports")
+
+  @@index([role])
+  @@index([email])
+}
+
+model StudentProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  targetCountries String[] // e.g. ["Canada", "Australia", "UK"]
+  targetField     String?  // e.g. "Computer Science & Software Engineering"
+  budgetRange     String?  // e.g. "৳15L - ৳25L / year"
+  ieltsScore      String?  // e.g. "7.5"
+  linkCode        String   @unique // e.g. "ETHOS-STU-8821"
+  educationHistory Json?   // Array of { level, institution, passingYear, gpa }
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([linkCode])
+}
+
+model ParentLink {
+  id           String   @id @default(uuid())
+  parentId     String
+  parent       User     @relation("ParentUser", fields: [parentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User     @relation("StudentUser", fields: [studentId], references: [id], onDelete: Cascade)
+  
+  relationship String   @default("Guardian") // e.g. "Father", "Mother", "Guardian"
+  isApproved   Boolean  @default(true)
+  linkedAt     DateTime @default(now())
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+}
+
+// -----------------------------------------------------------------------------
+// 2. Consultancy Directory & Pricing Models (Modules 5.2, 5.3, 5.4)
+// -----------------------------------------------------------------------------
+
+enum LicenseStatus {
+  VERIFIED
+  PENDING
+  REJECTED
+  SUSPENDED
+}
+
+model Agency {
+  id              String         @id @default(uuid())
+  ownerUserId     String         @unique
+  owner           User           @relation("AgencyOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  
+  name            String
+  licenseNo       String         @unique
+  licenseStatus   LicenseStatus  @default(PENDING)
+  countriesServed String[]       // e.g. ["CAN", "GBR", "AUS", "USA"]
+  foundedYear     Int            @default(2020)
+  riskScore       Int            @default(0) // 0-100 from Module 5.10
+  rating          Float          @default(5.0)
+  reviewCount     Int            @default(0)
+  successRate     Int            @default(90) // percentage 0-100
+  feeMinPoisha    BigInt         @default(2500000) // in poisha (e.g. 25,000 BDT)
+  feeMaxPoisha    BigInt         @default(8000000) // in poisha (e.g. 80,000 BDT)
+  address         String?
+  website         String?
+  description     String?
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relationships
+  pricingServices     AgencyPricing[]
+  applications        Application[]
+  reviews             Review[]
+  chatThreads         ChatThread[]
+  complaints          Complaint[]
+  verificationReports VerificationReport[]
+  subscriptions       Subscription[]
+
+  @@index([licenseStatus])
+  @@index([riskScore])
+  @@index([rating])
+}
+
+model AgencyPricing {
+  id           String   @id @default(uuid())
+  agencyId     String
+  agency       Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  
+  serviceName  String   // e.g. "Offer Letter Processing"
+  amountPoisha BigInt   // in poisha
+  whenCharged  String   // e.g. "On Offer Received"
+  refundable   Boolean  @default(false)
+  conditions   String?  // Plain language conditions
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([agencyId])
+}
+
+model Review {
+  id            String   @id @default(uuid())
+  studentId     String
+  student       User     @relation("StudentReviews", fields: [studentId], references: [id], onDelete: Cascade)
+  agencyId      String
+  agency        Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  applicationId String?  @unique
+  
+  rating        Int      // 1 to 5
+  title         String?
+  text          String
+  isVerified    Boolean  @default(true) // verified student customer
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([agencyId])
+  @@index([studentId])
+}
+
+// -----------------------------------------------------------------------------
+// 3. Application Lifecycle & Document Management (Modules 5.5, 5.6)
+// -----------------------------------------------------------------------------
+
+enum ApplicationStage {
+  SUBMITTED
+  UNDER_REVIEW
+  OFFER_RECEIVED
+  PAYMENT_PENDING
+  VISA_PROCESSING
+  VISA_APPROVED
+  VISA_REJECTED
+  COMPLETED
+}
+
+model Application {
+  id               String           @id @default(uuid())
+  studentId        String
+  student          User             @relation("StudentApplications", fields: [studentId], references: [id], onDelete: Restrict)
+  agencyId         String
+  agency           Agency           @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+  
+  targetCountry    String           // e.g. "Canada"
+  targetUniversity String           // e.g. "University of Toronto"
+  targetProgram    String           // e.g. "M.Sc. in Computer Science"
+  intakeSemester   String?          // e.g. "Fall 2026"
+  stage            ApplicationStage @default(SUBMITTED)
+  
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relationships
+  stageEvents      StageEvent[]
+  documents        Document[]
+  milestones       Milestone[]
+  chatThread       ChatThread?
+  complaints       Complaint[]
+
+  @@index([studentId])
+  @@index([agencyId])
+  @@index([stage])
+}
+
+model StageEvent {
+  id            String           @id @default(uuid())
+  applicationId String
+  application   Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  stage         ApplicationStage
+  actorId       String
+  actor         User             @relation("ActorStageEvents", fields: [actorId], references: [id], onDelete: Restrict)
+  actorRole     UserRole
+  note          String?
+  documentId    String?
+  timestamp     DateTime         @default(now())
+
+  @@index([applicationId])
+  @@index([timestamp])
+}
+
+enum DocumentType {
+  OFFER_LETTER
+  PAYMENT_RECEIPT
+  SIGNED_AGREEMENT
+  PASSPORT_ID
+  ACADEMIC_TRANSCRIPT
+  VISA_DOCUMENT
+  OTHER
+}
+
+model Document {
+  id            String             @id @default(uuid())
+  ownerId       String
+  owner         User               @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application?       @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  
+  type          DocumentType
+  fileName      String
+  fileSize      Int                // in bytes
+  mimeType      String
+  storageKey    String             // encrypted S3/object store pointer
+  version       Int                @default(1)
+  isEncrypted   Boolean            @default(true)
+  
+  uploadedAt    DateTime           @default(now())
+  
+  // Relationships
+  documentScan       DocumentScan?
+  agreementAnalysis  AgreementAnalysis?
+  chatMessages       ChatMessage[]
+
+  @@index([ownerId])
+  @@index([applicationId])
+  @@index([type])
+}
+
+model DocumentScan {
+  id           String    @id @default(uuid())
+  documentId   String    @unique
+  document     Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  riskScore    Int       // 0-100
+  verdict      String    // likely_genuine | needs_review | likely_fake
+  flags        Json      // Array of flag strings/objects
+  senderDomain String?
+  modelVersion String    @default("ocr-v1.0")
+  scannedAt    DateTime  @default(now())
+
+  @@index([riskScore])
+}
+
+model AgreementAnalysis {
+  id               String    @id @default(uuid())
+  documentId       String    @unique
+  document         Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  extractedClauses Json      // Extracted clauses (fee, refund, liability)
+  flaggedIssues    Json      // Flagged mismatches/ambiguities
+  riskVerdict      String    // clear | needs_review | high_risk
+  analyzedAt       DateTime  @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// 4. Milestone Escrow Payment System & Immutable Ledger (Module 5.7)
+// -----------------------------------------------------------------------------
+
+enum MilestoneStatus {
+  PENDING
+  HELD
+  RELEASED
+  DISPUTED
+  REFUNDED
+}
+
+model Milestone {
+  id               String          @id @default(uuid())
+  applicationId    String
+  application      Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  name             String          // e.g. "Offer Letter Confirmed (30%)"
+  orderIndex       Int             @default(1)
+  amountPoisha     BigInt          // Integer in Poisha (1 BDT = 100 Poisha)
+  releaseCondition String          // Verification criterion
+  status           MilestoneStatus @default(PENDING)
+  dueDate          DateTime?
+  
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  ledgerEntries    LedgerEntry[]
+
+  @@index([applicationId])
+  @@index([status])
+}
+
+enum LedgerEntryType {
+  HOLD
+  RELEASE
+  REFUND
+  DISPUTE_FREEZE
+}
+
+model LedgerEntry {
+  id            String          @id @default(uuid())
+  milestoneId   String
+  milestone     Milestone       @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
+  
+  type          LedgerEntryType
+  amountPoisha  BigInt
+  provider      String          @default("SSLCOMMERZ") // SSLCOMMERZ | BKASH | NAGAD
+  providerTxnId String          // Gateway external transaction ID
+  txHash        String          // Append-only cryptographic hash
+  actorId       String
+  note          String?
+  timestamp     DateTime        @default(now())
+
+  receipt       Receipt?
+
+  @@index([milestoneId])
+  @@index([providerTxnId])
+  @@index([timestamp])
+}
+
+model Receipt {
+  id            String      @id @default(uuid())
+  ledgerEntryId String      @unique
+  ledgerEntry   LedgerEntry @relation(fields: [ledgerEntryId], references: [id], onDelete: Cascade)
+  
+  receiptNumber String      @unique // e.g. "ETHOS-REC-2026-0089"
+  amountPoisha  BigInt
+  currency      String      @default("BDT")
+  pdfStorageKey String?
+  generatedAt   DateTime    @default(now())
+
+  @@index([receiptNumber])
+}
+
+// -----------------------------------------------------------------------------
+// 5. Real-Time Chat System (Module 5.12 — Issue #17)
+// -----------------------------------------------------------------------------
+
+model ChatThread {
+  id            String        @id @default(uuid())
+  applicationId String        @unique
+  application   Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  agencyId      String
+  agency        Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  messages      ChatMessage[]
+
+  @@index([agencyId])
+  @@index([applicationId])
+}
+
+model ChatMessage {
+  id             String       @id @default(uuid())
+  threadId       String
+  thread         ChatThread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  senderId       String
+  sender         User         @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderRole     UserRole
+  body           String
+  attachmentDocId String?
+  attachmentDoc  Document?    @relation(fields: [attachmentDocId], references: [id], onDelete: SetNull)
+  
+  msgHash        String       // SHA-256 integrity hash for dispute evidence
+  isRead         Boolean      @default(false)
+  sentAt         DateTime     @default(now())
+
+  @@index([threadId])
+  @@index([senderId])
+  @@index([sentAt])
+}
+
+// -----------------------------------------------------------------------------
+// 6. Dispute, Grievance & Verification Services (Modules 5.14, 5.15, 5.16)
+// -----------------------------------------------------------------------------
+
+enum ComplaintStatus {
+  OPEN
+  UNDER_INVESTIGATION
+  RESOLVED
+  ESCALATED
+}
+
+model Complaint {
+  id            String          @id @default(uuid())
+  applicationId String
+  application   Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  agencyId      String
+  agency        Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  filedById     String
+  filedBy       User            @relation("Complainant", fields: [filedById], references: [id], onDelete: Cascade)
+  
+  status        ComplaintStatus @default(OPEN)
+  title         String
+  description   String
+  evidenceDocs  String[]        // Array of Document IDs
+  resolution    String?
+  
+  createdAt     DateTime        @default(now())
+  resolvedAt    DateTime?
+
+  @@index([applicationId])
+  @@index([agencyId])
+  @@index([status])
+}
+
+model VerificationReport {
+  id            String   @id @default(uuid())
+  agencyId      String
+  agency        Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  purchasedById String
+  purchasedBy   User     @relation("PurchaserReports", fields: [purchasedById], references: [id], onDelete: Cascade)
+  
+  reportSummary Json     // License audit, risk scores, complaint history
+  pricePoisha   BigInt   @default(29900) // Tk 299.00 = 29,900 Poisha
+  pdfStorageKey String?
+  generatedAt   DateTime @default(now())
+
+  @@index([agencyId])
+  @@index([purchasedById])
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  agencyId  String
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  
+  tier      String   @default("PREMIUM") // BASIC | PREMIUM | ENTERPRISE
+  status    String   @default("ACTIVE")  // ACTIVE | EXPIRED | CANCELLED
+  pricePoisha BigInt @default(999900)    // e.g. Tk 9,999/mo in poisha
+  startsAt  DateTime @default(now())
+  renewsAt  DateTime
+
+  @@index([agencyId])
+  @@index([status])
+}
