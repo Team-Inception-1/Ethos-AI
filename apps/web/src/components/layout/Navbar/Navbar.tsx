@@ -72,7 +72,7 @@ export default function Navbar() {
                 className={styles.roleSelectNav}
                 value={user.role}
                 onChange={(e) => switchActiveRole(e.target.value as UserRole)}
-                title="Quick Role Switcher (Demo)"
+                aria-label="Quick role switcher"
               >
                 <option value="student">🎓 Student</option>
                 <option value="parent">👨‍👧 Parent</option>
@@ -81,7 +81,7 @@ export default function Navbar() {
               </select>
 
               {/* User Profile Link */}
-              <Link href="/profile" className={styles.userPill} title="View Profile & Guardian Settings">
+              <Link href="/profile" className={styles.userPill} aria-label="View profile and guardian settings" title="View Profile & Guardian Settings">
                 <span className={styles.userAvatarPill}>{user.name.charAt(0)}</span>
                 <span className={styles.userNamePill}>{user.name.split(' ')[0]}</span>
               </Link>
