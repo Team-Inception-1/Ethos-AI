@@ -263,7 +263,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 </div>
               )}
 
-              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
+              {errorMsg && (<div role="alert" aria-live="polite" style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>)}
 
               <form className={styles.form} onSubmit={handleFormSubmit}>
                 {mode === 'register' && (
