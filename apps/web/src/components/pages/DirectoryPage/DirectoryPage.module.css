@@ -202,6 +202,27 @@
 .riskMed  { background: var(--amber);   color: #3D2E00; }
 .riskHigh { background: var(--red-danger); color: #fff; }
 
+/* Loading skeleton shown while the live risk score fetch is in flight */
+.riskBadgeSkeleton {
+  width: 72px; height: 20px; border-radius: var(--radius-full);
+  flex-shrink: 0;
+  background: linear-gradient(90deg, var(--glass-bg-elevated) 25%, var(--glass-border) 50%, var(--glass-bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: risk-skeleton-pulse 1.4s ease-in-out infinite;
+}
+@keyframes risk-skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.riskErrorToast {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-size: 13px; font-weight: 600; color: var(--red-danger);
+  background: var(--bg-elevated); border: 1px solid var(--red-danger);
+  border-radius: var(--radius-md); padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
 /* Stars */
 .stars { display: flex; align-items: center; gap: 2px; }
 .starFilled { color: var(--amber); font-size: 14px; }
