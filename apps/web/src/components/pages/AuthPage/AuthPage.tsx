@@ -13,16 +13,16 @@ interface AuthPageProps {
   mode: Mode;
 }
 
-// Icons replaced with SVGs
+// Icons replaced with SVGs — all decorative, so aria-hidden="true"
 const StudentIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
     <path d="M6 12v5c3 3 9 3 12 0v-5"/>
   </svg>
 );
 
 const ParentIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
     <circle cx="9" cy="7" r="4"></circle>
     <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -31,7 +31,7 @@ const ParentIcon = () => (
 );
 
 const AgencyIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
     <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
     <path d="M9 22v-4h6v4"/>
     <path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/>
@@ -41,13 +41,13 @@ const AgencyIcon = () => (
 );
 
 const AdminIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
   </svg>
 );
 
 const QuoteIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity="0.1" style={{ position: 'absolute', top: 16, left: 16, zIndex: 0 }}>
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity="0.1" style={{ position: 'absolute', top: 16, left: 16, zIndex: 0 }} aria-hidden="true" focusable="false">
     <path d="M14.017 21L16.411 14.603H10.893V3H21v11.397L18.606 21h-4.589zm-10.893 0L5.518 14.603H0V3h10.107v11.397L7.714 21H3.124z"/>
   </svg>
 );
@@ -147,9 +147,9 @@ export default function AuthPage({ mode }: AuthPageProps) {
         <div className={styles.orb2} />
       </div>
 
-      {/* Left Panel — Branding */}
-      <div className={styles.leftPanel} aria-hidden="true">
-        <Link href="/" className={styles.brandLogo}>
+      {/* Left Panel — Branding (decorative, hidden from assistive tech) */}
+      <div className={styles.leftPanel} aria-hidden="true" role="presentation">
+        <Link href="/" className={styles.brandLogo} tabIndex={-1}>
           <EthosLogoIcon size={36} />
           <span className={styles.brandName}>
             Ethos <span className={styles.brandAI}>AI</span>
@@ -219,8 +219,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 </>
               ) : (
                 <>
-                  <button type="button" onClick={() => setStep('form')} className={styles.backBtn}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <button type="button" onClick={() => setStep('form')} className={styles.backBtn} aria-label={lang === 'en' ? 'Back to form' : 'ফর্মে ফিরে যান'}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
                       <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
                     {lang === 'en' ? 'Back' : 'ফিরে যান'}
@@ -234,7 +234,11 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 </>
               )}
             </div>
-            <button className={styles.langBtn} onClick={() => setLang((l) => (l === 'en' ? 'bn' : 'en'))}>
+            <button
+              className={styles.langBtn}
+              onClick={() => setLang((l) => (l === 'en' ? 'bn' : 'en'))}
+              aria-label={lang === 'en' ? 'Switch to Bangla' : 'Switch to English'}
+            >
               {lang === 'en' ? 'বাং' : 'EN'}
             </button>
           </div>
@@ -263,7 +267,15 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 </div>
               )}
 
-              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
+              {errorMsg && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}
+                >
+                  {errorMsg}
+                </div>
+              )}
 
               <form className={styles.form} onSubmit={handleFormSubmit}>
                 {mode === 'register' && (
@@ -345,35 +357,35 @@ export default function AuthPage({ mode }: AuthPageProps) {
               {/* 1-Click Fast Demo Login */}
               <div className={styles.demoPanel}>
                 <span className={styles.demoTitle}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                   </svg>
                   Quick 1-Click Demo Login
                 </span>
                 <div className={styles.demoGrid}>
-                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('student')}>
-                    <span className={styles.demoIcon}><StudentIcon /></span>
+                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('student')} aria-label="Login as Riya Ahmed — Student Profile">
+                    <span className={styles.demoIcon} aria-hidden="true"><StudentIcon /></span>
                     <div>
                       <div>Riya Ahmed</div>
                       <span className={styles.demoRoleLabel}>Student Profile</span>
                     </div>
                   </button>
-                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('parent')}>
-                    <span className={styles.demoIcon}><ParentIcon /></span>
+                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('parent')} aria-label="Login as Farhana Ahmed — Parent Guardian">
+                    <span className={styles.demoIcon} aria-hidden="true"><ParentIcon /></span>
                     <div>
                       <div>Farhana Ahmed</div>
                       <span className={styles.demoRoleLabel}>Parent Guardian</span>
                     </div>
                   </button>
-                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('agency')}>
-                    <span className={styles.demoIcon}><AgencyIcon /></span>
+                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('agency')} aria-label="Login as Global Edu BD — Verified Agency">
+                    <span className={styles.demoIcon} aria-hidden="true"><AgencyIcon /></span>
                     <div>
                       <div>Global Edu BD</div>
                       <span className={styles.demoRoleLabel}>Verified Agency</span>
                     </div>
                   </button>
-                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('admin')}>
-                    <span className={styles.demoIcon}><AdminIcon /></span>
+                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('admin')} aria-label="Login as Admin — Platform Administrator">
+                    <span className={styles.demoIcon} aria-hidden="true"><AdminIcon /></span>
                     <div>
                       <div>Admin Panel</div>
                       <span className={styles.demoRoleLabel}>Platform Admin</span>
@@ -403,7 +415,15 @@ export default function AuthPage({ mode }: AuthPageProps) {
           ) : (
             /* OTP Step */
             <>
-              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
+              {errorMsg && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}
+                >
+                  {errorMsg}
+                </div>
+              )}
 
               <div className={styles.otpGrid} role="group" aria-label="OTP input">
                 {otp.map((v, i) => (
