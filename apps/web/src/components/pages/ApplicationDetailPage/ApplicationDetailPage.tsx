@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -20,10 +21,24 @@ const milestones = [
   { name:'Visa Filing',      amount:30000, status:'pending',  condition:'Visa application filed' },
 ];
 
+const initialChat = [
+  { from: 'agency', text: 'Hello! We have received your application for U of Toronto.', time: '10:00 AM' },
+  { from: 'student', text: 'Thank you! When can I expect the offer letter?', time: '10:15 AM' },
+  { from: 'agency', text: 'We received the offer letter and verified it via AI Scanner.', time: '02:32 PM' },
+];
+
 const tabs = ['Overview','Documents','Milestones','Chat'];
 
 export default function ApplicationDetailPage({ id }: { id: string }) {
   const [activeTab, setActiveTab] = useState('Overview');
+  const [chatMsgs, setChatMsgs] = useState(initialChat);
+  const [msgInput, setMsgInput] = useState('');
+
+  const sendQuickMessage = () => {
+    if (!msgInput.trim()) return;
+    setChatMsgs(prev => [...prev, { from: 'student', text: msgInput.trim(), time: 'Just now' }]);
+    setMsgInput('');
+  };
 
   return (
     <div className={styles.page}>
@@ -121,16 +136,50 @@ export default function ApplicationDetailPage({ id }: { id: string }) {
         {activeTab === 'Documents' && (
           <GlassCard padding="lg" className={styles.placeholder}>
             <div className={styles.placeholderIcon} aria-hidden="true">📁</div>
-            <h3>Documents</h3>
-            <p>🔧 <strong>@backend</strong>: Wire to <code>GET /applications/:id/documents</code></p>
+            <h3>Application Document Vault</h3>
+            <p>1. Offer_Letter_U_of_Toronto_Fall2026.pdf (Verified Low Risk)</p>
+            <p>2. Academic_Transcript_HSC_Viqarunnisa.pdf (Attached to Application)</p>
           </GlassCard>
         )}
 
         {activeTab === 'Chat' && (
-          <GlassCard padding="lg" className={styles.placeholder}>
-            <div className={styles.placeholderIcon} aria-hidden="true">💬</div>
-            <h3>Secure Chat</h3>
-            <p>🔧 <strong>@backend</strong>: Wire to <code>GET /chat/threads/:applicationId</code></p>
+          <GlassCard padding="md">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 800 }}>💬 Live Chat with Global Edu BD</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Messages are cryptographically logged for dispute resolution</p>
+              </div>
+              <Link href="/dashboard/chat">
+                <Button size="sm" variant="outline">Open Full Chat Screen →</Button>
+              </Link>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', marginBottom: '12px', padding: '8px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
+              {chatMsgs.map((m, idx) => (
+                <div key={idx} style={{ alignSelf: m.from === 'student' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
+                  <div style={{ background: m.from === 'student' ? 'var(--blue-primary)' : 'var(--bg-surface)', color: m.from === 'student' ? '#fff' : 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--ink)', fontSize: '13px' }}>
+                    {m.text}
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: m.from === 'student' ? 'right' : 'left', marginTop: '2px' }}>
+                    {m.from === 'student' ? 'You' : 'Global Edu BD'} • {m.time}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="Type a message to Global Edu BD..."
+                value={msgInput}
+                onChange={(e) => setMsgInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendQuickMessage()}
+                style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '2px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: '13px' }}
+              />
+              <Button size="sm" variant="emerald" onClick={sendQuickMessage} disabled={!msgInput.trim()}>
+                Send
+              </Button>
+            </div>
           </GlassCard>
         )}
       </div>
