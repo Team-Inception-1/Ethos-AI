@@ -1,10 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import styles from './DirectoryPage.module.css';
+import { getAgencyRiskScores, type AgencyRiskScore } from '@/lib/aiService';
 
 // SVG Icons
 const SearchIcon = () => (
@@ -38,14 +39,23 @@ const RiskHighIcon = () => (
   </svg>
 );
 
+// Agency directory listing metadata (name, rating, countries, fees) is not
+// yet backed by a real core-API listing endpoint (that's a separate,
+// non-AI backend concern) — this stays as representative demo data. The
+// `risk` field, however, is fetched LIVE from the AI microservice's
+// Module 5.10 scam-alert risk store below (see `aiService.ts`), per
+// Issue #25's DoD: "Directory/Agency profile risk badges pull from the
+// K-22 scam-alert riskScore instead of static data."
 const AGENCIES = [
-  { id: 'agt-001', name: 'Global Edu BD',      verified: true,  rating: 4.8, reviews: 234, countries: ['CAN', 'GBR', 'AUS'], success: 94, feeMin: 25000, feeMax: 80000, risk: 12 },
-  { id: 'agt-002', name: 'Dream Abroad Ltd',   verified: true,  rating: 4.6, reviews: 187, countries: ['USA', 'DEU', 'NLD'], success: 89, feeMin: 30000, feeMax: 100000, risk: 18 },
-  { id: 'agt-003', name: 'EduPath Global',     verified: true,  rating: 4.5, reviews: 103, countries: ['CAN', 'NZL', 'SWE'], success: 91, feeMin: 20000, feeMax: 70000, risk: 8 },
-  { id: 'agt-004', name: 'Skyline Consultancy',verified: false, rating: 3.2, reviews: 45,  countries: ['GBR', 'IRL'],        success: 62, feeMin: 15000, feeMax: 60000, risk: 67 },
-  { id: 'agt-005', name: 'StudyBridge BD',     verified: true,  rating: 4.7, reviews: 312, countries: ['CAN', 'AUS', 'USA'], success: 96, feeMin: 35000, feeMax: 90000, risk: 5 },
-  { id: 'agt-006', name: 'AbraodX Partners',   verified: true,  rating: 4.3, reviews: 78,  countries: ['DEU', 'SWE', 'FIN'], success: 85, feeMin: 22000, feeMax: 65000, risk: 22 },
+  { id: 'agt-001', name: 'Global Edu BD',      verified: true,  rating: 4.8, reviews: 234, countries: ['CAN', 'GBR', 'AUS'], success: 94, feeMin: 25000, feeMax: 80000 },
+  { id: 'agt-002', name: 'Dream Abroad Ltd',   verified: true,  rating: 4.6, reviews: 187, countries: ['USA', 'DEU', 'NLD'], success: 89, feeMin: 30000, feeMax: 100000 },
+  { id: 'agt-003', name: 'EduPath Global',     verified: true,  rating: 4.5, reviews: 103, countries: ['CAN', 'NZL', 'SWE'], success: 91, feeMin: 20000, feeMax: 70000 },
+  { id: 'agt-004', name: 'Skyline Consultancy',verified: false, rating: 3.2, reviews: 45,  countries: ['GBR', 'IRL'],        success: 62, feeMin: 15000, feeMax: 60000 },
+  { id: 'agt-005', name: 'StudyBridge BD',     verified: true,  rating: 4.7, reviews: 312, countries: ['CAN', 'AUS', 'USA'], success: 96, feeMin: 35000, feeMax: 90000 },
+  { id: 'agt-006', name: 'AbraodX Partners',   verified: true,  rating: 4.3, reviews: 78,  countries: ['DEU', 'SWE', 'FIN'], success: 85, feeMin: 22000, feeMax: 65000 },
 ];
+
+const AGENCY_IDS = AGENCIES.map(a => a.id);
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -65,6 +75,31 @@ export default function DirectoryPage() {
   const [sortBy, setSortBy]             = useState('rating');
   const [compare, setCompare]           = useState<string[]>([]);
   const [search, setSearch]             = useState('');
+
+  // Live risk scores from the AI microservice (Module 5.10 / Issue #23),
+  // keyed by agency id. `null` = still loading (initial fetch in flight);
+  // once resolved this is always a fully-populated map (per-agency fetch
+  // failures degrade to a clean 0-score entry inside `getAgencyRiskScores`,
+  // never to a missing key) — see `lib/aiService.ts`.
+  const [riskScores, setRiskScores] = useState<Record<string, AgencyRiskScore> | null>(null);
+  const [riskError, setRiskError]   = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAgencyRiskScores(AGENCY_IDS)
+      .then(scores => {
+        if (!cancelled) setRiskScores(scores);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRiskError('Could not reach the AI risk service — showing agencies without live risk scores.');
+          setRiskScores({}); // stop showing the loading skeleton; badges fall back to 0
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const getRisk = (agencyId: string): number => riskScores?.[agencyId]?.risk_score ?? 0;
 
   const filtered = AGENCIES
     .filter(a => !verifiedOnly || a.verified)
@@ -90,6 +125,12 @@ export default function DirectoryPage() {
             </Link>
           )}
         </div>
+
+        {riskError && (
+          <div className={styles.riskErrorToast} role="alert">
+            ⚠ {riskError}
+          </div>
+        )}
 
         <div className={styles.layout}>
           {/* Sidebar Filters */}
@@ -167,15 +208,24 @@ export default function DirectoryPage() {
                       {a.verified ? 'Verified' : 'Unverified'}
                     </Badge>
                   </div>
-                  {/* Risk Score */}
-                  <div 
-                    className={`${styles.riskBadge} ${a.risk < 30 ? styles.riskLow : a.risk < 60 ? styles.riskMed : styles.riskHigh}`} 
-                    title={`Risk score: ${a.risk}/100`}
-                    style={{ display: 'flex', alignItems: 'center' }}
-                  >
-                    {a.risk < 30 ? <RiskLowIcon /> : a.risk < 60 ? <RiskMedIcon /> : <RiskHighIcon />} 
-                    RISK {a.risk}
-                  </div>
+                  {/* Risk Score — live from the AI microservice (Module 5.10) */}
+                  {riskScores === null ? (
+                    <div className={styles.riskBadgeSkeleton} aria-label="Loading risk score" />
+                  ) : (
+                    (() => {
+                      const risk = getRisk(a.id);
+                      return (
+                        <div
+                          className={`${styles.riskBadge} ${risk < 30 ? styles.riskLow : risk < 60 ? styles.riskMed : styles.riskHigh}`}
+                          title={`Risk score: ${risk}/100`}
+                          style={{ display: 'flex', alignItems: 'center' }}
+                        >
+                          {risk < 30 ? <RiskLowIcon /> : risk < 60 ? <RiskMedIcon /> : <RiskHighIcon />}
+                          RISK {risk}
+                        </div>
+                      );
+                    })()
+                  )}
                 </div>
 
                 {/* Rating */}

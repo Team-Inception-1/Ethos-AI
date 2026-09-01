@@ -31,6 +31,30 @@
 .clauses { display: flex; flex-direction: column; gap: var(--space-4); animation: fadeUp 0.4s ease; }
 .clause { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); background: var(--bg-elevated); border-radius: var(--radius-md); border: 2px solid var(--border); border-left: 5px solid var(--blue-primary); }
 .clauseText { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.clauseQuote { font-size: 12px; color: var(--text-muted); font-style: italic; line-height: 1.4; }
+
+/* Verdict row */
+.verdictRow { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+/* Loading state */
+.loadingState { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-8) var(--space-6); text-align: center; }
+.loadingState p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--blue-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Error state */
+.errorState { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-6); text-align: center; background: var(--bg-elevated); border: 2px solid var(--red-danger); border-radius: var(--radius-lg); }
+.errorState p { font-size: 13px; color: var(--red-danger); font-weight: 700; margin: 0; }
+
+/* Coming soon (Fraud Checker card, pending Issue #22) */
+.comingSoon { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-10) var(--space-6); text-align: center; border: var(--border-width) dashed var(--border); border-radius: var(--radius-lg); }
+.comingSoonIcon { font-size: 32px; }
+.comingSoon p { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+/* Raw extracted clauses (collapsible) */
+.rawClauses { font-size: 12px; }
+.rawClauses summary { cursor: pointer; font-weight: 700; color: var(--text-secondary); padding: var(--space-2) 0; }
+.rawClauses .clause { margin-top: var(--space-2); }
 
 /* Counselor Banner */
 .counselorBanner {}
