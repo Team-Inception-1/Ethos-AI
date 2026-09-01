@@ -1,0 +1,38 @@
+.logoContainer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast, 0.15s ease);
+}
+
+.logoContainer:hover {
+  transform: translate(-1px, -1px);
+}
+
+.iconWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--text-primary, #F5F1E8);
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.logoAI {
+  color: var(--blue-primary, #4F8EF7);
+  font-weight: 800;
+  background: linear-gradient(135deg, #4F8EF7 0%, #2FD3E8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

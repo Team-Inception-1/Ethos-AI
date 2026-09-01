@@ -1,0 +1,40 @@
+<svg width="180" height="48" viewBox="0 0 180 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="full-top" x1="16" y1="8" x2="48" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4F8EF7" />
+      <stop offset="100%" stop-color="#2FD3E8" />
+    </linearGradient>
+    <linearGradient id="full-right" x1="48" y1="20" x2="32" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9B6BFF" />
+      <stop offset="100%" stop-color="#4F8EF7" />
+    </linearGradient>
+    <linearGradient id="full-left" x1="16" y1="20" x2="32" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#17C989" />
+      <stop offset="100%" stop-color="#2FD3E8" />
+    </linearGradient>
+    <linearGradient id="full-core" x1="32" y1="24" x2="32" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFD60A" />
+      <stop offset="100%" stop-color="#FF9F1C" />
+    </linearGradient>
+    <linearGradient id="full-ai-text" x1="0" y1="0" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4F8EF7" />
+      <stop offset="100%" stop-color="#2FD3E8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Logo Mark (scaled down to 38x38 in 48h container) -->
+  <g transform="translate(4, 5) scale(0.6)">
+    <!-- Top Bar -->
+    <path d="M32 6 L54 18.5 L43 25 L32 18.5 L21 25 L10 18.5 Z" fill="url(#full-top)" />
+    <!-- Right Bar -->
+    <path d="M54 18.5 L54 43.5 L43 37 L43 25 L32 31.5 L32 44 L21 37.5 L21 25 L32 18.5 L43 25 L54 18.5 Z" fill="url(#full-right)" />
+    <!-- Left Bar -->
+    <path d="M10 18.5 L21 25 L21 37.5 L32 44 L32 56.5 L10 43.5 Z" fill="url(#full-left)" />
+    <!-- Core Prism -->
+    <polygon points="32,24 39,28.5 39,36.5 32,41 25,36.5 25,28.5" fill="url(#full-core)" stroke="#15141B" stroke-width="1.5" />
+  </g>
+
+  <!-- Wordmark Text -->
+  <text x="50" y="31" font-family="'Space Grotesk', system-ui, sans-serif" font-size="22" font-weight="700" fill="#F5F1E8" letter-spacing="-0.5">Ethos</text>
+  <text x="114" y="31" font-family="'Space Grotesk', system-ui, sans-serif" font-size="22" font-weight="800" fill="url(#full-ai-text)" letter-spacing="-0.5">AI</text>
+</svg>

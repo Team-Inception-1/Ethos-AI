@@ -75,6 +75,8 @@ const navItems = [
   },
 ];
 
+import { EthosLogoIcon } from '@/components/ui/EthosLogo/EthosLogo';
+
 interface SidebarProps {
   lang?: 'en' | 'bn';
 }
@@ -87,17 +89,7 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
       {/* Logo */}
       <div className={styles.logo}>
-        <span className={styles.logoIcon} aria-hidden="true">
-          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-            <path d="M16 2L4 8v8c0 7 5.5 13.5 12 16 6.5-2.5 12-9 12-16V8L16 2z" fill="url(#sb-shield)"/>
-            <path d="M11 16l3.5 3.5L21 12" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-            <defs>
-              <linearGradient id="sb-shield" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#4F8EF7"/><stop offset="1" stopColor="#8B5CF6"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </span>
+        <EthosLogoIcon size={26} />
         {!collapsed && (
           <span className={styles.logoText}>
             Ethos <span className={styles.logoAI}>AI</span>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useAuth, UserRole } from '@/context/AuthContext';
+import { EthosLogoIcon } from '@/components/ui/EthosLogo/EthosLogo';
 import styles from './Navbar.module.css';
 
 const navLinks = [
@@ -24,18 +25,7 @@ export default function Navbar() {
       <nav className={`${styles.nav} container`}>
         {/* Logo */}
         <Link href="/" className={styles.logo} aria-label="Ethos AI Home">
-          <span className={styles.logoIcon} aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-              <path d="M16 2L4 8v8c0 7 5.5 13.5 12 16 6.5-2.5 12-9 12-16V8L16 2z" fill="url(#shield-grad)" />
-              <path d="M11 16l3.5 3.5L21 12" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              <defs>
-                <linearGradient id="shield-grad" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#4F8EF7" />
-                  <stop offset="1" stopColor="#8B5CF6" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </span>
+          <EthosLogoIcon size={30} />
           <span className={styles.logoText}>
             Ethos <span className={styles.logoAI}>AI</span>
           </span>

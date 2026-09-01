@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { useAuth, UserRole } from '@/context/AuthContext';
+import { EthosLogoIcon } from '@/components/ui/EthosLogo/EthosLogo';
 import styles from './AuthPage.module.css';
 
 type Mode = 'login' | 'register';
@@ -149,16 +150,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
       {/* Left Panel — Branding */}
       <div className={styles.leftPanel} aria-hidden="true">
         <Link href="/" className={styles.brandLogo}>
-          <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
-            <path d="M16 2L4 8v8c0 7 5.5 13.5 12 16 6.5-2.5 12-9 12-16V8L16 2z" fill="url(#auth-shield)" />
-            <path d="M11 16l3.5 3.5L21 12" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            <defs>
-              <linearGradient id="auth-shield" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#4F8EF7" />
-                <stop offset="1" stopColor="#8B5CF6" />
-              </linearGradient>
-            </defs>
-          </svg>
+          <EthosLogoIcon size={36} />
           <span className={styles.brandName}>
             Ethos <span className={styles.brandAI}>AI</span>
           </span>

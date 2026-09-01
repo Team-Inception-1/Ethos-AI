@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import GlassCard from '@/components/ui/GlassCard';
+import EthosLogo from '@/components/ui/EthosLogo/EthosLogo';
 import styles from './LandingPage.module.css';
 
 const stats = [
@@ -299,7 +300,7 @@ export default function LandingPage() {
       <footer className={styles.footer} aria-label="Footer">
         <div className={`${styles.footerInner} container`}>
           <div className={styles.footerLogo}>
-            <span className={styles.footerLogoText}>Ethos <span className="text-gradient">AI</span></span>
+            <EthosLogo size={32} />
             <p className={styles.footerTagline}>
               {lang === 'en' ? 'The Future of Study-Abroad Consulting' : 'স্টাডি-অ্যাব্রোড কনসালটিং এর ভবিষ্যৎ'}
             </p>
