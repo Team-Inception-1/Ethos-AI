@@ -44,21 +44,17 @@
 ├─────────────────────────┼─────────────────────────┼─────────────────────────┼─────────────────────────┼─────────────────────────┤
 │ • #23 AI Counselor      │ • #6  Auth/RBAC JWT API │ • #7  App Tracking &    │ • #11 API Reliability   │ • #1  UI Design System  │
 │   Recommendation Engine │   (Sudiip)              │   Document Vault        │   & Edge-Case QA        │   (Sourav)              │
-│   (Sourav)              │ • #14 Prisma Schema &   │   (Sudiip)              │   (Taha)                │ • #2  Repo Hygiene &    │
-│                         │   Seed Data (Taha)      │ • #8  Directory Filters │ • #13 Code Quality Pass │   Issue Scripts (Taha)  │
-│                         │ • #16 AI Agreement      │   & Compare (Sudiip)    │   (Jannat)               │ • #3  Project Setup &   │
-│                         │   Clause Highlighter    │ • #10 Escrow Milestone  │ • #15 Accessibility     │   Context Doc (Tasin)   │
-│                         │   (Tasin)               │   Ledger Engine (Taha)  │   Pass (Jannat)          │ • #4  Auth/Profile      │
-│                         │ • #17 Real-Time Chat    │                         │                         │   Shell (Sudiip)        │
-│                         │   (Taha)                │                         │                         │ • #5  README (Jannat)  │
-│                         │ • #22 AI Microservice   │                         │                         │                         │
-│                         │   Scaffold + OCR Fraud  │                         │                         │                         │
-│                         │   Detection (Sourav)    │                         │                         │                         │
-│                         │ • #23 Scam Alert Risk   │                         │                         │                         │
-│                         │   Classifier (Tasin)    │                         │                         │                         │
-│                         │ • #25 Wire AI Tools ↔   │                         │                         │                         │
-│                         │   Live Microservice     │                         │                         │                         │
-│                         │   (Tasin)               │                         │                         │                         │
+│   (Sourav)              │ • #16 AI Agreement      │   (Sudiip)              │   (Taha)                │ • #2  Repo Hygiene &    │
+│                         │   Clause Highlighter    │ • #8  Directory Filters │ • #13 Code Quality Pass │   Issue Scripts (Taha)  │
+│                         │   (Tasin)               │   & Compare (Sudiip)    │   (Jannat)               │ • #3  Project Setup &   │
+│                         │ • #22 AI Microservice   │ • #10 Escrow Milestone  │ • #15 Accessibility     │   Context Doc (Tasin)   │
+│                         │   Scaffold + OCR Fraud  │   Ledger Engine (Taha)  │   Pass (Jannat)          │ • #4  Auth/Profile      │
+│                         │   Detection (Sourav)    │                         │                         │   Shell (Sudiip)        │
+│                         │ • #23 Scam Alert Risk   │                         │                         │ • #5  README (Jannat)  │
+│                         │   Classifier (Tasin)    │                         │                         │ • #14 Prisma Schema &   │
+│                         │ • #25 Wire AI Tools ↔   │                         │                         │   Seed Data (Taha)      │
+│                         │   Live Microservice     │                         │                         │ • #17 Real-Time Chat    │
+│                         │   (Tasin)               │                         │                         │   (Taha)                │
 │                         │ • #9  E2E Workflow Test │                         │                         │                         │
 │                         │   (Jannat)              │                         │                         │                         │
 │                         │ • #12 Frontend↔API      │                         │                         │                         │
@@ -137,12 +133,13 @@
 - **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
 - **Labels:** `backend`
 - **Objective:** Full Prisma schema for `User`, `StudentProfile`, `Agency`, `Application`, `StageEvent`, `Document`, `Milestone`, `LedgerEntry` per `ETHOS_AI_CONTEXT.md` §6, plus realistic Bangladeshi-consultancy seed data.
-- **DoD:** `prisma migrate dev` runs cleanly; seed script populates ≥5 verified agencies, 10 student/parent accounts, sample applications & payments.
+- **Status:** ✅ Implemented (`prisma/schema.prisma`, `prisma/migrations/20250101000000_init/migration.sql`, `prisma/seedData.json`, `prisma/seed.ts`, `apps/web/src/lib/db.ts`). Full 19-entity relational model with Poisha-level integer currency arithmetic, DDL migration scripts, and seed data covering 6 Bangladeshi consultancies, student/parent guardian links, milestone escrows, and audit logs.
 
 #### Issue #17 — K-16: Real-Time Chat Between Student and Agency
 - **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
 - **Labels:** `backend`
 - **Objective:** Encrypted-in-transit chat (Module 5.12), immutable history, exportable as dispute evidence, attachments reuse the Document Vault (#7).
+- **Status:** ✅ Implemented (`apps/web/src/app/api/chat/**`, `apps/web/src/lib/chatClient.ts`, `apps/web/src/components/pages/ChatPage/**`). REST API for chat thread lifecycle, message streams with SHA-256 integrity hashes, Document Vault attachment previews, and one-click certified JSON/audit dispute transcript export tool.
 
 #### Issue #12 — K-12: Connect Frontend Pages to Real API Client
 - **Assignee:** [`@SudiipPaul`](https://github.com/SudiipPaul)
