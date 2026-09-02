@@ -1,0 +1,486 @@
+{
+  "users": [
+    {
+      "id": "usr-admin-01",
+      "email": "admin@ethosai.bd",
+      "phone": "+8801512345681",
+      "name": "Platform Administrator",
+      "role": "ADMIN",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+    },
+    {
+      "id": "usr-student-01",
+      "email": "riya@example.com",
+      "phone": "+8801712345678",
+      "name": "Riya Ahmed",
+      "role": "STUDENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
+    },
+    {
+      "id": "usr-student-02",
+      "email": "tanvir.hasan@example.com",
+      "phone": "+8801712345671",
+      "name": "Tanvir Hasan",
+      "role": "STUDENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
+    },
+    {
+      "id": "usr-student-03",
+      "email": "sadia.islam@example.com",
+      "phone": "+8801712345672",
+      "name": "Sadia Islam",
+      "role": "STUDENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150"
+    },
+    {
+      "id": "usr-student-04",
+      "email": "abrar.fahim@example.com",
+      "phone": "+8801712345673",
+      "name": "Abrar Fahim",
+      "role": "STUDENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"
+    },
+    {
+      "id": "usr-student-05",
+      "email": "mehzabien.c@example.com",
+      "phone": "+8801712345674",
+      "name": "Mehzabien Chowdhury",
+      "role": "STUDENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150"
+    },
+    {
+      "id": "usr-parent-01",
+      "email": "farhana@example.com",
+      "phone": "+8801812345679",
+      "name": "Farhana Ahmed",
+      "role": "PARENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150"
+    },
+    {
+      "id": "usr-parent-02",
+      "email": "kamal.hasan@example.com",
+      "phone": "+8801812345671",
+      "name": "Mohammad Kamal Hasan",
+      "role": "PARENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150"
+    },
+    {
+      "id": "usr-parent-03",
+      "email": "shahana.islam@example.com",
+      "phone": "+8801812345672",
+      "name": "Shahana Islam",
+      "role": "PARENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150"
+    },
+    {
+      "id": "usr-parent-04",
+      "email": "tariq.fahim@example.com",
+      "phone": "+8801812345673",
+      "name": "Tariqul Islam Fahim",
+      "role": "PARENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150"
+    },
+    {
+      "id": "usr-parent-05",
+      "email": "nargis.c@example.com",
+      "phone": "+8801812345674",
+      "name": "Nargis Sultana Chowdhury",
+      "role": "PARENT",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150"
+    },
+    {
+      "id": "usr-agency-01",
+      "email": "contact@globaledu.bd",
+      "phone": "+8801912345680",
+      "name": "Global Edu BD Consultancy",
+      "role": "AGENCY",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150"
+    },
+    {
+      "id": "usr-agency-02",
+      "email": "admissions@dreamabroad.com.bd",
+      "phone": "+8801912345682",
+      "name": "Dream Abroad Ltd",
+      "role": "AGENCY",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150"
+    },
+    {
+      "id": "usr-agency-03",
+      "email": "info@edupathglobal.com",
+      "phone": "+8801912345683",
+      "name": "EduPath Global",
+      "role": "AGENCY",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=150"
+    },
+    {
+      "id": "usr-agency-04",
+      "email": "contact@skylineconsult.bd",
+      "phone": "+8801912345684",
+      "name": "Skyline Consultancy",
+      "role": "AGENCY",
+      "isVerified": false,
+      "avatarUrl": "https://images.unsplash.com/photo-1577495508048-b635879837f1?w=150"
+    },
+    {
+      "id": "usr-agency-05",
+      "email": "support@studybridge.com.bd",
+      "phone": "+8801912345685",
+      "name": "StudyBridge BD",
+      "role": "AGENCY",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=150"
+    },
+    {
+      "id": "usr-agency-06",
+      "email": "hello@abroadxpartners.com",
+      "phone": "+8801912345686",
+      "name": "AbroadX Partners",
+      "role": "AGENCY",
+      "isVerified": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1554469384-e58fac16e23a?w=150"
+    }
+  ],
+  "studentProfiles": [
+    {
+      "id": "prof-001",
+      "userId": "usr-student-01",
+      "targetCountries": ["Canada", "Australia", "United Kingdom"],
+      "targetField": "Computer Science & Software Engineering",
+      "budgetRange": "৳15L - ৳25L / year",
+      "ieltsScore": "7.5 (L:8.0, R:7.5, W:7.0, S:7.5)",
+      "linkCode": "ETHOS-STU-8821",
+      "educationHistory": [
+        { "level": "HSC", "institution": "Viqarunnisa Noon College", "passingYear": 2024, "gpa": 5.0 },
+        { "level": "SSC", "institution": "Viqarunnisa Noon School", "passingYear": 2022, "gpa": 5.0 }
+      ]
+    },
+    {
+      "id": "prof-002",
+      "userId": "usr-student-02",
+      "targetCountries": ["USA", "Germany"],
+      "targetField": "Electrical & Electronic Engineering",
+      "budgetRange": "৳20L - ৳30L / year",
+      "ieltsScore": "8.0",
+      "linkCode": "ETHOS-STU-4920",
+      "educationHistory": [
+        { "level": "HSC", "institution": "Notre Dame College", "passingYear": 2023, "gpa": 5.0 }
+      ]
+    },
+    {
+      "id": "prof-003",
+      "userId": "usr-student-03",
+      "targetCountries": ["Canada", "Sweden"],
+      "targetField": "Biotechnology & Public Health",
+      "budgetRange": "৳12L - ৳20L / year",
+      "ieltsScore": "7.0",
+      "linkCode": "ETHOS-STU-1092",
+      "educationHistory": [
+        { "level": "HSC", "institution": "Holy Cross College", "passingYear": 2024, "gpa": 4.9 }
+      ]
+    },
+    {
+      "id": "prof-004",
+      "userId": "usr-student-04",
+      "targetCountries": ["Australia", "New Zealand"],
+      "targetField": "Business Analytics & Finance",
+      "budgetRange": "৳18L - ৳28L / year",
+      "ieltsScore": "7.5",
+      "linkCode": "ETHOS-STU-7734",
+      "educationHistory": [
+        { "level": "HSC", "institution": "Dhaka College", "passingYear": 2023, "gpa": 4.8 }
+      ]
+    },
+    {
+      "id": "prof-005",
+      "userId": "usr-student-05",
+      "targetCountries": ["Germany", "Finland"],
+      "targetField": "Data Science & AI",
+      "budgetRange": "৳10L - ৳18L / year",
+      "ieltsScore": "7.0",
+      "linkCode": "ETHOS-STU-5521",
+      "educationHistory": [
+        { "level": "HSC", "institution": "Rajuk Uttara Model College", "passingYear": 2024, "gpa": 5.0 }
+      ]
+    }
+  ],
+  "parentLinks": [
+    { "id": "pl-001", "parentId": "usr-parent-01", "studentId": "usr-student-01", "relationship": "Mother", "isApproved": true },
+    { "id": "pl-002", "parentId": "usr-parent-02", "studentId": "usr-student-02", "relationship": "Father", "isApproved": true },
+    { "id": "pl-003", "parentId": "usr-parent-03", "studentId": "usr-student-03", "relationship": "Mother", "isApproved": true },
+    { "id": "pl-004", "parentId": "usr-parent-04", "studentId": "usr-student-04", "relationship": "Father", "isApproved": true },
+    { "id": "pl-005", "parentId": "usr-parent-05", "studentId": "usr-student-05", "relationship": "Mother", "isApproved": true }
+  ],
+  "agencies": [
+    {
+      "id": "agt-001",
+      "ownerUserId": "usr-agency-01",
+      "name": "Global Edu BD",
+      "licenseNo": "MOE-BD-2024-889",
+      "licenseStatus": "VERIFIED",
+      "countriesServed": ["CAN", "GBR", "AUS"],
+      "foundedYear": 2018,
+      "riskScore": 23,
+      "rating": 4.8,
+      "reviewCount": 234,
+      "successRate": 94,
+      "feeMinPoisha": "2500000",
+      "feeMaxPoisha": "8000000",
+      "address": "House 42, Road 11, Banani, Dhaka-1213",
+      "website": "https://globaledu.bd",
+      "description": "Premier consultancy with direct university partnerships across Canada, UK and Australia."
+    },
+    {
+      "id": "agt-002",
+      "ownerUserId": "usr-agency-02",
+      "name": "Dream Abroad Ltd",
+      "licenseNo": "MOE-BD-2023-412",
+      "licenseStatus": "VERIFIED",
+      "countriesServed": ["USA", "DEU", "NLD"],
+      "foundedYear": 2017,
+      "riskScore": 18,
+      "rating": 4.6,
+      "reviewCount": 187,
+      "successRate": 89,
+      "feeMinPoisha": "3000000",
+      "feeMaxPoisha": "10000000",
+      "address": "Level 6, Navana Tower, Gulshan-1, Dhaka-1212",
+      "website": "https://dreamabroad.com.bd",
+      "description": "Specialized in US STEM programs and German public university admissions."
+    },
+    {
+      "id": "agt-003",
+      "ownerUserId": "usr-agency-03",
+      "name": "EduPath Global",
+      "licenseNo": "MOE-BD-2024-105",
+      "licenseStatus": "VERIFIED",
+      "countriesServed": ["CAN", "NZL", "SWE"],
+      "foundedYear": 2021,
+      "riskScore": 15,
+      "rating": 4.5,
+      "reviewCount": 103,
+      "successRate": 91,
+      "feeMinPoisha": "2000000",
+      "feeMaxPoisha": "7000000",
+      "address": "Green Grandeur, Plot 58, Kamal Ataturk Ave, Banani, Dhaka",
+      "website": "https://edupathglobal.com",
+      "description": "Dedicated counseling for Scandinavian and Canadian higher education."
+    },
+    {
+      "id": "agt-004",
+      "ownerUserId": "usr-agency-04",
+      "name": "Skyline Consultancy",
+      "licenseNo": "MOE-BD-2025-991",
+      "licenseStatus": "PENDING",
+      "countriesServed": ["GBR", "IRL"],
+      "foundedYear": 2024,
+      "riskScore": 74,
+      "rating": 3.2,
+      "reviewCount": 45,
+      "successRate": 62,
+      "feeMinPoisha": "1500000",
+      "feeMaxPoisha": "6000000",
+      "address": "Motijheel C/A, Dhaka-1000",
+      "website": "https://skylineconsult.bd",
+      "description": "Under verification review due to predatory marketing claims and refund disputes."
+    },
+    {
+      "id": "agt-005",
+      "ownerUserId": "usr-agency-05",
+      "name": "StudyBridge BD",
+      "licenseNo": "MOE-BD-2022-301",
+      "licenseStatus": "VERIFIED",
+      "countriesServed": ["CAN", "AUS", "USA"],
+      "foundedYear": 2016,
+      "riskScore": 12,
+      "rating": 4.7,
+      "reviewCount": 312,
+      "successRate": 96,
+      "feeMinPoisha": "3500000",
+      "feeMaxPoisha": "9000000",
+      "address": "Dhanmondi 27, Dhaka-1209",
+      "website": "https://studybridge.com.bd",
+      "description": "Over 10 years of trusted student placements in Canada and Australia."
+    },
+    {
+      "id": "agt-006",
+      "ownerUserId": "usr-agency-06",
+      "name": "AbroadX Partners",
+      "licenseNo": "MOE-BD-2023-774",
+      "licenseStatus": "VERIFIED",
+      "countriesServed": ["DEU", "SWE", "FIN"],
+      "foundedYear": 2022,
+      "riskScore": 35,
+      "rating": 4.3,
+      "reviewCount": 78,
+      "successRate": 85,
+      "feeMinPoisha": "2200000",
+      "feeMaxPoisha": "6500000",
+      "address": "Uttara Sector 3, Dhaka-1230",
+      "website": "https://abroadxpartners.com",
+      "description": "European tuition-free and scholarship university guidance."
+    }
+  ],
+  "agencyPricings": [
+    { "id": "prc-001", "agencyId": "agt-001", "serviceName": "Profile Assessment & University Shortlist", "amountPoisha": "500000", "whenCharged": "On Registration", "refundable": true, "conditions": "100% refundable if not eligible for shortlisted institutions" },
+    { "id": "prc-002", "agencyId": "agt-001", "serviceName": "Offer Letter Application & Processing", "amountPoisha": "2500000", "whenCharged": "On Offer Received", "refundable": false, "conditions": "Non-refundable once university issues unconditional offer" },
+    { "id": "prc-003", "agencyId": "agt-001", "serviceName": "Visa Documentation & Interview Prep", "amountPoisha": "3000000", "whenCharged": "On Visa Filing", "refundable": true, "conditions": "50% refund if visa rejected on non-fraud grounds" },
+    { "id": "prc-004", "agencyId": "agt-002", "serviceName": "US STEM Application Service", "amountPoisha": "3500000", "whenCharged": "On I-20 Issued", "refundable": false, "conditions": "Includes SEVIS fee guidance" },
+    { "id": "prc-005", "agencyId": "agt-003", "serviceName": "Nordic University Admission Filing", "amountPoisha": "2000000", "whenCharged": "On Submission", "refundable": true, "conditions": "Full refund if application portal deadline missed" }
+  ],
+  "applications": [
+    {
+      "id": "app-001",
+      "studentId": "usr-student-01",
+      "agencyId": "agt-001",
+      "targetCountry": "Canada",
+      "targetUniversity": "University of Toronto",
+      "targetProgram": "M.Sc. in Computer Science",
+      "intakeSemester": "Fall 2026",
+      "stage": "OFFER_RECEIVED"
+    },
+    {
+      "id": "app-002",
+      "studentId": "usr-student-02",
+      "agencyId": "agt-002",
+      "targetCountry": "Germany",
+      "targetUniversity": "Technical University of Munich",
+      "targetProgram": "M.Sc. in Electrical Engineering",
+      "intakeSemester": "Winter 2026",
+      "stage": "UNDER_REVIEW"
+    },
+    {
+      "id": "app-003",
+      "studentId": "usr-student-03",
+      "agencyId": "agt-003",
+      "targetCountry": "Sweden",
+      "targetUniversity": "Karolinska Institute",
+      "targetProgram": "Master of Public Health",
+      "intakeSemester": "Autumn 2026",
+      "stage": "SUBMITTED"
+    }
+  ],
+  "stageEvents": [
+    { "id": "ste-001", "applicationId": "app-001", "stage": "SUBMITTED", "actorId": "usr-student-01", "actorRole": "STUDENT", "note": "Application submitted with academic transcripts", "timestamp": "2026-07-10T11:00:00Z" },
+    { "id": "ste-002", "applicationId": "app-001", "stage": "UNDER_REVIEW", "actorId": "usr-agency-01", "actorRole": "AGENCY", "note": "Documents verified by agency team, sent to U of Toronto portal", "timestamp": "2026-07-12T09:10:00Z" },
+    { "id": "ste-003", "applicationId": "app-001", "stage": "OFFER_RECEIVED", "actorId": "usr-agency-01", "actorRole": "AGENCY", "note": "Official Offer Letter received from University of Toronto", "timestamp": "2026-07-25T14:32:00Z" }
+  ],
+  "milestones": [
+    { "id": "mls-001", "applicationId": "app-001", "name": "Application Registration Fee", "orderIndex": 1, "amountPoisha": "1500000", "releaseCondition": "Application submitted to university", "status": "RELEASED" },
+    { "id": "mls-002", "applicationId": "app-001", "name": "Offer Processing & Verification", "orderIndex": 2, "amountPoisha": "2500000", "releaseCondition": "Offer letter received and verified via AI Scanner", "status": "HELD" },
+    { "id": "mls-003", "applicationId": "app-001", "name": "Visa Filing & Documentation", "orderIndex": 3, "amountPoisha": "3000000", "releaseCondition": "Visa application lodged with VFS Global", "status": "PENDING" }
+  ],
+  "ledgerEntries": [
+    {
+      "id": "ldg-001",
+      "milestoneId": "mls-001",
+      "type": "HOLD",
+      "amountPoisha": "1500000",
+      "provider": "SSLCOMMERZ",
+      "providerTxnId": "SSLCZ-TXN-2026-881920",
+      "txHash": "a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890",
+      "actorId": "usr-student-01",
+      "note": "Initial deposit into escrow",
+      "timestamp": "2026-07-10T11:15:00Z"
+    },
+    {
+      "id": "ldg-002",
+      "milestoneId": "mls-001",
+      "type": "RELEASE",
+      "amountPoisha": "1500000",
+      "provider": "SSLCOMMERZ",
+      "providerTxnId": "SSLCZ-TXN-2026-881920-REL",
+      "txHash": "b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890a1",
+      "actorId": "usr-student-01",
+      "note": "Milestone verified and released to Global Edu BD",
+      "timestamp": "2026-07-12T10:00:00Z"
+    },
+    {
+      "id": "ldg-003",
+      "milestoneId": "mls-002",
+      "type": "HOLD",
+      "amountPoisha": "2500000",
+      "provider": "BKASH",
+      "providerTxnId": "BKASH-TXN-99482103",
+      "txHash": "c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890a1b2",
+      "actorId": "usr-student-01",
+      "note": "Escrow hold for Offer Letter Confirmation",
+      "timestamp": "2026-07-25T15:00:00Z"
+    }
+  ],
+  "receipts": [
+    {
+      "id": "rec-001",
+      "ledgerEntryId": "ldg-002",
+      "receiptNumber": "ETHOS-REC-2026-0089",
+      "amountPoisha": "1500000",
+      "currency": "BDT",
+      "pdfStorageKey": "receipts/2026/07/rec_0089.pdf",
+      "generatedAt": "2026-07-12T10:00:05Z"
+    }
+  ],
+  "chatThreads": [
+    {
+      "id": "thd-001",
+      "applicationId": "app-001",
+      "agencyId": "agt-001",
+      "createdAt": "2026-07-10T11:05:00Z",
+      "updatedAt": "2026-07-25T15:10:00Z"
+    }
+  ],
+  "chatMessages": [
+    {
+      "id": "msg-001",
+      "threadId": "thd-001",
+      "senderId": "usr-agency-01",
+      "senderRole": "AGENCY",
+      "body": "Hello Riya! We have received your application for U of Toronto and are reviewing your academic transcripts.",
+      "msgHash": "8f48a1d2e9bc35a64d1f2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      "isRead": true,
+      "sentAt": "2026-07-25T10:00:00Z"
+    },
+    {
+      "id": "msg-002",
+      "threadId": "thd-001",
+      "senderId": "usr-student-01",
+      "senderRole": "STUDENT",
+      "body": "Thank you! When can I expect the official offer letter?",
+      "msgHash": "7e37a1d2e9bc35a64d1f2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3f",
+      "isRead": true,
+      "sentAt": "2026-07-25T10:15:00Z"
+    },
+    {
+      "id": "msg-003",
+      "threadId": "thd-001",
+      "senderId": "usr-agency-01",
+      "senderRole": "AGENCY",
+      "body": "We expect to receive the official letter within 5-7 business days. We will upload it directly to your Document Vault.",
+      "msgHash": "6d26a1d2e9bc35a64d1f2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d40",
+      "isRead": true,
+      "sentAt": "2026-07-25T10:18:00Z"
+    },
+    {
+      "id": "msg-004",
+      "threadId": "thd-001",
+      "senderId": "usr-student-01",
+      "senderRole": "STUDENT",
+      "body": "Great, thank you! Please also share the visa processing timeline.",
+      "msgHash": "5c15a1d2e9bc35a64d1f2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d41",
+      "isRead": true,
+      "sentAt": "2026-07-25T11:00:00Z"
+    }
+  ]
+}

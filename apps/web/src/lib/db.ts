@@ -6,7 +6,7 @@
  * when PostgreSQL is offline or running in standalone frontend demo mode.
  */
 
-import seedData from '../../../../prisma/seedData.json';
+import seedData from '@/data/seedData.json';
 
 // In-Memory Database Store (initialized with seedData)
 class InMemoryDatabase {
@@ -80,6 +80,7 @@ class InMemoryDatabase {
   }) {
     const newEntry = {
       id: `ldg-${Date.now()}`,
+      note: entry.note || '',
       ...entry,
       timestamp: new Date().toISOString(),
     };

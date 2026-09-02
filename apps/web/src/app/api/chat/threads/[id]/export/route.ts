@@ -56,7 +56,7 @@ export async function GET(
         senderId: m.senderId,
         sentAt: m.sentAt,
         body: m.body,
-        attachmentDocId: m.attachmentDocId || null,
+        attachmentDocId: ('attachmentDocId' in m ? (m as { attachmentDocId?: string }).attachmentDocId : null) || null,
         integrityHash: m.msgHash,
       })),
     };
