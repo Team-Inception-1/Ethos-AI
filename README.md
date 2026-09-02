@@ -92,32 +92,6 @@ See full details in [**`docs/KANBAN.md`**](docs/KANBAN.md) and the [GitHub Proje
 
 ---
 
-## 🔄 End-to-End Integrated Workflow (Golden Flow)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Student as 🎓 Student
-    actor Parent as 👨‍👩‍👧 Parent (Linked)
-    participant Web as 💻 Ethos Web App
-    participant API as ⚙️ Core Backend
-    participant AI as 🤖 AI Service
-    actor Agency as 🏢 Agency
-
-    Student->>Web: 1. Register profile & generate Guardian Link Code
-    Parent->>Web: 2. Link Guardian account using Link Code
-    Student->>Web: 3. Search & compare verified agencies in Directory
-    Student->>Web: 4. Submit application to "Global Edu BD"
-    Agency->>Web: 5. Review application & upload Offer Letter
-    Student->>Web: 6. Run AI Fraud Checker on Offer Letter
-    AI-->>Web: 7. Output: LOW RISK (Score: 23/100, Valid Domain)
-    Agency->>Web: 8. Transition stage to "Payment Pending (Milestone 1)"
-    Student->>Web: 9. Deposit Milestone 1 (30%) into Escrow
-    API-->>Web: 10. Ledger logs transaction; Stage updates to "Visa Processing"
-    Parent->>Web: 11. Real-time update reflected on Parent Dashboard in Bangla
-```
-
----
 
 ## 🛠️ Tech Stack
 
