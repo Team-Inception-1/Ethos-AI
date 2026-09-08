@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-3.6-flash"
 
+    # --- OCR / Vision provider (Optional fallback) ---------------------
+    google_vision_api_key: str | None = None
+
     # --- Service metadata ----------------------------------------------
     service_name: str = "ethos-ai-service"
     environment: str = "development"
@@ -32,6 +35,10 @@ class Settings(BaseSettings):
     @property
     def llm_configured(self) -> bool:
         return bool(self.gemini_api_key)
+
+    @property
+    def google_vision_configured(self) -> bool:
+        return bool(self.google_vision_api_key)
 
 
 @lru_cache

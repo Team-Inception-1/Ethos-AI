@@ -7,7 +7,43 @@ from pathlib import Path
 # installing the package (keeps things simple for a course project).
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import pytest
+try:
+    import pytest
+except ModuleNotFoundError:  # pragma: no cover
+    import sys
+    from typing import Any
+
+    class _MarkShim:
+        def __getattr__(self, name: str) -> Any:
+            def _marker(*args: Any, **kwargs: Any) -> Any:
+                if len(args) == 1 and callable(args[0]) and not kwargs:
+                    return args[0]
+                return lambda f: f
+            return _marker
+
+    class _PytestShim:
+        mark = _MarkShim()
+
+        @staticmethod
+        def fixture(func: Any = None, autouse: bool = False) -> Any:
+            if func is None:
+                return lambda f: f
+            return func
+
+        class raises:
+            def __init__(self, expected_exception: type[BaseException]) -> None:
+                self.expected = expected_exception
+
+            def __enter__(self) -> _PytestShim.raises:
+                return self
+
+            def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
+                if exc_type is None or not issubclass(exc_type, self.expected):
+                    raise AssertionError(f"Expected exception {self.expected}, but got {exc_type}")
+                return True
+
+    pytest = _PytestShim()  # type: ignore[assignment]
+    sys.modules["pytest"] = pytest  # type: ignore[assignment]
 
 from app.config import Settings
 from app.llm.fake_provider import FakeAgreementLLM

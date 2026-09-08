@@ -5,6 +5,9 @@ Node.js core API per `ETHOS_AI_CONTEXT.md` §10.
 
 Currently implemented:
 
+- **Module 5.8 — Fake Document Detection** (Issue [#22](https://github.com/Team-Inception-1/Ethos-AI/issues/22) / K-21)
+  - `POST /api/ai/analyze-offer-letter` — multipart upload (PDF / image / .txt)
+  - `POST /api/ai/analyze-offer-letter/text` — JSON body, raw offer letter text
 - **Module 5.9 — Smart Agreement Analyzer** (Issue [#16](https://github.com/Team-Inception-1/Ethos-AI/issues/16))
   - `POST /api/ai/analyze-agreement` — multipart upload (PDF / image / .txt)
   - `POST /api/ai/analyze-agreement/text` — JSON body, raw agreement text
@@ -15,7 +18,6 @@ Currently implemented:
 - `GET /health`
 
 Not yet implemented here (owned by other Kanban issues — see `docs/KANBAN.md`):
-- Offer-letter OCR fraud detection (Module 5.8, Issue #22, @Souravg223)
 - AI Counselor recommendation engine (Module 5.18, Issue #24, @Souravg223)
 
 ## Setup
@@ -52,6 +54,48 @@ providers are exercised only by manual smoke tests (see below), since they
 require a live key.
 
 ## API contract (for #25 — wiring the frontend)
+
+### `POST /api/ai/analyze-offer-letter`
+
+`multipart/form-data`:
+| field | type | notes |
+|---|---|---|
+| `file` | file | PDF, image (png/jpg/jpeg/webp/bmp/tiff), or `.txt` — max 20MB |
+| `sender_email` | string (optional) | Sender email from communication or envelope |
+| `expected_university` | string (optional) | University name expected by the student/parent |
+
+### `POST /api/ai/analyze-offer-letter/text`
+
+```json
+{
+  "text": "Offer letter text...",
+  "sender_email": "admissions@utoronto.ca",
+  "expected_university": "University of Toronto"
+}
+```
+
+### Response (both endpoints)
+
+```json
+{
+  "riskScore": 15,
+  "verdict": "genuine",
+  "flags": [
+    {
+      "code": "OFFICIAL_DOMAIN_VERIFIED",
+      "message": "Verified sender domain 'utoronto.ca' matches official registry for University of Toronto.",
+      "severity": "info",
+      "points": 0
+    }
+  ]
+}
+```
+
+- **Risk Score (0–100)**: Deterministic rollup of structural checks, academic domain checks, and predatory claim detection.
+- **Verdict Thresholds**:
+  - `0 – 25`: `genuine`
+  - `26 – 65`: `suspicious`
+  - `66 – 100`: `fake`
 
 ### `POST /api/ai/analyze-agreement`
 

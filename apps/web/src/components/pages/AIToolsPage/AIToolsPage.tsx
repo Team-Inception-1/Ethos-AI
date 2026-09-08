@@ -5,38 +5,103 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import {
   analyzeAgreementFile,
+  analyzeOfferLetterFile,
   AiServiceError,
   type AnalyzeAgreementResponse,
+  type AnalyzeOfferLetterResponse,
+  type OfferLetterVerdict,
 } from '@/lib/aiService';
 import styles from './AIToolsPage.module.css';
 
 type BadgeVariant = 'info' | 'warning' | 'danger' | 'neutral';
 
-const VERDICT_LABEL: Record<AnalyzeAgreementResponse['verdict'], { label: string; variant: BadgeVariant }> = {
+const AGREEMENT_VERDICT_LABEL: Record<AnalyzeAgreementResponse['verdict'], { label: string; variant: BadgeVariant }> = {
   clear:        { label: 'Clear',        variant: 'neutral' },
   needs_review: { label: 'Needs Review', variant: 'warning' },
   high_risk:    { label: 'High Risk',    variant: 'danger'  },
 };
 
-// Risk gauge: map a verdict to a 0-100-ish display score + arc offset, purely
-// for the visual gauge (the real signal is `flags[]`/`verdict`, not this number).
-const VERDICT_GAUGE: Record<AnalyzeAgreementResponse['verdict'], { score: number; color: string; label: string; offset: number }> = {
+const AGREEMENT_GAUGE: Record<AnalyzeAgreementResponse['verdict'], { score: number; color: string; label: string; offset: number }> = {
   clear:        { score: 8,  color: 'var(--emerald)',    label: 'LOW RISK',      offset: 144 },
   needs_review: { score: 52, color: 'var(--amber)',      label: 'NEEDS REVIEW',  offset: 76  },
   high_risk:    { score: 88, color: 'var(--red-danger)', label: 'HIGH RISK',     offset: 19  },
+};
+
+const OFFER_VERDICT_META: Record<OfferLetterVerdict, { label: string; variant: BadgeVariant; color: string; gaugeLabel: string }> = {
+  genuine:    { label: 'Verified Genuine', variant: 'neutral', color: 'var(--emerald)',    gaugeLabel: 'LOW RISK'      },
+  suspicious: { label: 'Suspicious Offer', variant: 'warning', color: 'var(--amber)',      gaugeLabel: 'NEEDS REVIEW'  },
+  fake:       { label: 'High Risk / Fake', variant: 'danger',  color: 'var(--red-danger)', gaugeLabel: 'HIGH FRAUD RISK'},
 };
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const ACCEPTED_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff', '.txt'];
 
 export default function AIToolsPage() {
+  // Document Fraud Checker State
+  const [docResult, setDocResult]               = useState<AnalyzeOfferLetterResponse | null>(null);
+  const [docLoading, setDocLoading]             = useState(false);
+  const [docError, setDocError]                 = useState<string | null>(null);
+  const [docFileName, setDocFileName]           = useState<string | null>(null);
+  const [expectedUni, setExpectedUni]           = useState('');
+  const [senderEmail, setSenderEmail]           = useState('');
+  const docFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Smart Agreement Analyzer State
   const [agreementResult, setAgreementResult]   = useState<AnalyzeAgreementResponse | null>(null);
   const [agreementLoading, setAgreementLoading] = useState(false);
   const [agreementError, setAgreementError]     = useState<string | null>(null);
-  const [fileName, setFileName]                 = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [agreementFileName, setAgreementFileName] = useState<string | null>(null);
+  const agreementFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = async (file: File) => {
+  // Handle Document Fraud Check
+  const handleDocFile = async (file: File) => {
+    setDocError(null);
+
+    const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+    if (!ACCEPTED_EXTENSIONS.includes(ext)) {
+      setDocError(`Unsupported file type "${ext}". Accepted: PDF, JPG, PNG, WEBP, BMP, TIFF, TXT.`);
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setDocError('File too large — maximum allowed size is 20MB.');
+      return;
+    }
+
+    setDocFileName(file.name);
+    setDocLoading(true);
+    try {
+      const result = await analyzeOfferLetterFile(file, {
+        senderEmail: senderEmail.trim() || undefined,
+        expectedUniversity: expectedUni.trim() || undefined,
+      });
+      setDocResult(result);
+    } catch (err) {
+      setDocError(
+        err instanceof AiServiceError
+          ? err.message
+          : 'Could not connect to the document verification service. Please try again in a moment.'
+      );
+      setDocFileName(null);
+    } finally {
+      setDocLoading(false);
+    }
+  };
+
+  const onDocDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleDocFile(file);
+  };
+
+  const resetDoc = () => {
+    setDocResult(null);
+    setDocError(null);
+    setDocFileName(null);
+    if (docFileInputRef.current) docFileInputRef.current.value = '';
+  };
+
+  // Handle Agreement Analysis
+  const handleAgreementFile = async (file: File) => {
     setAgreementError(null);
 
     const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
@@ -45,11 +110,11 @@ export default function AIToolsPage() {
       return;
     }
     if (file.size > MAX_UPLOAD_BYTES) {
-      setAgreementError('File too large — max 20MB.');
+      setAgreementError('File too large — maximum allowed size is 20MB.');
       return;
     }
 
-    setFileName(file.name);
+    setAgreementFileName(file.name);
     setAgreementLoading(true);
     try {
       const result = await analyzeAgreementFile(file);
@@ -60,39 +125,44 @@ export default function AIToolsPage() {
           ? err.message
           : 'Could not reach the AI service. Please try again in a moment.'
       );
-      setFileName(null);
+      setAgreementFileName(null);
     } finally {
       setAgreementLoading(false);
     }
   };
 
-  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const onAgreementDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
+    if (file) handleAgreementFile(file);
   };
 
-  const reset = () => {
+  const resetAgreement = () => {
     setAgreementResult(null);
     setAgreementError(null);
-    setFileName(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setAgreementFileName(null);
+    if (agreementFileInputRef.current) agreementFileInputRef.current.value = '';
   };
 
-  const gauge = agreementResult ? VERDICT_GAUGE[agreementResult.verdict] : null;
-  const verdictMeta = agreementResult ? VERDICT_LABEL[agreementResult.verdict] : null;
+  const agreementGauge = agreementResult ? AGREEMENT_GAUGE[agreementResult.verdict] : null;
+  const agreementVerdictMeta = agreementResult ? AGREEMENT_VERDICT_LABEL[agreementResult.verdict] : null;
+
+  // Calculate arc offset for offer letter gauge: full arc is 157 length (from 0 to 100)
+  const docVerdictMeta = docResult ? OFFER_VERDICT_META[docResult.verdict] : null;
+  const docGaugeOffset = docResult ? Math.max(0, 157 - (docResult.riskScore / 100) * 157) : 157;
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1>AI Tools</h1>
+        <div>
+          <h1>AI Verification Suite</h1>
+          <p className={styles.toolSubtitle}>Verify consultancy agreements &amp; admission offer letters before making milestone payments</p>
+        </div>
         <Badge variant="ai" size="md">✦ Powered by Ethos AI</Badge>
       </div>
 
       <div className={styles.grid}>
-        {/* Fraud Checker — offer-letter OCR fraud detection (Module 5.8, Issue #22)
-            is not yet implemented by its owner, so this card stays clearly
-            marked as pending rather than being wired to a mock. */}
+        {/* Document Fraud Checker — LIVE, Module 5.8 / K-21 */}
         <GlassCard padding="lg" className={styles.toolCard} glow>
           <div className={styles.toolHeader}>
             <div className={styles.toolIconWrap} aria-hidden="true">
@@ -106,20 +176,147 @@ export default function AIToolsPage() {
             </div>
             <div>
               <h2 className={styles.toolTitle}>Document Fraud Checker</h2>
-              <p className={styles.toolSubtitle}>Upload offer letters for AI analysis</p>
+              <p className={styles.toolSubtitle}>Scan offer letters for forged templates &amp; spoofed domains</p>
             </div>
           </div>
 
-          <div className={styles.comingSoon} aria-live="polite">
-            <span className={styles.comingSoonIcon} aria-hidden="true">🚧</span>
-            <p>Offer-letter OCR fraud detection (Module 5.8) is still being built.</p>
-            <Badge variant="pending" size="sm">Coming Soon</Badge>
-          </div>
-          <p className={styles.devHint}>🔧 <strong>@Souravg223</strong>: Owns Issue #22 — <code>POST /api/ai/analyze-offer-letter</code></p>
+          <input
+            ref={docFileInputRef}
+            type="file"
+            accept={ACCEPTED_EXTENSIONS.join(',')}
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleDocFile(file);
+            }}
+          />
+
+          {!docResult && !docLoading && (
+            <>
+              <div
+                className={styles.uploadZone}
+                role="button"
+                tabIndex={0}
+                aria-label="Upload offer letter for fraud analysis"
+                onClick={() => docFileInputRef.current?.click()}
+                onKeyDown={(e) => e.key === 'Enter' && docFileInputRef.current?.click()}
+                onDrop={onDocDrop}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <span className={styles.uploadIcon} aria-hidden="true">📄</span>
+                <p>Drop offer letter here or <span className={styles.link}>browse file</span></p>
+                <p className={styles.uploadHint}>PDF, PNG, JPG, WEBP, TXT up to 20MB</p>
+              </div>
+
+              <div className={styles.optionalInputs}>
+                <div className={styles.inputRow}>
+                  <label htmlFor="expectedUni" className={styles.inputLabel}>Expected University (optional)</label>
+                  <input
+                    id="expectedUni"
+                    type="text"
+                    placeholder="e.g. University of Toronto, Oxford, UIU"
+                    value={expectedUni}
+                    onChange={(e) => setExpectedUni(e.target.value)}
+                    className={styles.textInput}
+                  />
+                </div>
+                <div className={styles.inputRow}>
+                  <label htmlFor="senderEmail" className={styles.inputLabel}>Sender / Communication Email (optional)</label>
+                  <input
+                    id="senderEmail"
+                    type="email"
+                    placeholder="e.g. admissions@utoronto.ca"
+                    value={senderEmail}
+                    onChange={(e) => setSenderEmail(e.target.value)}
+                    className={styles.textInput}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {docLoading && (
+            <div className={styles.loadingState} aria-live="polite" aria-busy="true">
+              <span className={styles.spinner} aria-hidden="true" />
+              <p>Scanning <strong>{docFileName}</strong>…</p>
+              <p className={styles.uploadHint}>Running OCR, verifying university sender domain, and checking structural authenticity.</p>
+            </div>
+          )}
+
+          {docError && !docLoading && (
+            <div className={styles.errorState} role="alert">
+              <p>⚠ {docError}</p>
+              <Button size="sm" variant="ghost" onClick={resetDoc}>Try Again</Button>
+            </div>
+          )}
+
+          {docResult && !docLoading && (
+            <div className={styles.clauses} aria-live="polite">
+              <div className={styles.verdictRow}>
+                {docVerdictMeta && <Badge variant={docVerdictMeta.variant} size="md">{docVerdictMeta.label}</Badge>}
+                <Badge variant="ai" size="sm">✦ AI Fraud Scanner</Badge>
+              </div>
+
+              {docVerdictMeta && (
+                <div className={styles.gaugeWrap} aria-label={`Risk score: ${docResult.riskScore} out of 100`}>
+                  <svg viewBox="0 0 120 70" className={styles.gauge}>
+                    <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="var(--border)" strokeWidth="10" strokeLinecap="round" />
+                    <path
+                      d="M10 60 A50 50 0 0 1 110 60"
+                      fill="none"
+                      stroke={docVerdictMeta.color}
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      strokeDasharray="157"
+                      strokeDashoffset={docGaugeOffset}
+                      className={styles.gaugeArc}
+                    />
+                    <text x="60" y="58" textAnchor="middle" fill="var(--text-primary)" fontSize="18" fontWeight="800">
+                      {docResult.riskScore}
+                    </text>
+                    <text x="60" y="69" textAnchor="middle" fill={docVerdictMeta.color} fontSize="9" fontWeight="700">
+                      {docVerdictMeta.gaugeLabel}
+                    </text>
+                  </svg>
+                </div>
+              )}
+
+              <div className={styles.flags}>
+                {docResult.flags.length > 0 ? (
+                  docResult.flags.map((f, idx) => (
+                    <div
+                      key={idx}
+                      className={`${styles.flagItem} ${
+                        f.severity === 'danger'
+                          ? styles.flagItemDanger
+                          : f.severity === 'warning'
+                          ? styles.flagItemWarn
+                          : styles.flagItemInfo
+                      }`}
+                    >
+                      <div className={styles.flagHeader}>
+                        <Badge variant={f.severity as BadgeVariant} size="sm">{f.code.replace(/_/g, ' ')}</Badge>
+                        {f.points > 0 && (
+                          <span className={styles.flagPoints}>+{f.points} Risk Pts</span>
+                        )}
+                      </div>
+                      <p className={styles.flagText}>{f.message}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className={`${styles.flagItem} ${styles.flagItemInfo}`}>
+                    <Badge variant="neutral" size="sm">Clean Document</Badge>
+                    <p className={styles.flagText}>No suspicious clauses, domain mismatches, or predatory payment terms found.</p>
+                  </div>
+                )}
+              </div>
+
+              <Button size="sm" variant="ghost" onClick={resetDoc}>← Scan Another Offer Letter</Button>
+            </div>
+          )}
         </GlassCard>
 
-        {/* Agreement Analyzer — LIVE, wired to the real Gemini-backed
-            Smart Agreement Analyzer service (Module 5.9, Issue #16). */}
+        {/* Smart Agreement Analyzer — Module 5.9 / Issue #16 */}
         <GlassCard padding="lg" className={styles.toolCard} glow>
           <div className={styles.toolHeader}>
             <div className={styles.toolIconWrap} aria-hidden="true">
@@ -133,18 +330,18 @@ export default function AIToolsPage() {
             </div>
             <div>
               <h2 className={styles.toolTitle}>Smart Agreement Analyzer</h2>
-              <p className={styles.toolSubtitle}>AI extracts and flags clauses in your agreement</p>
+              <p className={styles.toolSubtitle}>Extract hidden fees &amp; ambiguous refund policies</p>
             </div>
           </div>
 
           <input
-            ref={fileInputRef}
+            ref={agreementFileInputRef}
             type="file"
             accept={ACCEPTED_EXTENSIONS.join(',')}
             style={{ display: 'none' }}
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleFile(file);
+              if (file) handleAgreementFile(file);
             }}
           />
 
@@ -154,13 +351,13 @@ export default function AIToolsPage() {
               role="button"
               tabIndex={0}
               aria-label="Upload agreement for analysis"
-              onClick={() => fileInputRef.current?.click()}
-              onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
-              onDrop={onDrop}
+              onClick={() => agreementFileInputRef.current?.click()}
+              onKeyDown={(e) => e.key === 'Enter' && agreementFileInputRef.current?.click()}
+              onDrop={onAgreementDrop}
               onDragOver={(e) => e.preventDefault()}
             >
               <span className={styles.uploadIcon} aria-hidden="true">📤</span>
-              <p>Drop agreement PDF here or <span className={styles.link}>click to upload</span></p>
+              <p>Drop agreement PDF here or <span className={styles.link}>browse file</span></p>
               <p className={styles.uploadHint}>PDF, JPG, PNG, TXT up to 20MB</p>
             </div>
           )}
@@ -168,7 +365,7 @@ export default function AIToolsPage() {
           {agreementLoading && (
             <div className={styles.loadingState} aria-live="polite" aria-busy="true">
               <span className={styles.spinner} aria-hidden="true" />
-              <p>Analyzing {fileName} with Gemini…</p>
+              <p>Analyzing <strong>{agreementFileName}</strong>…</p>
               <p className={styles.uploadHint}>Extracting clauses, checking for hidden fees &amp; ambiguous refund terms.</p>
             </div>
           )}
@@ -176,27 +373,27 @@ export default function AIToolsPage() {
           {agreementError && !agreementLoading && (
             <div className={styles.errorState} role="alert">
               <p>⚠ {agreementError}</p>
-              <Button size="sm" variant="ghost" onClick={reset}>Try Again</Button>
+              <Button size="sm" variant="ghost" onClick={resetAgreement}>Try Again</Button>
             </div>
           )}
 
           {agreementResult && !agreementLoading && (
             <div className={styles.clauses} aria-live="polite">
               <div className={styles.verdictRow}>
-                {verdictMeta && <Badge variant={verdictMeta.variant} size="md">{verdictMeta.label}</Badge>}
+                {agreementVerdictMeta && <Badge variant={agreementVerdictMeta.variant} size="md">{agreementVerdictMeta.label}</Badge>}
                 <Badge variant="ai" size="sm">
-                  {agreementResult.model_used === 'gemini' ? '✦ Analyzed by Gemini' : '✦ Analyzed (offline fallback)'}
+                  {agreementResult.model_used === 'gemini' ? '✦ AI Agreement Analyzer' : '✦ Rule Analysis Engine'}
                 </Badge>
                 {agreementResult.truncated && <Badge variant="neutral" size="sm">Truncated Input</Badge>}
               </div>
 
-              {gauge && (
-                <div className={styles.gaugeWrap} aria-label={`Risk verdict: ${verdictMeta?.label}`}>
+              {agreementGauge && (
+                <div className={styles.gaugeWrap} aria-label={`Risk verdict: ${agreementVerdictMeta?.label}`}>
                   <svg viewBox="0 0 120 70" className={styles.gauge}>
                     <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="var(--border)" strokeWidth="10" strokeLinecap="round"/>
-                    <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke={gauge.color} strokeWidth="10" strokeLinecap="round" strokeDasharray="157" strokeDashoffset={gauge.offset} className={styles.gaugeArc}/>
-                    <text x="60" y="58" textAnchor="middle" fill="var(--text-primary)" fontSize="18" fontWeight="800">{gauge.score}</text>
-                    <text x="60" y="70" textAnchor="middle" fill={gauge.color} fontSize="9" fontWeight="600">{gauge.label}</text>
+                    <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke={agreementGauge.color} strokeWidth="10" strokeLinecap="round" strokeDasharray="157" strokeDashoffset={agreementGauge.offset} className={styles.gaugeArc}/>
+                    <text x="60" y="58" textAnchor="middle" fill="var(--text-primary)" fontSize="18" fontWeight="800">{agreementGauge.score}</text>
+                    <text x="60" y="69" textAnchor="middle" fill={agreementGauge.color} fontSize="9" fontWeight="700">{agreementGauge.label}</text>
                   </svg>
                 </div>
               )}
@@ -226,19 +423,18 @@ export default function AIToolsPage() {
                 ))}
               </details>
 
-              <Button size="sm" variant="ghost" onClick={reset}>← Upload Another</Button>
+              <Button size="sm" variant="ghost" onClick={resetAgreement}>← Upload Another Agreement</Button>
             </div>
           )}
         </GlassCard>
       </div>
 
-      {/* AI Counselor Banner — Module 5.18 (Issue #24), not yet implemented */}
+      {/* AI Counselor Banner — Module 5.18 */}
       <GlassCard padding="lg" className={styles.counselorBanner}>
         <div className={styles.counselorContent}>
           <div>
-            <h2 className={styles.counselorTitle}>✦ AI Counselor</h2>
-            <p className={styles.counselorDesc}>Get personalized university recommendations, admission chances, and your custom application roadmap.</p>
-            <p className={styles.devHint}>🔧 <strong>@Souravg223</strong>: Owns Issue #24 — <code>POST /api/ai/counselor/recommend</code></p>
+            <h2 className={styles.counselorTitle}>✦ Ethos AI Counselor</h2>
+            <p className={styles.counselorDesc}>Get personalized university recommendations, admission chance heuristics, and customized application roadmaps tailored for Bangladeshi applicants.</p>
           </div>
           <Button variant="outline" size="lg" disabled>Coming Soon</Button>
         </div>

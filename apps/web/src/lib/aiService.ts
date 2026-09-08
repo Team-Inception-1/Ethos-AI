@@ -36,12 +36,74 @@ async function parseErrorDetail(resp: Response): Promise<string> {
   }
 }
 
+export type FlagSeverity = 'info' | 'warning' | 'danger';
+
+// ---------------------------------------------------------------------------
+// Module 5.8 — Fake Document Detection (#22 / K-21)
+// ---------------------------------------------------------------------------
+
+export type OfferLetterVerdict = 'genuine' | 'suspicious' | 'fake';
+
+export interface OfferLetterFlag {
+  code: string;
+  message: string;
+  severity: FlagSeverity;
+  points: number;
+}
+
+export interface AnalyzeOfferLetterResponse {
+  riskScore: number;
+  verdict: OfferLetterVerdict;
+  flags: OfferLetterFlag[];
+}
+
+/** POST /api/ai/analyze-offer-letter — multipart file upload (PDF/image/.txt). */
+export async function analyzeOfferLetterFile(
+  file: File,
+  opts: { senderEmail?: string; expectedUniversity?: string } = {}
+): Promise<AnalyzeOfferLetterResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  if (opts.senderEmail) form.append('sender_email', opts.senderEmail);
+  if (opts.expectedUniversity) form.append('expected_university', opts.expectedUniversity);
+
+  const resp = await fetch(`${AI_SERVICE_URL}/api/ai/analyze-offer-letter`, {
+    method: 'POST',
+    body: form,
+  });
+
+  if (!resp.ok) {
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
+  }
+  return resp.json();
+}
+
+/** POST /api/ai/analyze-offer-letter/text — JSON body, raw offer letter text. */
+export async function analyzeOfferLetterText(
+  text: string,
+  opts: { senderEmail?: string; expectedUniversity?: string } = {}
+): Promise<AnalyzeOfferLetterResponse> {
+  const resp = await fetch(`${AI_SERVICE_URL}/api/ai/analyze-offer-letter/text`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text,
+      sender_email: opts.senderEmail ?? null,
+      expected_university: opts.expectedUniversity ?? null,
+    }),
+  });
+
+  if (!resp.ok) {
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
+  }
+  return resp.json();
+}
+
 // ---------------------------------------------------------------------------
 // Module 5.9 — Smart Agreement Analyzer (#16)
 // ---------------------------------------------------------------------------
 
 export type ClauseType = 'fee' | 'refund' | 'cancellation' | 'liability' | 'other';
-export type FlagSeverity = 'info' | 'warning' | 'danger';
 
 export interface DeclaredFee {
   service_name: string;

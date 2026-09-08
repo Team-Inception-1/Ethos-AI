@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routers.agreement import router as agreement_router
+from app.routers.offer_letter import router as offer_letter_router
 from app.routers.scam import router as scam_router
 from app.schemas import HealthResponse
 from app.services.agency_risk_store import get_agency_risk_store
@@ -63,6 +64,7 @@ app.add_middleware(
 )
 
 app.include_router(agreement_router)
+app.include_router(offer_letter_router)
 app.include_router(scam_router)
 
 
