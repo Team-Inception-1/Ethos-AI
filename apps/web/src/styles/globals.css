@@ -3,8 +3,6 @@
    NEUBRUTALISM · Bold Borders · Hard Shadows · Flat Color
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=Hind+Siliguri:wght@500;600;700&display=swap');
-
 /* ─── CSS Reset ─── */
 *,
 *::before,
@@ -501,12 +499,15 @@ h5 { font-size: 16px; font-weight: 700; }
 }
 
 /* Animation utility classes */
-.animate-fade-up    { animation: fadeUp 0.5s var(--ease-out) forwards; }
-.animate-fade-in    { animation: fadeIn 0.3s var(--ease-out) forwards; }
-.animate-glass      { animation: glassReveal 0.5s var(--ease-out) forwards; }
+.animate-fade-up    { animation: fadeUp 0.5s var(--ease-out) both; }
+.animate-fade-in    { animation: fadeIn 0.3s var(--ease-out) both; }
+.animate-glass      { animation: glassReveal 0.5s var(--ease-out) both; }
 .animate-float      { animation: subtleFloat 4s ease-in-out infinite; }
 .animate-spin       { animation: spin 1s linear infinite; }
 .animate-breathe    { animation: breathe 3s ease-in-out infinite; }
+
+/* Visibility utility — used for scroll-reveal initial state */
+.opacity-0 { opacity: 0; }
 
 /* Stagger delay utilities */
 .delay-1 { animation-delay: 0.05s; }

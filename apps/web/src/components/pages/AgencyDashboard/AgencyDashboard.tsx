@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -19,7 +20,14 @@ export default function AgencyDashboard() {
           <h1>Agency Dashboard</h1>
           <p className={styles.sub}>Global Edu BD</p>
         </div>
-        <Badge variant="verified">Verified Agency</Badge>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link href="/dashboard/chat" style={{ textDecoration: 'none' }}>
+            <Button variant="emerald" size="sm">
+              💬 Messages & Chat
+            </Button>
+          </Link>
+          <Badge variant="verified">Verified Agency</Badge>
+        </div>
       </div>
 
       {/* Stats */}
@@ -31,9 +39,10 @@ export default function AgencyDashboard() {
             icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> 
           },
           { 
-            label:'Inquiries',     
+            label:'Chat Inquiries',     
             value:'47',    
-            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> 
+            href: '/dashboard/chat',
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> 
           },
           { 
             label:'Active Apps',   
@@ -45,13 +54,22 @@ export default function AgencyDashboard() {
             value:'34%',   
             icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> 
           },
-        ].map(s => (
-          <GlassCard key={s.label} padding="md" className={styles.stat}>
-            <div className={styles.statIcon} aria-hidden="true">{s.icon}</div>
-            <div className={styles.statVal}>{s.value}</div>
-            <div className={styles.statLbl}>{s.label}</div>
-          </GlassCard>
-        ))}
+        ].map(s => {
+          const cardContent = (
+            <GlassCard key={s.label} padding="md" className={styles.stat} hover={!!s.href}>
+              <div className={styles.statIcon} aria-hidden="true">{s.icon}</div>
+              <div className={styles.statVal}>{s.value}</div>
+              <div className={styles.statLbl}>{s.label}{s.href ? ' (Open Chat) →' : ''}</div>
+            </GlassCard>
+          );
+          return s.href ? (
+            <Link key={s.label} href={s.href} style={{ textDecoration: 'none', color: 'inherit' }}>
+              {cardContent}
+            </Link>
+          ) : (
+            cardContent
+          );
+        })}
       </div>
 
       {/* Application Queue */}
@@ -66,7 +84,16 @@ export default function AgencyDashboard() {
                 <td className={styles.program}>{a.program}</td>
                 <td><Badge variant="info" size="sm">{a.stage}</Badge></td>
                 <td className={styles.date}>{a.date}</td>
-                <td><Button size="sm" variant="ghost">Advance Stage</Button></td>
+                <td>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <Link href="/dashboard/chat" style={{ textDecoration: 'none' }}>
+                      <Button size="sm" variant="outline" title={`Chat with ${a.student}`}>
+                        💬 Chat
+                      </Button>
+                    </Link>
+                    <Button size="sm" variant="ghost">Advance Stage</Button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -94,9 +94,9 @@ class InMemoryDatabase {
       .filter((t) => {
         const app = this.applications.find((a) => a.id === t.applicationId);
         if (!app) return false;
-        if (role === 'AGENCY') {
+        if (role?.toUpperCase() === 'AGENCY') {
           const agency = this.agencies.find((ag) => ag.id === t.agencyId);
-          return agency?.ownerUserId === userId;
+          return agency?.ownerUserId === userId || t.agencyId === userId || agency?.id === userId;
         }
         return app.studentId === userId;
       })
@@ -148,10 +148,11 @@ class InMemoryDatabase {
   createChatMessage(params: {
     threadId: string;
     senderId: string;
-    senderRole: 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN';
+    senderRole: 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN' | string;
     body: string;
     attachmentDocId?: string;
   }) {
+    const normalizedRole = (params.senderRole?.toUpperCase() || 'STUDENT') as 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN';
     // Generate deterministic SHA-256 simulation hash for immutable audit
     const hashPayload = `${params.threadId}:${params.senderId}:${Date.now()}:${params.body}`;
     let hash = 0;
@@ -165,7 +166,7 @@ class InMemoryDatabase {
       id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       threadId: params.threadId,
       senderId: params.senderId,
-      senderRole: params.senderRole,
+      senderRole: normalizedRole,
       body: params.body,
       attachmentDocId: params.attachmentDocId,
       msgHash,
@@ -201,4 +202,7 @@ class InMemoryDatabase {
 }
 
 // Global singleton instance for in-memory persistence during development / demo
-export const db = new InMemoryDatabase();
+const globalForDb = globalThis as unknown as { ethosDb?: InMemoryDatabase };
+export const db = globalForDb.ethosDb ?? new InMemoryDatabase();
+if (process.env.NODE_ENV !== 'production') globalForDb.ethosDb = db;
+

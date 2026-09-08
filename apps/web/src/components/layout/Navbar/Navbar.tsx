@@ -19,6 +19,8 @@ export default function Navbar() {
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+  const dashboardHref = user?.role === 'agency' ? '/agency/dashboard' : '/dashboard';
+  const isDashboardActive = pathname === dashboardHref || (pathname?.startsWith('/agency') && user?.role === 'agency') || pathname === '/dashboard';
 
   return (
     <header className={styles.header}>
@@ -42,7 +44,7 @@ export default function Navbar() {
           ))}
           {isAuthenticated && (
             <li>
-              <Link href="/dashboard" className={`${styles.link} ${pathname === '/dashboard' ? styles.active : ''}`}>
+              <Link href={dashboardHref} className={`${styles.link} ${isDashboardActive ? styles.active : ''}`}>
                 {user?.role === 'parent' ? 'Parent Portal' : user?.role === 'agency' ? 'Agency Portal' : 'Dashboard'}
               </Link>
             </li>
@@ -121,9 +123,14 @@ export default function Navbar() {
             </Link>
           ))}
           {isAuthenticated && (
-            <Link href="/profile" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>
-              Profile & Guardian Settings ({user?.name})
-            </Link>
+            <>
+              <Link href={dashboardHref} className={styles.mobileLink} onClick={() => setMenuOpen(false)}>
+                {user?.role === 'parent' ? 'Parent Portal' : user?.role === 'agency' ? 'Agency Portal' : 'Dashboard'}
+              </Link>
+              <Link href="/profile" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>
+                Profile & Guardian Settings ({user?.name})
+              </Link>
+            </>
           )}
           <div className={styles.mobileCtas}>
             {!isAuthenticated ? (

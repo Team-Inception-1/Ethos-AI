@@ -131,6 +131,7 @@ function formatTime(iso: string): string {
 
 export default function ChatPage() {
   const { user } = useAuth();
+  const isAgency = user?.role?.toLowerCase() === 'agency';
   const [threads, setThreads] = useState<ChatThreadSummary[]>(DEFAULT_THREADS);
   const [activeThreadId, setActiveThreadId] = useState<string>('thd-001');
   const [messages, setMessages] = useState<ChatMessageItem[]>(DEFAULT_MESSAGES['thd-001'] || []);
@@ -142,24 +143,51 @@ export default function ChatPage() {
   const [attachedDoc, setAttachedDoc] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Check URL parameters for direct thread activation (e.g. from Dashboard "Chat" buttons)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tid = params.get('threadId');
+      if (tid) {
+        setActiveThreadId(tid);
+      }
+    }
+  }, []);
+
   // Load threads on mount / user change
   useEffect(() => {
     let cancelled = false;
-    fetchChatThreads(user?.id || 'usr-student-01', user?.role?.toUpperCase() || 'STUDENT')
+    const roleParam = isAgency ? 'AGENCY' : (user?.role?.toUpperCase() || 'STUDENT');
+    const userIdParam = user?.id || (isAgency ? 'usr-agency-01' : 'usr-student-01');
+
+    fetchChatThreads(userIdParam, roleParam)
       .then((res) => {
         if (!cancelled && res.length > 0) {
           setThreads(res);
-          if (!res.some((t) => t.id === activeThreadId)) {
+          if (isAgency) {
+            // When isAgency is true and threads load, ensure thread with student Riya Ahmed is active
+            const riyaThread = res.find((t) => t.studentName?.toLowerCase().includes('riya')) || res[0];
+            setActiveThreadId(riyaThread.id);
+          } else if (!res.some((t) => t.id === activeThreadId)) {
             setActiveThreadId(res[0].id);
           }
+        } else if (!cancelled && isAgency) {
+          const riyaThread = DEFAULT_THREADS.find((t) => t.studentName?.toLowerCase().includes('riya')) || DEFAULT_THREADS[0];
+          setActiveThreadId(riyaThread.id);
         }
       })
-      .catch((e) => console.warn('Could not load live threads, using defaults:', e));
+      .catch((e) => {
+        console.warn('Could not load live threads, using defaults:', e);
+        if (isAgency) {
+          const riyaThread = DEFAULT_THREADS.find((t) => t.studentName?.toLowerCase().includes('riya')) || DEFAULT_THREADS[0];
+          setActiveThreadId(riyaThread.id);
+        }
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [user, activeThreadId]);
+  }, [user, isAgency]);
 
   // Load messages whenever active thread changes
   useEffect(() => {
@@ -199,8 +227,8 @@ export default function ChatPage() {
     setAttachedDoc(null);
     setIsSending(true);
 
-    const senderRole = (user?.role?.toUpperCase() || 'STUDENT') as 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN';
-    const senderId = user?.id || 'usr-student-01';
+    const senderRole = (isAgency ? 'AGENCY' : (user?.role?.toUpperCase() || 'STUDENT')) as 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN';
+    const senderId = user?.id || (isAgency ? 'usr-agency-01' : 'usr-student-01');
 
     // Optimistic message addition
     const tempMsg: ChatMessageItem = {
@@ -273,8 +301,8 @@ export default function ChatPage() {
   };
 
   const isSelf = (m: ChatMessageItem) => {
-    if (user?.role === 'agency') return m.senderRole === 'AGENCY';
-    return m.senderRole === 'STUDENT' || m.senderRole === 'PARENT';
+    if (isAgency) return m.senderRole?.toUpperCase() === 'AGENCY';
+    return m.senderRole?.toUpperCase() === 'STUDENT' || m.senderRole?.toUpperCase() === 'PARENT';
   };
 
   return (
@@ -294,32 +322,36 @@ export default function ChatPage() {
       <div className={styles.layout}>
         {/* Thread List */}
         <div className={styles.threadList} role="list" aria-label="Chat threads">
-          {threads.map((t) => (
-            <GlassCard
-              key={t.id}
-              padding="sm"
-              className={`${styles.thread} ${t.id === activeThreadId ? styles.threadActive : ''}`}
-              hover
-              onClick={() => setActiveThreadId(t.id)}
-            >
-              <div className={styles.threadAvatar} aria-hidden="true">
-                {t.agencyName[0]}
-              </div>
-              <div className={styles.threadMeta}>
-                <div className={styles.threadName}>{t.agencyName}</div>
-                <div className={styles.threadSub}>{t.targetUniversity}</div>
-                <div className={styles.threadPrev}>{t.lastMessage?.text || 'No messages yet'}</div>
-              </div>
-              <div className={styles.threadRight}>
-                <span className={styles.threadTime}>
-                  {t.lastMessage?.time ? formatTime(t.lastMessage.time) : ''}
-                </span>
-                {t.unreadCount > 0 && (
-                  <span className={styles.unreadBadge}>{t.unreadCount}</span>
-                )}
-              </div>
-            </GlassCard>
-          ))}
+          {threads.map((t) => {
+            const threadHeading = isAgency ? t.studentName : t.agencyName;
+            const threadAvatar = isAgency ? (t.studentName?.[0] || 'S') : (t.agencyName?.[0] || 'A');
+            return (
+              <GlassCard
+                key={t.id}
+                padding="sm"
+                className={`${styles.thread} ${t.id === activeThreadId ? styles.threadActive : ''}`}
+                hover
+                onClick={() => setActiveThreadId(t.id)}
+              >
+                <div className={styles.threadAvatar} aria-hidden="true">
+                  {threadAvatar}
+                </div>
+                <div className={styles.threadMeta}>
+                  <div className={styles.threadName}>{threadHeading}</div>
+                  <div className={styles.threadSub}>{t.targetUniversity}</div>
+                  <div className={styles.threadPrev}>{t.lastMessage?.text || 'No messages yet'}</div>
+                </div>
+                <div className={styles.threadRight}>
+                  <span className={styles.threadTime}>
+                    {t.lastMessage?.time ? formatTime(t.lastMessage.time) : ''}
+                  </span>
+                  {t.unreadCount > 0 && (
+                    <span className={styles.unreadBadge}>{t.unreadCount}</span>
+                  )}
+                </div>
+              </GlassCard>
+            );
+          })}
         </div>
 
         {/* Chat Window */}
@@ -327,13 +359,23 @@ export default function ChatPage() {
           <div className={styles.chatHeader}>
             <div className={styles.chatHeaderLeft}>
               <div className={styles.chatAvatar} aria-hidden="true">
-                {activeThread?.agencyName?.[0] || 'G'}
+                {isAgency ? (activeThread?.studentName?.[0] || 'S') : (activeThread?.agencyName?.[0] || 'G')}
               </div>
               <div>
-                <div className={styles.chatName}>{activeThread?.agencyName}</div>
+                <div className={styles.chatName}>
+                  {isAgency ? (activeThread?.studentName || 'Student') : (activeThread?.agencyName || 'Agency')}
+                </div>
                 <div className={styles.chatStatus}>
-                  <span>●</span> Online Verified Agency
-                  <span className={styles.chatAppBadge}>• {activeThread?.targetUniversity}</span>
+                  {isAgency ? (
+                    <>
+                      <span>●</span> Student Applicant • {activeThread?.targetUniversity}
+                    </>
+                  ) : (
+                    <>
+                      <span>●</span> Online Verified Agency
+                      <span className={styles.chatAppBadge}>• {activeThread?.targetUniversity}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -353,10 +395,22 @@ export default function ChatPage() {
           <div className={styles.messages} aria-live="polite" aria-label="Chat messages">
             {messages.map((m) => {
               const self = isSelf(m);
+              const senderRoleUpper = m.senderRole?.toUpperCase();
+              let senderLabel: string;
+              if (senderRoleUpper === 'AGENCY') {
+                senderLabel = isAgency ? 'You (Global Edu BD)' : (activeThread?.agencyName || 'Global Edu BD');
+              } else if (senderRoleUpper === 'STUDENT') {
+                senderLabel = isAgency ? (activeThread?.studentName || 'Student') : 'You';
+              } else if (senderRoleUpper === 'PARENT') {
+                senderLabel = 'Guardian (Parent)';
+              } else {
+                senderLabel = m.senderRole || 'User';
+              }
+
               return (
                 <div key={m.id} className={`${styles.msg} ${self ? styles.msgSelf : styles.msgOther}`}>
                   <span className={styles.msgSenderLabel}>
-                    {m.senderRole === 'AGENCY' ? activeThread?.agencyName : m.senderRole === 'PARENT' ? 'Guardian (Parent)' : 'Student'}
+                    {senderLabel}
                   </span>
                   <div className={styles.msgBubble}>
                     {m.body}
@@ -391,7 +445,11 @@ export default function ChatPage() {
             <input
               type="text"
               className={styles.input}
-              placeholder="Type a message to consultancy…"
+              placeholder={
+                isAgency
+                  ? `Type a message to ${activeThread?.studentName || 'student'}…`
+                  : 'Type a message to consultancy…'
+              }
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
