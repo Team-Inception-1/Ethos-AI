@@ -60,7 +60,7 @@ const roles: { id: UserRole; label: string; labelBn: string; icon: React.ReactNo
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
-  const { login, register, verifyOtp, resendOtp, otpCountdown, quickLoginDemo } = useAuth();
+  const { user, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail, quickLoginDemo, lastGeneratedOtp } = useAuth();
 
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [role, setRole] = useState<UserRole>('student');
@@ -72,17 +72,32 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleDemoClick = (demoRole: UserRole) => {
     quickLoginDemo(demoRole);
     if (demoRole === 'agency') {
-      router.push('/agency');
+      router.push('/agency/dashboard');
     } else if (demoRole === 'admin') {
       router.push('/admin');
     } else {
       router.push('/dashboard');
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').trim().replace(/\D/g, '').slice(0, 6);
+    if (pasted) {
+      const next = ['', '', '', '', '', ''];
+      for (let i = 0; i < pasted.length; i++) {
+        next[i] = pasted[i];
+      }
+      setOtp(next);
+      const nextIndex = Math.min(pasted.length, 5);
+      otpRefs.current[nextIndex]?.focus();
     }
   };
 
@@ -119,23 +134,42 @@ export default function AuthPage({ mode }: AuthPageProps) {
     if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const code = otp.join('');
     if (code.length < 4) {
       setErrorMsg('Please enter a valid 4-6 digit OTP code.');
       return;
     }
-    const success = verifyOtp(code);
-    if (success) {
-      if (role === 'agency') {
-        router.push('/agency');
-      } else if (role === 'admin') {
-        router.push('/admin');
+    setIsVerifying(true);
+    setErrorMsg('');
+    try {
+      const success = await verifyOtp(code);
+      if (success) {
+        let authRole = user?.role;
+        if (!authRole) {
+          try {
+            const stored = localStorage.getItem('ethos_auth_user');
+            if (stored) {
+              authRole = JSON.parse(stored)?.role;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        if (authRole === 'agency') {
+          router.push('/agency/dashboard');
+        } else if (authRole === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
-        router.push('/dashboard');
+        setErrorMsg('Invalid OTP code. Please enter the code sent to your email (or use demo code 123456).');
       }
-    } else {
-      setErrorMsg('Invalid OTP code. Try entering 123456');
+    } catch {
+      setErrorMsg('Verification failed. Try entering demo code 123456.');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -227,9 +261,17 @@ export default function AuthPage({ mode }: AuthPageProps) {
                   </button>
                   <h1 className={styles.formTitle}>{lang === 'en' ? 'Verify OTP' : 'OTP যাচাই করুন'}</h1>
                   <p className={styles.formSub}>
-                    {lang === 'en'
-                      ? 'We sent a 6-digit verification code to your phone & email.'
-                      : 'আমরা আপনার ফোন ও ইমেইলে একটি ৬ সংখ্যার কোড পাঠিয়েছি।'}
+                    {lang === 'en' ? (
+                      <>
+                        We sent a 6-digit verification code to{' '}
+                        <strong style={{ color: 'var(--blue-light)' }}>{otpEmail || email || 'your email'}</strong> via Neon Auth.
+                      </>
+                    ) : (
+                      <>
+                        আমরা আপনার ইমেইল{' '}
+                        <strong style={{ color: 'var(--blue-light)' }}>{otpEmail || email}</strong>-এ একটি ৬ সংখ্যার কোড পাঠিয়েছি।
+                      </>
+                    )}
                   </p>
                 </>
               )}
@@ -403,7 +445,54 @@ export default function AuthPage({ mode }: AuthPageProps) {
           ) : (
             /* OTP Step */
             <>
-              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
+              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>{errorMsg}</div>}
+
+              {/* On-Screen Verification Code Card */}
+              {lastGeneratedOtp && (
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(79, 142, 247, 0.12), rgba(0, 201, 167, 0.08))',
+                    border: '1px solid rgba(79, 142, 247, 0.35)',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    marginBottom: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      🔑 Generated Verification Code
+                    </div>
+                    <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '4px', color: 'var(--blue-light)', fontFamily: 'monospace', marginTop: '2px' }}>
+                      {lastGeneratedOtp}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtp(lastGeneratedOtp.split(''));
+                    }}
+                    style={{
+                      background: 'var(--blue-primary)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 14px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(79, 142, 247, 0.3)',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Auto-Fill ⚡
+                  </button>
+                </div>
+              )}
 
               <div className={styles.otpGrid} role="group" aria-label="OTP input">
                 {otp.map((v, i) => (
@@ -419,14 +508,21 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     value={v}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKey(i, e)}
+                    onPaste={handleOtpPaste}
                     className={`${styles.otpBox} ${v ? styles.otpFilled : ''}`}
                     aria-label={`Digit ${i + 1}`}
                   />
                 ))}
               </div>
 
-              <Button size="lg" fullWidth glow onClick={handleVerify}>
-                {lang === 'en' ? 'Verify & Continue →' : 'যাচাই করুন ও চালিয়ে যান →'}
+              <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', margin: '12px 0 16px', lineHeight: '1.5' }}>
+                📬 Code dispatched to terminal & shown above • Demo bypass: <strong style={{ color: 'var(--blue-light)' }}>123456</strong>
+              </div>
+
+              <Button size="lg" fullWidth glow onClick={handleVerify} disabled={isVerifying}>
+                {isVerifying
+                  ? (lang === 'en' ? 'Verifying…' : 'যাচাই করা হচ্ছে…')
+                  : (lang === 'en' ? 'Verify & Continue →' : 'যাচাই করুন ও চালিয়ে যান →')}
               </Button>
 
               <p className={styles.resend}>

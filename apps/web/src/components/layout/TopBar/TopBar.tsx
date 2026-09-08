@@ -2,9 +2,14 @@
 import React from 'react';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import { useAuth } from '@/context/AuthContext';
 import styles from './TopBar.module.css';
 
 export default function TopBar() {
+  const { user } = useAuth();
+  const userName = user?.name || 'Student User';
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'S';
+
   return (
     <header className={styles.topbar} role="banner">
       <div className={styles.left}>
@@ -38,7 +43,15 @@ export default function TopBar() {
 
         {/* Avatar */}
         <div className={styles.avatarWrap}>
-          <button className={styles.avatar} aria-label="User menu" id="user-menu-btn">S</button>
+          <Link
+            href="/profile"
+            className={styles.avatar}
+            aria-label={`User menu for ${userName}`}
+            title={userName}
+            id="user-menu-btn"
+          >
+            {initial}
+          </Link>
           <div className={styles.avatarDot} aria-hidden="true" />
         </div>
       </div>
