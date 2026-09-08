@@ -36,6 +36,6 @@ def get_scam_llm(settings: Settings | None = None) -> ScamLLM:
 
 
 def _build(settings: Settings) -> ScamLLM:
-    if settings.llm_configured:
+    if settings.llm_configured and settings.gemini_api_key:
         return GeminiScamLLM(api_key=settings.gemini_api_key, model=settings.gemini_model)
     return FakeScamLLM()

@@ -185,3 +185,36 @@ class RecordRiskEventRequest(BaseModel):
     source: str = Field(description="'complaint' | 'review_sentiment' (or 'scan', though that's usually automatic)")
     weight: float = Field(ge=0, le=100, description="How much this single event should move the risk score")
     reason: str = Field(description="Short human-readable reason, e.g. 'Student complaint: undisclosed fee'")
+
+
+# =============================================================================
+# Module 5.8 — Fake Document Detection (Issue #22 / K-21)
+# =============================================================================
+
+
+class OfferLetterVerdict(str, Enum):
+    GENUINE = "genuine"
+    SUSPICIOUS = "suspicious"
+    FAKE = "fake"
+
+
+class OfferLetterFlag(BaseModel):
+    code: str = Field(description="Stable machine-readable error/risk code, e.g. 'DOMAIN_MISMATCH'")
+    message: str = Field(description="Plain-language explanation for the student/parent/auditor")
+    severity: FlagSeverity = Field(description="Severity badge mapping: info, warning, danger")
+    points: int = Field(default=0, ge=0, description="Risk score points contributed by this flag")
+
+
+class AnalyzeOfferLetterResponse(BaseModel):
+    riskScore: int = Field(ge=0, le=100, description="Deterministic risk score bounded between 0 and 100")
+    verdict: OfferLetterVerdict = Field(description="'genuine' (0-25) | 'suspicious' (26-65) | 'fake' (66-100)")
+    flags: list[OfferLetterFlag] = Field(default_factory=list, description="List of detected fraud indicators")
+
+
+class AnalyzeOfferLetterTextRequest(BaseModel):
+    text: str = Field(min_length=1, description="Raw offer letter text to analyze")
+    sender_email: str | None = Field(default=None, description="Sender email from communication or envelope")
+    expected_university: str | None = Field(
+        default=None, description="University name expected by the student"
+    )
+

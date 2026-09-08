@@ -1,0 +1,9 @@
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
+search-path = [
+    "apps/ai-service",
+    "apps/ai-service/app",
+]
+python-interpreter-path = "apps/ai-service/.venv/Scripts/python.exe"

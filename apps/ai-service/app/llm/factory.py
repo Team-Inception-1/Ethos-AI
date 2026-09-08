@@ -36,6 +36,6 @@ def get_agreement_llm(settings: Settings | None = None) -> AgreementLLM:
 
 
 def _build(settings: Settings) -> AgreementLLM:
-    if settings.llm_configured:
+    if settings.llm_configured and settings.gemini_api_key:
         return GeminiAgreementLLM(api_key=settings.gemini_api_key, model=settings.gemini_model)
     return FakeAgreementLLM()
