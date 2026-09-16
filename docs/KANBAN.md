@@ -191,8 +191,9 @@
 #### Issue #24 — K-23: AI Counselor Chatbot — Recommendation Engine & Admission-Chance Heuristic
 - **Assignee:** [`@Souravg223`](https://github.com/Souravg223)
 - **Labels:** `ai-ml`
-- **Module:** 5.18 (AI Counselor Chatbot)
+- **Module:** 5.18 (AI Counselor Chatbot) & 5.11 (Bangla AI Assistant)
 - **Objective:** Country/university recommendations from student profile (grades, budget, target field, test scores); rule-based admission-chance heuristic (upgradeable to a trained model later); personalized roadmap generator feeding into the Application Tracker (#7).
+- **Status:** ✅ Implemented in `apps/ai-service` (FastAPI) and `apps/web` (Next.js). Rule-based matching engine across 7 destination countries (USA, UK, Canada, Australia, Germany, Sweden, Malaysia), Dream/Target/Safe tier categorization with admission chance odds, bank solvency proof calculation in BDT Lakhs, study gap risk detection, 6-phase application roadmap generator, pluggable bilingual (English & Bangla) `CounselorLLM` provider (Gemini + offline `FakeCounselorProvider`), full Next.js UI at `/counselor` with Neubrutalism design system, profile auto-fill, and 9 passing unit/API tests (83 tests passing suite-wide).
 
 #### Issue #25 — K-24: Wire AI Tools Page & Directory Risk Badges to the Live AI Microservice
 - **Assignee:** [`@tasinofficial`](https://github.com/tasinofficial)

@@ -70,11 +70,24 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
+const COUNTRY_MAP: Record<string, string[]> = {
+  germany: ['DEU'],
+  uk: ['GBR', 'IRL'],
+  'united kingdom': ['GBR', 'IRL'],
+  usa: ['USA'],
+  'united states': ['USA'],
+  canada: ['CAN'],
+  australia: ['AUS'],
+  sweden: ['SWE'],
+  malaysia: ['MYS'],
+};
+
 export default function DirectoryPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sortBy, setSortBy]             = useState('rating');
   const [compare, setCompare]           = useState<string[]>([]);
   const [search, setSearch]             = useState('');
+  const [countryFilter, setCountryFilter] = useState<string | null>(null);
 
   // Live risk scores from the AI microservice (Module 5.10 / Issue #23),
   // keyed by agency id. `null` = still loading (initial fetch in flight);
@@ -83,6 +96,14 @@ export default function DirectoryPage() {
   // never to a missing key) — see `lib/aiService.ts`.
   const [riskScores, setRiskScores] = useState<Record<string, AgencyRiskScore> | null>(null);
   const [riskError, setRiskError]   = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const c = params.get('country');
+      if (c) setCountryFilter(c);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,6 +125,11 @@ export default function DirectoryPage() {
   const filtered = AGENCIES
     .filter(a => !verifiedOnly || a.verified)
     .filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(a => {
+      if (!countryFilter) return true;
+      const targetCodes = COUNTRY_MAP[countryFilter.toLowerCase()] || [countryFilter.toUpperCase().slice(0, 3)];
+      return a.countries.some(c => targetCodes.includes(c));
+    })
     .sort((a, b) => sortBy === 'rating' ? b.rating - a.rating : b.success - a.success);
 
   const toggleCompare = (id: string) => {
@@ -118,6 +144,29 @@ export default function DirectoryPage() {
           <div>
             <h1 className={styles.title}>Verified Agency Directory</h1>
             <p className={styles.subtitle}>{filtered.length} agencies found — all verified by Ethos AI</p>
+            {countryFilter && (
+              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Badge variant="verified" size="sm">📍 Filtered for: {countryFilter}</Badge>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCountryFilter(null);
+                    window.history.replaceState({}, '', '/directory');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: '1px dashed var(--border)',
+                    borderRadius: '4px',
+                    padding: '2px 8px',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  ✖ Clear Filter
+                </button>
+              </div>
+            )}
           </div>
           {compare.length > 1 && (
             <Link href={`/compare?ids=${compare.join(',')}`}>

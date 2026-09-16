@@ -218,3 +218,158 @@ class AnalyzeOfferLetterTextRequest(BaseModel):
         default=None, description="University name expected by the student"
     )
 
+
+# =============================================================================
+# Module 5.18 & 5.11 — AI Counselor Chatbot & Bangla Assistant (Issue #24 / K-23)
+# =============================================================================
+
+
+class UniversityTier(str, Enum):
+    DREAM = "dream"
+    TARGET = "target"
+    SAFE = "safe"
+
+
+class CounselorEvaluationRequest(BaseModel):
+    current_degree: str = Field(default="bachelor", description="'hsc' | 'a_level' | 'bachelor' | 'masters'")
+    gpa: float = Field(ge=0.0, le=5.0, description="GPA or CGPA (out of 4.0 or 5.0)")
+    max_gpa: float = Field(default=4.0, description="4.0 or 5.0")
+    ielts_score: float | None = Field(default=None, ge=0.0, le=9.0, description="Overall IELTS band or equivalent")
+    pte_score: int | None = Field(default=None, ge=10, le=90, description="PTE Academic score")
+    duolingo_score: int | None = Field(default=None, ge=10, le=160, description="Duolingo English Test score")
+    budget_yearly_bdt_lakh: float = Field(ge=0.0, description="Max annual budget for tuition + living (in Lakh BDT, e.g. 20.0 = ৳20 Lakh)")
+    target_countries: list[str] = Field(default_factory=list, description="e.g. ['UK', 'USA', 'Canada', 'Germany', 'Australia']")
+    target_field: str | None = Field(default=None, description="e.g. 'Computer Science', 'Business', 'Public Health'")
+    study_gap_years: int = Field(default=0, ge=0, description="Number of years between last degree and now")
+    preferred_intake: str | None = Field(default="Fall 2026", description="e.g. 'Fall 2026', 'Spring 2027'")
+    has_work_experience: bool = Field(default=False, description="Whether student has relevant job experience during study gap")
+    scholarship_priority: bool = Field(default=False, description="Whether to prioritize high scholarships and tuition discounts")
+    moi_only: bool = Field(default=False, description="Whether to prioritize institutions accepting Medium of Instruction / Duolingo")
+    field_category: str | None = Field(default=None, description="'cs_it' | 'engineering' | 'business' | 'health'")
+    language: str = Field(default="en", description="'en' or 'bn'")
+
+
+class UniversityRecommendation(BaseModel):
+    id: str
+    university_name: str
+    country: str
+    city: str
+    target_programs: list[str]
+    tier: UniversityTier
+    match_score: int = Field(ge=0, le=100, description="Suitability score 0-100")
+    admission_chance_percent: int = Field(ge=0, le=100, description="Estimated admission odds percentage")
+    annual_tuition_bdt_lakh: float
+    annual_living_bdt_lakh: float
+    annual_total_bdt_lakh: float
+    currency_local: str
+    annual_tuition_local: float
+    minimum_gpa: float
+    minimum_ielts: float
+    max_study_gap_years: int
+    matching_reasons: list[str]
+    caution_notes: list[str] = Field(default_factory=list)
+    scholarship_info: str | None = None
+    accepts_moi: bool = False
+    coop_available: bool = False
+    field_tags: list[str] = Field(default_factory=list)
+
+
+class VisaRiskFlag(BaseModel):
+    severity: FlagSeverity
+    title: str
+    description: str
+    mitigation_tip: str
+
+
+class VisaAssessment(BaseModel):
+    readiness_score: int = Field(ge=0, le=100, description="0-100 visa readiness index")
+    status: str = Field(description="'favorable' | 'moderate_risk' | 'high_scrutiny'")
+    estimated_solvency_required_bdt_lakh: float
+    solvency_details_by_country: dict[str, str] = Field(default_factory=dict)
+    risk_flags: list[VisaRiskFlag] = Field(default_factory=list)
+    key_advice: list[str] = Field(default_factory=list)
+
+
+class RoadmapMilestone(BaseModel):
+    step_number: int
+    month_timeline: str
+    phase_title: str
+    tasks: list[str]
+    critical_warning: str | None = None
+
+
+class CounselorEvaluationResponse(BaseModel):
+    profile_summary: dict[str, str | float | int]
+    recommendations: list[UniversityRecommendation]
+    visa_assessment: VisaAssessment
+    roadmap: list[RoadmapMilestone]
+    dream_count: int
+    target_count: int
+    safe_count: int
+
+
+class ChatMessageRole(str, Enum):
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+
+
+class CounselorChatMessage(BaseModel):
+    role: ChatMessageRole
+    content: str
+
+
+class CounselorChatRequest(BaseModel):
+    messages: list[CounselorChatMessage]
+    profile_context: CounselorEvaluationRequest | None = None
+    language: str = Field(default="auto", description="'en', 'bn', or 'auto'")
+
+
+class GroundingCitation(BaseModel):
+    title: str = Field(description="Title of the cited source")
+    url: str = Field(description="URL of the cited source")
+
+
+class CounselorChatResponse(BaseModel):
+    reply: str
+    suggested_queries: list[str] = Field(default_factory=list)
+    detected_language: str
+    model_used: str
+    citations: list[GroundingCitation] = Field(default_factory=list, description="Live search grounding citations")
+
+
+class SOPAuditCategory(str, Enum):
+    CLICHE = "cliche"
+    VISA_INTENT = "visa_intent"
+    UNIVERSITY_ALIGNMENT = "university_alignment"
+    GRAMMAR_TONE = "grammar_tone"
+    STRUCTURE = "structure"
+
+class SOPAuditFinding(BaseModel):
+    category: SOPAuditCategory
+    severity: FlagSeverity
+    quote: str = Field(description="The problematic excerpt from the SOP")
+    issue: str = Field(description="What is wrong with this excerpt")
+    suggestion: str = Field(description="Actionable fix suggestion")
+    paragraph_ref: str | None = Field(default=None, description="Which paragraph, e.g. 'paragraph 2'")
+
+class SOPAuditRequest(BaseModel):
+    sop_text: str = Field(min_length=50, description="The student's SOP draft text")
+    target_university: str | None = Field(default=None)
+    target_country: str | None = Field(default=None)
+    target_program: str | None = Field(default=None)
+    profile_context: CounselorEvaluationRequest | None = None
+    language: str = Field(default="en", description="'en' or 'bn'")
+
+class SOPAuditResponse(BaseModel):
+    overall_score: int = Field(ge=0, le=100, description="Overall SOP quality score 0-100")
+    verdict: str = Field(description="'strong' | 'needs_work' | 'weak'")
+    findings: list[SOPAuditFinding]
+    cliche_count: int = Field(ge=0)
+    visa_intent_score: int = Field(ge=0, le=100)
+    university_alignment_score: int = Field(ge=0, le=100)
+    summary: str = Field(description="2-3 sentence executive summary")
+    improved_excerpt: str | None = Field(default=None, description="AI-rewritten version of weakest paragraph")
+    model_used: str
+
+

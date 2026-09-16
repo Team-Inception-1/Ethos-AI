@@ -10,6 +10,7 @@ import styles from './Navbar.module.css';
 const navLinks = [
   { href: '/directory', label: 'Directory', labelBn: 'ডিরেক্টরি' },
   { href: '/compare', label: 'Compare', labelBn: 'তুলনা' },
+  { href: '/counselor', label: 'AI Counselor', labelBn: 'এআই কাউন্সেলর' },
   { href: '/ai-tools', label: 'AI Tools', labelBn: 'এআই টুলস' },
   { href: '/agency', label: 'For Agencies', labelBn: 'এজেন্সি' },
 ];
