@@ -1,5 +1,6 @@
 'use client';
 import React, { useRef, useState } from 'react';
+import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -436,7 +437,11 @@ export default function AIToolsPage() {
             <h2 className={styles.counselorTitle}>✦ Ethos AI Counselor</h2>
             <p className={styles.counselorDesc}>Get personalized university recommendations, admission chance heuristics, and customized application roadmaps tailored for Bangladeshi applicants.</p>
           </div>
-          <Button variant="outline" size="lg" disabled>Coming Soon</Button>
+          <Link href="/counselor">
+            <Button variant="primary" size="lg">
+              Launch AI Counselor →
+            </Button>
+          </Link>
         </div>
       </GlassCard>
     </div>

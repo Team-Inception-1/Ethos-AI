@@ -11,7 +11,10 @@
  */
 
 const AI_SERVICE_URL =
-  process.env.NEXT_PUBLIC_AI_SERVICE_URL?.replace(/\/$/, '') || 'http://localhost:8001';
+  process.env.NEXT_PUBLIC_AI_SERVICE_URL?.replace(/\/$/, '') ||
+  (typeof window !== 'undefined' && window.location.hostname
+    ? `http://${window.location.hostname}:8001`
+    : 'http://localhost:8001');
 
 export class AiServiceError extends Error {
   status?: number;
@@ -284,3 +287,233 @@ export async function getAgencyRiskScores(
   );
   return Object.fromEntries(results);
 }
+
+// ---------------------------------------------------------------------------
+// Module 5.18 & 5.11 — AI Counselor Chatbot & Bangla Assistant (#24 / K-23)
+// ---------------------------------------------------------------------------
+
+export type UniversityTier = 'dream' | 'target' | 'safe';
+
+export interface CounselorEvaluationRequest {
+  current_degree?: string;
+  gpa: number;
+  max_gpa?: number;
+  ielts_score?: number | null;
+  pte_score?: number | null;
+  duolingo_score?: number | null;
+  budget_yearly_bdt_lakh: number;
+  target_countries?: string[];
+  target_field?: string | null;
+  study_gap_years?: number;
+  preferred_intake?: string | null;
+  has_work_experience?: boolean;
+  scholarship_priority?: boolean;
+  moi_only?: boolean;
+  field_category?: string | null;
+  language?: 'en' | 'bn';
+}
+
+export interface UniversityRecommendation {
+  id: string;
+  university_name: string;
+  country: string;
+  city: string;
+  target_programs: string[];
+  tier: UniversityTier;
+  match_score: number;
+  admission_chance_percent: number;
+  annual_tuition_bdt_lakh: number;
+  annual_living_bdt_lakh: number;
+  annual_total_bdt_lakh: number;
+  currency_local: string;
+  annual_tuition_local: number;
+  minimum_gpa: number;
+  minimum_ielts: number;
+  max_study_gap_years: number;
+  matching_reasons: string[];
+  caution_notes: string[];
+  scholarship_info?: string | null;
+  accepts_moi?: boolean;
+  coop_available?: boolean;
+  field_tags?: string[];
+}
+
+export interface VisaRiskFlag {
+  severity: FlagSeverity;
+  title: string;
+  description: string;
+  mitigation_tip: string;
+}
+
+export interface VisaAssessment {
+  readiness_score: number;
+  status: 'favorable' | 'moderate_risk' | 'high_scrutiny';
+  estimated_solvency_required_bdt_lakh: number;
+  solvency_details_by_country: Record<string, string>;
+  risk_flags: VisaRiskFlag[];
+  key_advice: string[];
+}
+
+export interface RoadmapMilestone {
+  step_number: number;
+  month_timeline: string;
+  phase_title: string;
+  tasks: string[];
+  critical_warning: string | null;
+}
+
+export interface CounselorEvaluationResponse {
+  profile_summary: {
+    normalized_gpa: number;
+    ielts_equivalent: number;
+    budget_bdt_lakh: number;
+    study_gap_years: number;
+    target_field: string;
+    preferred_intake: string;
+  };
+  recommendations: UniversityRecommendation[];
+  visa_assessment: VisaAssessment;
+  roadmap: RoadmapMilestone[];
+  dream_count: number;
+  target_count: number;
+  safe_count: number;
+}
+
+export interface GroundingCitation {
+  title: string;
+  url: string;
+}
+
+export interface CounselorChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  citations?: GroundingCitation[];
+}
+
+export interface CounselorChatRequest {
+  messages: CounselorChatMessage[];
+  profile_context?: CounselorEvaluationRequest | null;
+  language?: 'en' | 'bn' | 'auto';
+}
+
+export interface CounselorChatResponse {
+  reply: string;
+  suggested_queries: string[];
+  detected_language: string;
+  model_used: string;
+  citations?: GroundingCitation[];
+}
+
+/** POST /api/ai/counselor/evaluate — evaluates student profile with offline client failover. */
+export async function evaluateCounselorProfile(
+  payload: CounselorEvaluationRequest
+): Promise<CounselorEvaluationResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/counselor/evaluate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice unreachable, activating zero-downtime offline counselor engine:', err);
+  }
+
+  // Graceful offline failover
+  const { evaluateOfflineProfile } = await import('./counselorOfflineEngine');
+  return evaluateOfflineProfile(payload);
+}
+
+/** POST /api/ai/counselor/chat — conversational counselor with offline client failover. */
+export async function sendCounselorChatMessage(
+  payload: CounselorChatRequest
+): Promise<CounselorChatResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/counselor/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice chat unreachable, falling back to offline conversational engine:', err);
+  }
+
+  // Graceful offline failover
+  const { sendOfflineChatMessage } = await import('./counselorOfflineEngine');
+  return sendOfflineChatMessage(payload.messages, payload.profile_context, payload.language || 'en');
+}
+
+// ---------------------------------------------------------------------------
+// SOP Auditor (AI Counselor Upgrade)
+// ---------------------------------------------------------------------------
+
+export type SOPAuditCategory = 'cliche' | 'visa_intent' | 'university_alignment' | 'grammar_tone' | 'structure';
+
+export interface SOPAuditFinding {
+  category: SOPAuditCategory;
+  severity: FlagSeverity;
+  quote: string;
+  issue: string;
+  suggestion: string;
+  paragraph_ref?: string | null;
+}
+
+export interface SOPAuditRequest {
+  sop_text: string;
+  target_university?: string | null;
+  target_country?: string | null;
+  target_program?: string | null;
+  profile_context?: CounselorEvaluationRequest | null;
+  language?: 'en' | 'bn';
+}
+
+export interface SOPAuditResponse {
+  overall_score: number;
+  verdict: 'strong' | 'needs_work' | 'weak';
+  findings: SOPAuditFinding[];
+  cliche_count: number;
+  visa_intent_score: number;
+  university_alignment_score: number;
+  summary: string;
+  improved_excerpt?: string | null;
+  model_used: string;
+}
+
+/** POST /api/ai/counselor/audit-sop — audits an SOP draft with offline failover. */
+export async function auditSOP(
+  payload: SOPAuditRequest
+): Promise<SOPAuditResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/counselor/audit-sop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice SOP audit unreachable, falling back to offline:', err);
+  }
+
+  // Graceful offline failover
+  const { auditSOPOffline } = await import('./counselorOfflineEngine');
+  return auditSOPOffline(payload);
+}
+
+/** GET /api/ai/counselor/countries — supported destination countries & visa rules. */
+export async function getCounselorSupportedCountries(): Promise<{
+  countries: Record<string, any>;
+}> {
+  const resp = await fetch(`${AI_SERVICE_URL}/api/ai/counselor/countries`);
+  if (!resp.ok) {
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
+  }
+  return resp.json();
+}
+
