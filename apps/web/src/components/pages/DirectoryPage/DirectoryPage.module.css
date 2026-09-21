@@ -1,0 +1,285 @@
+/* ============================================================
+   DirectoryPage v3.0 — Neubrutalist
+   ============================================================ */
+
+.page { min-height: 100vh; }
+.inner { padding-top: var(--space-8); padding-bottom: var(--space-16); }
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+/* ── Filter Panel ── */
+.filterPanel {
+  background: var(--glass-bg);
+  border: var(--border-width) solid var(--ink);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  position: sticky;
+  top: calc(var(--topbar-height) + var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  box-shadow: var(--shadow-lg);
+}
+
+.filterTitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: -var(--space-2);
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.filterLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.filterInput {
+  width: 100%;
+  height: 42px;
+  background: var(--glass-bg-elevated);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 0 var(--space-3);
+  font-size: 13px;
+  font-weight: 500;
+  transition: box-shadow var(--transition-fast);
+}
+
+.filterInput:focus {
+  box-shadow: 2px 2px 0 0 var(--blue-primary);
+  outline: none;
+}
+
+.filterInput::placeholder { color: var(--text-muted); }
+
+.filterToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: var(--space-2) 0;
+}
+
+/* Toggle */
+.toggle {
+  width: 46px; height: 26px;
+  background: var(--glass-bg-elevated);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+.toggleOn {
+  background: var(--emerald);
+}
+.toggleThumb {
+  width: 18px; height: 18px;
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  transition: transform 0.25s var(--ease-spring);
+}
+.toggleOn .toggleThumb { transform: translateX(20px); }
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.checkLabel:hover { color: var(--text-primary); }
+.check {
+  accent-color: var(--blue-primary);
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* ── Agency Grid ── */
+.agencyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+.agencyCard {
+  background: var(--glass-bg);
+  border: var(--border-width) solid var(--ink);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.agencyCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.agencyAvatar {
+  width: 48px; height: 48px; border-radius: var(--radius-md);
+  background: var(--blue-primary); color: #fff;
+  border: 2px solid var(--ink);
+  font-weight: 800; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 2px 2px 0 0 var(--ink);
+}
+
+.agencyMeta { flex: 1; min-width: 0; }
+.agencyName {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.riskBadge {
+  font-size: 10px; font-weight: 800;
+  padding: 3px 9px; border-radius: var(--radius-full);
+  flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.05em;
+  border: 2px solid var(--ink);
+}
+.riskLow  { background: var(--emerald); color: #08331F; }
+.riskMed  { background: var(--amber);   color: #3D2E00; }
+.riskHigh { background: var(--red-danger); color: #fff; }
+
+/* Loading skeleton shown while the live risk score fetch is in flight */
+.riskBadgeSkeleton {
+  width: 72px; height: 20px; border-radius: var(--radius-full);
+  flex-shrink: 0;
+  background: linear-gradient(90deg, var(--glass-bg-elevated) 25%, var(--glass-border) 50%, var(--glass-bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: risk-skeleton-pulse 1.4s ease-in-out infinite;
+}
+@keyframes risk-skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.riskErrorToast {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-size: 13px; font-weight: 600; color: var(--red-danger);
+  background: var(--bg-elevated); border: 1px solid var(--red-danger);
+  border-radius: var(--radius-md); padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+/* Stars */
+.stars { display: flex; align-items: center; gap: 2px; }
+.starFilled { color: var(--amber); font-size: 14px; }
+.starEmpty  { color: var(--text-muted); font-size: 14px; opacity: 0.5; }
+.ratingNum  { font-size: 13px; font-weight: 700; margin-left: 6px; color: var(--text-primary); }
+.reviewCount { font-size: 11px; color: var(--text-muted); margin-top: -var(--space-1); }
+
+/* Countries */
+.countries { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.flag { font-size: 18px; line-height: 1; }
+
+/* Success */
+.successRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.successLabel { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.successPct   { font-size: 13px; font-weight: 800; color: var(--emerald-dark); }
+.successBar   { height: 8px; background: var(--glass-bg-elevated); border-radius: var(--radius-full); overflow: hidden; border: 2px solid var(--ink); }
+.successFill  { height: 100%; background: var(--emerald); border-radius: var(--radius-full); transition: width 0.6s ease; }
+
+/* Fee */
+.fee { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+
+/* Card Actions */
+.cardActions { display: flex; gap: var(--space-2); align-items: center; margin-top: auto; padding-top: var(--space-3); border-top: 2px dashed var(--ink); }
+
+.compareBtn {
+  font-size: 12px; font-weight: 700;
+  color: var(--text-secondary);
+  border: 2px solid var(--ink);
+  background: var(--glass-bg-elevated);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compareBtn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 0 var(--ink);
+  color: var(--blue-primary);
+}
+
+.compareBtnOn {
+  color: #08331F !important;
+  background: var(--emerald) !important;
+  box-shadow: 2px 2px 0 0 var(--ink) !important;
+}
+
+@media (max-width: 1200px) { .agencyGrid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .filterPanel { position: static; display: grid; grid-template-columns: repeat(2,1fr); gap: var(--space-4); }
+}
+@media (max-width: 600px) {
+  .agencyGrid { grid-template-columns: 1fr; }
+  .filterPanel { grid-template-columns: 1fr; }
+}
