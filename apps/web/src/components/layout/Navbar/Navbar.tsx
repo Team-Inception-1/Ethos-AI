@@ -17,7 +17,7 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const { user, isAuthenticated, switchActiveRole } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -71,22 +71,19 @@ export default function Navbar() {
 
           {isAuthenticated && user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              {/* Quick Role Select */}
-              <select
-                className={styles.roleSelectNav}
-                value={user.role}
-                onChange={(e) => switchActiveRole(e.target.value as UserRole)}
-                title="Quick Role Switcher (Demo)"
-              >
-                <option value="student">🎓 Student</option>
-                <option value="parent">👨‍👧 Parent</option>
-                <option value="agency">🏢 Agency</option>
-                <option value="admin">🛡️ Admin</option>
-              </select>
-
               {/* User Profile Link */}
-              <Link href="/profile" className={styles.userPill} title="View Profile & Guardian Settings">
-                <span className={styles.userAvatarPill}>{user.name.charAt(0)}</span>
+              <Link href="/profile" className={styles.userPill} title="View Profile & Settings">
+                <span className={styles.userAvatarPill}>
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                    />
+                  ) : (
+                    user.name.charAt(0)
+                  )}
+                </span>
                 <span className={styles.userNamePill}>{user.name.split(' ')[0]}</span>
               </Link>
             </div>

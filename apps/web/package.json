@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1137.0",
+    "@neondatabase/auth": "^0.5.0-beta",
     "marked": "^18.0.13",
     "next": "16.2.12",
     "react": "19.2.4",

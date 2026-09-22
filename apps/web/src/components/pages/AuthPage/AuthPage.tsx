@@ -60,7 +60,7 @@ const roles: { id: UserRole; label: string; labelBn: string; icon: React.ReactNo
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
-  const { user, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail, quickLoginDemo, lastGeneratedOtp } = useAuth();
+  const { user, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail } = useAuth();
 
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [role, setRole] = useState<UserRole>('student');
@@ -75,17 +75,6 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [isVerifying, setIsVerifying] = useState(false);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  const handleDemoClick = (demoRole: UserRole) => {
-    quickLoginDemo(demoRole);
-    if (demoRole === 'agency') {
-      router.push('/agency/dashboard');
-    } else if (demoRole === 'admin') {
-      router.push('/admin');
-    } else {
-      router.push('/dashboard');
-    }
-  };
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
@@ -110,7 +99,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
         setErrorMsg('Please fill in all required fields.');
         return;
       }
-      register({ name: fullName, email, phone, role });
+      register({ name: fullName, email, phone, role, password });
       setStep('otp');
     } else {
       if (!email.trim()) {
@@ -164,10 +153,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
           router.push('/dashboard');
         }
       } else {
-        setErrorMsg('Invalid OTP code. Please enter the code sent to your email (or use demo code 123456).');
+        setErrorMsg('Invalid verification code. Please check your email and try again.');
       }
     } catch {
-      setErrorMsg('Verification failed. Try entering demo code 123456.');
+      setErrorMsg('Verification failed. Please try again.');
     } finally {
       setIsVerifying(false);
     }
@@ -355,74 +344,40 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     />
                   </div>
                 </div>
-                {mode === 'login' && (
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.label} htmlFor="password">
-                      {lang === 'en' ? 'Password' : 'পাসওয়ার্ড'}
-                    </label>
-                    <input
-                      id="password"
-                      type="password"
-                      className={styles.input}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label} htmlFor="password">
+                    {lang === 'en'
+                      ? mode === 'login'
+                        ? 'Password'
+                        : 'Create Password'
+                      : mode === 'login'
+                      ? 'পাসওয়ার্ড'
+                      : 'নতুন পাসওয়ার্ড'}
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    className={styles.input}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  {mode === 'login' && (
                     <Link href="#" className={styles.forgotLink}>
                       {lang === 'en' ? 'Forgot password?' : 'পাসওয়ার্ড ভুলে গেছেন?'}
                     </Link>
-                  </div>
-                )}
+                  )}
+                </div>
                 <Button type="submit" size="lg" fullWidth glow>
                   {mode === 'login'
                     ? lang === 'en'
                       ? 'Send OTP & Login'
                       : 'OTP পাঠান ও লগইন করুন'
                     : lang === 'en'
-                    ? 'Continue →'
-                    : 'চালিয়ে যান →'}
+                    ? 'Create Account →'
+                    : 'অ্যাকাউন্ট তৈরি করুন →'}
                 </Button>
               </form>
-
-              {/* 1-Click Fast Demo Login */}
-              <div className={styles.demoPanel}>
-                <span className={styles.demoTitle}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                  </svg>
-                  Quick 1-Click Demo Login
-                </span>
-                <div className={styles.demoGrid}>
-                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('student')}>
-                    <span className={styles.demoIcon}><StudentIcon /></span>
-                    <div>
-                      <div>Riya Ahmed</div>
-                      <span className={styles.demoRoleLabel}>Student Profile</span>
-                    </div>
-                  </button>
-                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('parent')}>
-                    <span className={styles.demoIcon}><ParentIcon /></span>
-                    <div>
-                      <div>Farhana Ahmed</div>
-                      <span className={styles.demoRoleLabel}>Parent Guardian</span>
-                    </div>
-                  </button>
-                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('agency')}>
-                    <span className={styles.demoIcon}><AgencyIcon /></span>
-                    <div>
-                      <div>Global Edu BD</div>
-                      <span className={styles.demoRoleLabel}>Verified Agency</span>
-                    </div>
-                  </button>
-                  <button type="button" className={styles.demoBtn} onClick={() => handleDemoClick('admin')}>
-                    <span className={styles.demoIcon}><AdminIcon /></span>
-                    <div>
-                      <div>Admin Panel</div>
-                      <span className={styles.demoRoleLabel}>Platform Admin</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
 
               <p className={styles.switchMode}>
                 {mode === 'login' ? (
@@ -447,53 +402,6 @@ export default function AuthPage({ mode }: AuthPageProps) {
             <>
               {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>{errorMsg}</div>}
 
-              {/* On-Screen Verification Code Card */}
-              {lastGeneratedOtp && (
-                <div
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(79, 142, 247, 0.12), rgba(0, 201, 167, 0.08))',
-                    border: '1px solid rgba(79, 142, 247, 0.35)',
-                    borderRadius: '10px',
-                    padding: '12px 16px',
-                    marginBottom: '18px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 600 }}>
-                      🔑 Generated Verification Code
-                    </div>
-                    <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '4px', color: 'var(--blue-light)', fontFamily: 'monospace', marginTop: '2px' }}>
-                      {lastGeneratedOtp}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtp(lastGeneratedOtp.split(''));
-                    }}
-                    style={{
-                      background: 'var(--blue-primary)',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '8px 14px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(79, 142, 247, 0.3)',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Auto-Fill ⚡
-                  </button>
-                </div>
-              )}
-
               <div className={styles.otpGrid} role="group" aria-label="OTP input">
                 {otp.map((v, i) => (
                   <input
@@ -516,7 +424,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
               </div>
 
               <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', margin: '12px 0 16px', lineHeight: '1.5' }}>
-                📬 Code dispatched to terminal & shown above • Demo bypass: <strong style={{ color: 'var(--blue-light)' }}>123456</strong>
+                📬 Verification code sent to <strong style={{ color: 'var(--text-primary)' }}>{otpEmail || 'your email'}</strong>
               </div>
 
               <Button size="lg" fullWidth glow onClick={handleVerify} disabled={isVerifying}>

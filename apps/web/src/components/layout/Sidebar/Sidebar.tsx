@@ -245,14 +245,14 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
       {/* Logo */}
-      <div className={styles.logo}>
+      <Link href="/" className={styles.logo} title="Ethos AI — Return to Welcome Page">
         <EthosLogoIcon size={26} />
         {!collapsed && (
           <span className={styles.logoText}>
             Ethos <span className={styles.logoAI}>AI</span>
           </span>
         )}
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav className={styles.nav} aria-label="Dashboard navigation">
@@ -321,7 +321,15 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
       {!collapsed && (
         <div className={styles.profile}>
           <div className={styles.avatar} aria-hidden="true">
-            {initial}
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={userName}
+                className={styles.avatarImg}
+              />
+            ) : (
+              initial
+            )}
           </div>
           <div className={styles.profileInfo}>
             <div className={styles.profileName}>{userName}</div>
