@@ -16,8 +16,8 @@ interface AuthPageProps {
 // Icons replaced with SVGs
 const StudentIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+    <path d="M6 12v5c3 3 9 3 12 0v-5" />
   </svg>
 );
 
@@ -32,23 +32,23 @@ const ParentIcon = () => (
 
 const AgencyIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
-    <path d="M9 22v-4h6v4"/>
-    <path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/>
-    <path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M12 10h.01"/>
-    <path d="M8 14h.01"/><path d="M16 14h.01"/><path d="M12 14h.01"/>
+    <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+    <path d="M9 22v-4h6v4" />
+    <path d="M8 6h.01" /><path d="M16 6h.01" /><path d="M12 6h.01" />
+    <path d="M8 10h.01" /><path d="M16 10h.01" /><path d="M12 10h.01" />
+    <path d="M8 14h.01" /><path d="M16 14h.01" /><path d="M12 14h.01" />
   </svg>
 );
 
 const AdminIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
 
 const QuoteIcon = () => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity="0.1" style={{ position: 'absolute', top: 16, left: 16, zIndex: 0 }}>
-    <path d="M14.017 21L16.411 14.603H10.893V3H21v11.397L18.606 21h-4.589zm-10.893 0L5.518 14.603H0V3h10.107v11.397L7.714 21H3.124z"/>
+    <path d="M14.017 21L16.411 14.603H10.893V3H21v11.397L18.606 21h-4.589zm-10.893 0L5.518 14.603H0V3h10.107v11.397L7.714 21H3.124z" />
   </svg>
 );
 
@@ -227,8 +227,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
                         ? 'Welcome Back'
                         : 'স্বাগতম'
                       : lang === 'en'
-                      ? 'Create Account'
-                      : 'অ্যাকাউন্ট তৈরি করুন'}
+                        ? 'Create Account'
+                        : 'অ্যাকাউন্ট তৈরি করুন'}
                   </h1>
                   <p className={styles.formSub}>
                     {mode === 'login'
@@ -236,15 +236,15 @@ export default function AuthPage({ mode }: AuthPageProps) {
                         ? 'Sign in to your Ethos AI account'
                         : 'আপনার Ethos AI অ্যাকাউন্টে সাইন ইন করুন'
                       : lang === 'en'
-                      ? 'Join 2,400+ students already protected'
-                      : 'ইতিমধ্যে সুরক্ষিত ২,৪০০+ শিক্ষার্থীদের সাথে যোগ দিন'}
+                        ? 'Join 2,400+ students already protected'
+                        : 'ইতিমধ্যে সুরক্ষিত ২,৪০০+ শিক্ষার্থীদের সাথে যোগ দিন'}
                   </p>
                 </>
               ) : (
                 <>
                   <button type="button" onClick={() => setStep('form')} className={styles.backBtn}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 12H5M12 19l-7-7 7-7"/>
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
                     {lang === 'en' ? 'Back' : 'ফিরে যান'}
                   </button>
@@ -351,8 +351,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
                         ? 'Password'
                         : 'Create Password'
                       : mode === 'login'
-                      ? 'পাসওয়ার্ড'
-                      : 'নতুন পাসওয়ার্ড'}
+                        ? 'পাসওয়ার্ড'
+                        : 'নতুন পাসওয়ার্ড'}
                   </label>
                   <input
                     id="password"
@@ -374,8 +374,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
                       ? 'Send OTP & Login'
                       : 'OTP পাঠান ও লগইন করুন'
                     : lang === 'en'
-                    ? 'Create Account →'
-                    : 'অ্যাকাউন্ট তৈরি করুন →'}
+                      ? 'Create Account →'
+                      : 'অ্যাকাউন্ট তৈরি করুন →'}
                 </Button>
               </form>
 

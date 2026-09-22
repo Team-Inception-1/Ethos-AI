@@ -12,6 +12,7 @@ interface NavItem {
   labelBn: string;
   icon: React.ReactNode;
   badge?: string;
+  section?: string; // optional group label before this item
 }
 
 const DashboardIcon = () => (
@@ -47,6 +48,29 @@ const PaymentsIcon = () => (
 const AIToolsIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>
+);
+
+const CounselorIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+  </svg>
+);
+
+const ScholarIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    <line x1="11" y1="8" x2="11" y2="14"/>
+    <line x1="8" y1="11" x2="14" y2="11"/>
+  </svg>
+);
+
+const LivingIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
   </svg>
 );
 
@@ -211,11 +235,25 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <PaymentsIcon />,
         },
         {
-          href: '/dashboard/ai-tools',
-          label: 'AI Tools',
-          labelBn: 'AI টুলস',
-          icon: <AIToolsIcon />,
+          href: '/dashboard/counselor',
+          label: 'AI Counselor',
+          labelBn: 'এআই কাউন্সেলর',
+          icon: <CounselorIcon />,
           badge: 'AI',
+          section: 'AI Tools',
+        },
+        {
+          href: '/dashboard/scholar-finder',
+          label: 'Scholar Finder',
+          labelBn: 'স্কলার ফাইন্ডার',
+          icon: <ScholarIcon />,
+          badge: 'AI',
+        },
+        {
+          href: '/dashboard/campus-living',
+          label: 'Living Costs',
+          labelBn: 'আবাসন ও খরচ',
+          icon: <LivingIcon />,
         },
         {
           href: '/dashboard/chat',
@@ -223,6 +261,12 @@ const getNavItems = (role?: string): NavItem[] => {
           labelBn: 'চ্যাট',
           icon: <ChatIcon />,
           badge: '3',
+        },
+        {
+          href: '/profile',
+          label: 'Profile',
+          labelBn: 'প্রোফাইল',
+          icon: <ProfileIcon />,
         },
       ];
   }
@@ -276,6 +320,9 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
 
             return (
               <li key={`${item.href}-${item.label}`}>
+                {item.section && !collapsed && (
+                  <div className={styles.navSection}>{item.section}</div>
+                )}
                 <Link
                   href={item.href}
                   className={`${styles.navItem} ${isActive ? styles.active : ''}`}
