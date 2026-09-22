@@ -560,13 +560,6 @@ export default function CounselorPage() {
         >
           📝 {lang === 'bn' ? 'SOP অডিট' : 'SOP Audit'}
         </button>
-        <Link
-          href="/scholar-finder"
-          className={styles.tabBtn}
-          style={{ textDecoration: 'none' }}
-        >
-          🎓 {lang === 'bn' ? 'প্রফেসর ও আরএ/টিএ ফান্ডিং ↗' : 'Find Funding Professors (RA/TA) ↗'}
-        </Link>
       </div>
 
       {activeTab === 'evaluation' && (
