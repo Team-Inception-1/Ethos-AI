@@ -1,0 +1,105 @@
+name: PR Deployment Pipeline — Lint / Typecheck / Build / Escrow QA
+# Issue #20 (K-20): Deployment Pipeline Checks for PRs
+# Assignee: @Taha-Mim-Tasfa
+# Gating every PR on: ESLint, TypeScript typecheck, escrow state machine QA, Next.js build.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  workflow_dispatch: {}
+
+jobs:
+  web-lint-typecheck-build:
+    name: "Web — Lint / Typecheck / Build"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Step 1: Lint ─────────────────────────────────────────────────────
+      - name: ESLint — check for code quality violations
+        run: npm run lint
+        continue-on-error: false
+
+      # ── Step 2: TypeScript strict typecheck ──────────────────────────────
+      - name: TypeScript — strict typecheck (no emit)
+        run: npx tsc --noEmit
+        continue-on-error: false
+
+      # ── Step 3: Next.js production build ────────────────────────────────
+      - name: Next.js — production build
+        run: npm run build
+        env:
+          NODE_ENV: production
+          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/ethos_dev"
+
+  escrow-qa-suite:
+    name: "Escrow Reliability & Edge-Case QA (Issue #11 / K-15)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run Escrow API Reliability & Edge-Case QA Suite
+        run: node --experimental-strip-types scripts/test-escrow-api.ts
+        env:
+          NODE_ENV: test
+
+  ai-service-ci:
+    name: "AI Service — Pytest (OCR / Fraud / Agreement / Counselor)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies (Tesseract + Poppler for OCR)
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr poppler-utils
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run offline AI unit/API test suite (no API key required)
+        run: pytest -v
+
+      - name: Live Gemini smoke test (runs only when GEMINI_API_KEY secret is set)
+        if: ${{ env.GEMINI_API_KEY != '' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 scripts/smoke_test_gemini.py

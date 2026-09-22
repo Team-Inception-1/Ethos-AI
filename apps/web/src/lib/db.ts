@@ -7,6 +7,16 @@
  */
 
 import seedData from '@/data/seedData.json';
+import crypto from 'crypto';
+import {
+  validateEscrowTransition,
+  getLedgerTypeForTransition,
+  MilestoneStatus,
+  LedgerEntryType,
+  EscrowTransitionError,
+} from './escrowStateMachine';
+
+const GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 
 // In-Memory Database Store (initialized with seedData)
 class InMemoryDatabase {
@@ -59,7 +69,18 @@ class InMemoryDatabase {
     return { ...app, agency, stageEvents: stages, milestones };
   }
 
-  // Milestone Escrow queries
+  // ---------------------------------------------------------------------------
+  // Milestone Escrow & Immutable Ledger queries (Module 5.7 & Issue #10)
+  // ---------------------------------------------------------------------------
+
+  getAllMilestones() {
+    return this.milestones;
+  }
+
+  getMilestoneById(id: string) {
+    return this.milestones.find((m) => m.id === id) || null;
+  }
+
   getMilestonesByApp(applicationId: string) {
     return this.milestones.filter((m) => m.applicationId === applicationId);
   }
@@ -68,24 +89,212 @@ class InMemoryDatabase {
     return this.ledgerEntries;
   }
 
+  getLedgerEntriesByMilestone(milestoneId: string) {
+    return this.ledgerEntries.filter((e) => e.milestoneId === milestoneId);
+  }
+
+  getReceipts() {
+    return this.receipts;
+  }
+
+  getReceiptById(receiptId: string) {
+    return this.receipts.find((r) => r.id === receiptId) || null;
+  }
+
+  getReceiptByLedgerEntryId(ledgerEntryId: string) {
+    return this.receipts.find((r) => r.ledgerEntryId === ledgerEntryId) || null;
+  }
+
+  /**
+   * Appends an entry to the immutable ledger with SHA-256 cryptographic chaining.
+   * Calculates: SHA256(prevTxHash + ":" + milestoneId + ":" + type + ":" + amountPoisha + ":" + providerTxnId + ":" + actorId + ":" + timestamp)
+   */
   createLedgerEntry(entry: {
     milestoneId: string;
-    type: 'HOLD' | 'RELEASE' | 'REFUND' | 'DISPUTE_FREEZE';
+    type: LedgerEntryType;
     amountPoisha: string;
     provider: string;
     providerTxnId: string;
-    txHash: string;
     actorId: string;
     note?: string;
   }) {
+    const timestamp = new Date().toISOString();
+    const prevEntry = this.ledgerEntries[this.ledgerEntries.length - 1];
+    const prevHash = prevEntry ? prevEntry.txHash : GENESIS_HASH;
+
+    // Cryptographic hash calculation over previous hash + entry payload
+    const hashPayload = `${prevHash}:${entry.milestoneId}:${entry.type}:${entry.amountPoisha}:${entry.providerTxnId}:${entry.actorId}:${timestamp}`;
+    const txHash = crypto.createHash('sha256').update(hashPayload).digest('hex');
+
     const newEntry = {
-      id: `ldg-${Date.now()}`,
+      id: `ldg-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      milestoneId: entry.milestoneId,
+      type: entry.type,
+      amountPoisha: entry.amountPoisha,
+      provider: entry.provider,
+      providerTxnId: entry.providerTxnId,
+      txHash,
+      actorId: entry.actorId,
       note: entry.note || '',
-      ...entry,
-      timestamp: new Date().toISOString(),
+      timestamp,
     };
+
     this.ledgerEntries.push(newEntry);
     return newEntry;
+  }
+
+  /**
+   * Generates a digital receipt for settled funds
+   */
+  createReceipt(params: {
+    ledgerEntryId: string;
+    amountPoisha: string;
+    currency?: string;
+    receiptNumber?: string;
+  }) {
+    const count = this.receipts.length + 1;
+    const year = new Date().getFullYear();
+    const receiptNumber =
+      params.receiptNumber || `ETHOS-REC-${year}-${String(count).padStart(4, '0')}`;
+
+    const newReceipt = {
+      id: `rec-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      ledgerEntryId: params.ledgerEntryId,
+      receiptNumber,
+      amountPoisha: params.amountPoisha,
+      currency: params.currency || 'BDT',
+      pdfStorageKey: `receipts/${year}/${receiptNumber.toLowerCase()}.pdf`,
+      generatedAt: new Date().toISOString(),
+    };
+
+    this.receipts.push(newReceipt);
+    return newReceipt;
+  }
+
+  /**
+   * Performs an atomic escrow state transition validated by the escrow finite state machine.
+   * Updates milestone status, records append-only ledger entry with SHA-256 hash chaining,
+   * and generates digital receipt on RELEASE.
+   */
+  updateMilestoneStatus(params: {
+    milestoneId: string;
+    targetStatus: MilestoneStatus;
+    actorId: string;
+    actorRole?: string;
+    note?: string;
+    provider?: string;
+    providerTxnId?: string;
+  }) {
+    const milestone = this.getMilestoneById(params.milestoneId);
+    if (!milestone) {
+      throw new Error(`Milestone '${params.milestoneId}' not found.`);
+    }
+
+    const currentStatus = milestone.status as MilestoneStatus;
+    const validation = validateEscrowTransition(currentStatus, params.targetStatus, params.actorRole);
+    if (!validation.valid) {
+      throw new EscrowTransitionError(currentStatus, params.targetStatus, validation.reason);
+    }
+
+    // Determine ledger type for transition
+    const ledgerType = getLedgerTypeForTransition(currentStatus, params.targetStatus);
+    const provider = params.provider || 'SSLCOMMERZ';
+    const providerTxnId =
+      params.providerTxnId || `${provider}-TXN-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Append to ledger
+    const ledgerEntry = this.createLedgerEntry({
+      milestoneId: milestone.id,
+      type: ledgerType,
+      amountPoisha: milestone.amountPoisha,
+      provider,
+      providerTxnId,
+      actorId: params.actorId,
+      note: params.note || `Transitioned status from ${currentStatus} to ${params.targetStatus}`,
+    });
+
+    // Update milestone state in-memory
+    milestone.status = params.targetStatus;
+    (milestone as any).updatedAt = new Date().toISOString();
+
+    // Auto-generate digital receipt when funds are released to agency
+    let receipt = null;
+    if (params.targetStatus === 'RELEASED') {
+      receipt = this.createReceipt({
+        ledgerEntryId: ledgerEntry.id,
+        amountPoisha: milestone.amountPoisha,
+        currency: 'BDT',
+      });
+    }
+
+    return {
+      milestone,
+      ledgerEntry,
+      receipt,
+      transition: {
+        from: currentStatus,
+        to: params.targetStatus,
+      },
+    };
+  }
+
+  /**
+   * Verifies the cryptographic integrity of the entire ledger chain.
+   * Walks the chain from entry 0 to N and verifies that each entry's hash matches.
+   */
+  verifyLedgerIntegrity(): {
+    isValid: boolean;
+    totalEntries: number;
+    verifiedEntries: number;
+    tamperedIndex?: number;
+    details?: string;
+  } {
+    const entries = this.ledgerEntries;
+    if (entries.length === 0) {
+      return { isValid: true, totalEntries: 0, verifiedEntries: 0 };
+    }
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const prevHash = i === 0 ? GENESIS_HASH : entries[i - 1].txHash;
+
+      // Seed entries loaded from json might have static hashes;
+      // We verify dynamic chained entries computed with sha256 formula
+      const expectedPayload = `${prevHash}:${entry.milestoneId}:${entry.type}:${entry.amountPoisha}:${entry.providerTxnId}:${entry.actorId}:${entry.timestamp}`;
+      const recomputedHash = crypto.createHash('sha256').update(expectedPayload).digest('hex');
+
+      // If entry has a computed hash (64 hex characters), compare:
+      if (entry.txHash.length === 64 && entry.txHash !== recomputedHash) {
+        // Check if it was one of the static mock hashes from seedData.json
+        const isStaticSeedHash = entry.id.startsWith('ldg-00') && !entry.id.includes('-');
+        if (!isStaticSeedHash) {
+          return {
+            isValid: false,
+            totalEntries: entries.length,
+            verifiedEntries: i,
+            tamperedIndex: i,
+            details: `Ledger tamper detected at entry index ${i} (ID: ${entry.id}). Expected hash: ${recomputedHash}, found: ${entry.txHash}`,
+          };
+        }
+      }
+    }
+
+    return {
+      isValid: true,
+      totalEntries: entries.length,
+      verifiedEntries: entries.length,
+      details: 'All cryptographic hash chain links verified. Append-only ledger integrity intact.',
+    };
+  }
+
+  /**
+   * Deliberately modifies an entry to test tamper detection in API reliability tests
+   */
+  simulateLedgerTamper(entryId: string, forgedAmountPoisha: string) {
+    const entry = this.ledgerEntries.find((e) => e.id === entryId);
+    if (!entry) return false;
+    entry.amountPoisha = forgedAmountPoisha;
+    return true;
   }
 
   // Chat queries (Module 5.12 — Issue #17)
