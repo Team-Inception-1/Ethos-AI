@@ -1,0 +1,106 @@
+# 🚀 Ethos AI — Service Run Commands & Cheatsheet
+
+This file contains all terminal commands to run the Frontend (Next.js), AI Microservice (FastAPI), and Prisma Studio (Prisma UI for Database) locally.
+For formatted viewing in Markdown readers, see commands.md.
+
+================================================================================
+QUICK REFERENCE SUMMARY
+================================================================================
+- Frontend (Next.js):        http://localhost:3000        (Directory: apps/web)
+- AI Microservice (FastAPI): http://localhost:8001        (Directory: apps/ai-service)
+  Swagger API Docs:          http://localhost:8001/docs
+  Health Check:              http://localhost:8001/health
+- Prisma Studio (DB UI):     http://localhost:5555        (Directory: Project Root)
+
+================================================================================
+1. FRONTEND (Next.js 15)
+================================================================================
+From apps/web:
+    cd apps/web
+    npm run dev
+
+Or directly from repository root:
+    npm --prefix apps/web run dev
+
+First-time dependency install:
+    cd apps/web
+    npm install
+
+Production build & start:
+    cd apps/web
+    npm run build
+    npm run start
+
+================================================================================
+2. AI MICROSERVICE (FastAPI + Uvicorn)
+================================================================================
+Windows PowerShell (Recommended):
+    cd apps/ai-service
+    .\.venv\Scripts\Activate.ps1
+    uvicorn app.main:app --reload --port 8001
+
+Windows (Direct execution without activating venv):
+    cd apps/ai-service
+    .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8001
+
+One-liner from repository root:
+    .\apps\ai-service\.venv\Scripts\uvicorn.exe app.main:app --app-dir apps/ai-service --reload --port 8001
+
+Windows Command Prompt (cmd.exe):
+    cd apps\ai-service
+    .\.venv\Scripts\activate.bat
+    uvicorn app.main:app --reload --port 8001
+
+Linux / macOS (Bash):
+    cd apps/ai-service
+    source .venv/bin/activate
+    uvicorn app.main:app --reload --port 8001
+
+Run Tests:
+    cd apps/ai-service
+    .\.venv\Scripts\Activate.ps1
+    pytest
+
+================================================================================
+3. PRISMA STUDIO ("Prism UI" for Database)
+================================================================================
+Launch Prisma visual interface (Run from Project Root):
+    npx prisma studio
+
+Open in browser:
+    http://localhost:5555
+
+Custom port (if port 5555 is busy):
+    npx prisma studio --port 5556
+
+Helpful database companion commands (Run from Project Root):
+    npx prisma generate
+    npx prisma db push
+    npx prisma migrate dev --name <migration_name>
+    npx prisma migrate status
+    npx prisma format
+    npx ts-node prisma/seed.ts
+
+================================================================================
+4. RUNNING ALL 3 SERVICES TOGETHER (3 TERMINALS)
+================================================================================
+Terminal 1 (Frontend):
+    cd apps/web
+    npm run dev
+
+Terminal 2 (AI Microservice):
+    cd apps/ai-service
+    .\.venv\Scripts\Activate.ps1
+    uvicorn app.main:app --reload --port 8001
+
+Terminal 3 (Prisma Studio):
+    npx prisma studio
+
+================================================================================
+5. ONE-CLICK LAUNCH SCRIPT (WINDOWS POWERSHELL)
+================================================================================
+Run this directly in PowerShell from the project root to open all 3 services:
+
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:\Ethos AI\Ethos-AI\apps\web'; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:\Ethos AI\Ethos-AI\apps\ai-service'; .\.venv\Scripts\Activate.ps1; uvicorn app.main:app --reload --port 8001"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:\Ethos AI\Ethos-AI'; npx prisma studio"
