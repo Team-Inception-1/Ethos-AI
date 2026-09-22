@@ -151,10 +151,37 @@ export default function CampusLivingPage() {
           <input
             type="text"
             className={styles.searchInput}
-            placeholder="Search any university or city (e.g. MIT, Harvard, Stanford, NYU, U of T, TUM, Oxford, Melbourne)..."
+            placeholder="Search any university or city (e.g. MIT, Harvard, Stanford, NYU, Oxford, TUM, Melbourne, NUS)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          {searchQuery.trim().length > 0 && (
+            <div className={styles.searchDropdown}>
+              {filteredUniversities.length > 0 ? (
+                filteredUniversities.map((u) => (
+                  <button
+                    key={u.id}
+                    className={`${styles.searchDropdownItem} ${activeVarsity.id === u.id ? styles.searchDropdownItemActive : ''}`}
+                    onClick={() => {
+                      setSelectedVarsityId(u.id);
+                      setSelectedAreaId(u.areas[0].id);
+                      setSearchQuery('');
+                    }}
+                  >
+                    <span className={styles.searchDropdownFlag}>{COUNTRY_FLAGS[u.country] || '🎓'}</span>
+                    <div className={styles.searchDropdownInfo}>
+                      <span className={styles.searchDropdownName}>{u.name} ({u.shortName})</span>
+                      <span className={styles.searchDropdownMeta}>{u.city}, {u.country} • {u.areas.length} nearby areas</span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className={styles.searchDropdownEmpty}>
+                  No universities found for "{searchQuery}". Try "MIT", "Stanford", "Toronto", "Oxford", "Melbourne", etc.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Region and Quick Varsity Pills */}

@@ -1,6 +1,14 @@
 .page { display: flex; flex-direction: column; gap: var(--space-6); }
-.header { display: flex; justify-content: space-between; align-items: center; }
+.header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.headerLeft { display: flex; flex-direction: column; gap: 4px; }
+.headerRight { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.tabSwitcher { display: inline-flex; background: var(--bg-elevated); padding: 4px; border-radius: var(--radius-full); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); gap: 4px; }
+.tabBtn { padding: 6px 14px; font-size: 13px; font-weight: 700; border-radius: var(--radius-full); border: 1.5px solid transparent; background: transparent; color: var(--text-secondary); cursor: pointer; transition: var(--transition-fast); display: flex; align-items: center; gap: 6px; }
+.tabBtn:hover { color: var(--text-primary); background: var(--bg-hover); }
+.tabBtnActive { background: var(--yellow) !important; color: var(--text-inverse) !important; font-weight: 800; border-color: var(--ink) !important; box-shadow: 1px 1px 0 var(--ink); }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
+.singleColumn { display: flex; flex-direction: column; width: 100%; max-width: 900px; margin: 0 auto; }
+.loadingWrap { padding: var(--space-8); text-align: center; color: var(--text-secondary); }
 .toolCard { display: flex; flex-direction: column; gap: var(--space-5); }
 .toolHeader { display: flex; gap: var(--space-4); align-items: flex-start; }
 .toolIconWrap { font-size: 32px; width: 52px; height: 52px; border-radius: var(--radius-lg); background: var(--blue-primary); border: 2px solid var(--ink); box-shadow: var(--shadow-xs); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -63,11 +71,5 @@
 .rawClauses { font-size: 12px; }
 .rawClauses summary { cursor: pointer; font-weight: 700; color: var(--text-secondary); padding: var(--space-2) 0; }
 .rawClauses .clause { margin-top: var(--space-2); }
-
-/* Counselor Banner */
-.counselorBanner { margin-top: var(--space-2); }
-.counselorContent { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); flex-wrap: wrap; }
-.counselorTitle { font-size: 20px; font-weight: 800; margin-bottom: var(--space-2); font-family: 'Space Grotesk', sans-serif; }
-.counselorDesc { font-size: 14px; color: var(--text-secondary); max-width: 500px; margin: 0; }
 
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }

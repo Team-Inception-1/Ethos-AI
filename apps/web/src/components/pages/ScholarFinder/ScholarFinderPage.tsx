@@ -48,12 +48,67 @@ const DOMAIN_OPTIONS = [
 
 const COUNTRY_OPTIONS = ['All', 'USA', 'Canada', 'Germany', 'Australia', 'UK'];
 
+const ENTITY_TYPE_OPTIONS: {
+  id: 'all' | 'works' | 'institutions' | 'authors';
+  labelEn: string;
+  labelBn: string;
+  icon: string;
+  placeholderEn: string;
+  placeholderBn: string;
+  hintEn: string;
+  hintBn: string;
+}[] = [
+  {
+    id: 'all',
+    labelEn: 'All Topics',
+    labelBn: 'সব বিষয়',
+    icon: '🌐',
+    placeholderEn: 'Search research disciplines & keywords (e.g. Robotics, LLMs, Photonics, Quantum)...',
+    placeholderBn: 'গবেষণার ক্ষেত্র বা টপিক দিয়ে খুঁজুন (যেমন: রোবোটিক্স, এলএলএম, কোয়ান্টাম)...',
+    hintEn: 'Combined works & faculty by discipline',
+    hintBn: 'যৌথ পেপার ও শিক্ষক অনুসন্ধান',
+  },
+  {
+    id: 'works',
+    labelEn: 'Works (Papers)',
+    labelBn: 'গবেষণাপত্র (Works)',
+    icon: '📄',
+    placeholderEn: 'Search research papers, publication titles, or topics (e.g. Attention Is All You Need, NeRF)...',
+    placeholderBn: 'রিসার্চ পেপার, শিরোনাম বা প্রকাশনা দিয়ে খুঁজুন...',
+    hintEn: 'Finds lead PIs who published top papers',
+    hintBn: 'শীর্ষ পেপারের প্রধান গবেষক',
+  },
+  {
+    id: 'institutions',
+    labelEn: 'Institutions',
+    labelBn: 'বিশ্ববিদ্যালয় / ল্যাব',
+    icon: '🏛️',
+    placeholderEn: 'Search universities or institutes (e.g. University of Toronto, MIT, Oxford, Stanford)...',
+    placeholderBn: 'বিশ্ববিদ্যালয় বা প্রতিষ্ঠানের নাম দিয়ে অনুষদ খুঁজুন (যেমন: টরন্টো, অক্সফোর্ড)...',
+    hintEn: 'Lists leading faculty at this university',
+    hintBn: 'এই বিশ্ববিদ্যালয়ের শীর্ষ শিক্ষক ও ল্যাব',
+  },
+  {
+    id: 'authors',
+    labelEn: 'Authors (Faculty)',
+    labelBn: 'গবেষক / শিক্ষক',
+    icon: '👤',
+    placeholderEn: 'Search professors or scholars by name (e.g. Andrew Ng, Yoshua Bengio, Fei-Fei Li)...',
+    placeholderBn: 'প্রফেসর বা গবেষকের নাম দিয়ে সরাসরি খুঁজুন...',
+    hintEn: 'Matches specific scholar profiles',
+    hintBn: 'নির্দিষ্ট গবেষকের প্রোফাইল',
+  },
+];
+
 export default function ScholarFinderPage() {
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [activeTab, setActiveTab] = useState<'search' | 'email_studio' | 'pipeline' | 'guide'>('search');
 
   // Search Mode: 'curated' (top R1/U15 labs) or 'live' (OpenAlex Global Deep Search)
   const [searchMode, setSearchMode] = useState<'curated' | 'live'>('curated');
+
+  // OpenAlex Search Entity Type: 'all' | 'works' | 'institutions' | 'authors'
+  const [liveEntityType, setLiveEntityType] = useState<'all' | 'works' | 'institutions' | 'authors'>('all');
 
   // Search Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,10 +198,22 @@ export default function ScholarFinderPage() {
     setLoading(true);
     try {
       if (searchMode === 'live') {
+        const defaultTopic =
+          liveEntityType === 'institutions'
+            ? 'University of Toronto'
+            : liveEntityType === 'authors'
+            ? 'Yoshua Bengio'
+            : liveEntityType === 'works'
+            ? 'Diffusion Models'
+            : selectedDomain !== 'All'
+            ? selectedDomain
+            : 'Computer Science and Artificial Intelligence';
+
         const res = await liveSearchAcademic({
-          query: searchQuery.trim() || (selectedDomain !== 'All' ? selectedDomain : 'Computer Science and Artificial Intelligence'),
+          query: searchQuery.trim() || defaultTopic,
           country: selectedCountry === 'All' ? null : selectedCountry,
           limit: 12,
+          entity_type: liveEntityType,
         });
         setProfessors(res.results);
         if (res.results.length > 0) {
@@ -180,7 +247,7 @@ export default function ScholarFinderPage() {
 
   useEffect(() => {
     runSearch();
-  }, [selectedDomain, selectedCountry, activeFundingOnly, acceptingOnly, searchMode]);
+  }, [selectedDomain, selectedCountry, activeFundingOnly, acceptingOnly, searchMode, liveEntityType]);
 
   // Feature 1: Handle CV upload and auto-fill
   const handleCVFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -476,13 +543,34 @@ export default function ScholarFinderPage() {
 
           {/* Search Input */}
           <div className={styles.searchBarRow}>
+            {searchMode === 'live' && (
+              <div className={styles.entitySelectorWrap}>
+                <select
+                  className={styles.entitySelect}
+                  value={liveEntityType}
+                  onChange={(e) => setLiveEntityType(e.target.value as 'all' | 'works' | 'institutions' | 'authors')}
+                  aria-label="Search Target Entity"
+                  title={lang === 'en' ? 'Select search target: All, Works, Institutions, or Authors' : 'সার্চ টার্গেট নির্বাচন করুন'}
+                >
+                  {ENTITY_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.icon} {lang === 'en' ? opt.labelEn : opt.labelBn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <input
               type="text"
               className={styles.searchInput}
               placeholder={
-                lang === 'en'
-                  ? 'Search by professor name, university, research interest (e.g. Robotics, LLMs, Photonics)...'
-                  : 'প্রফেসরের নাম, বিশ্ববিদ্যালয় বা রিসার্চ টপিক লিখে সার্চ করুন (যেমন: রোবোটিক্স, এলএলএম)...'
+                searchMode === 'live'
+                  ? (lang === 'en'
+                      ? (ENTITY_TYPE_OPTIONS.find((o) => o.id === liveEntityType)?.placeholderEn || 'Search OpenAlex...')
+                      : (ENTITY_TYPE_OPTIONS.find((o) => o.id === liveEntityType)?.placeholderBn || 'OpenAlex এ অনুসন্ধান করুন...'))
+                  : (lang === 'en'
+                      ? 'Search by professor name, university, research interest (e.g. Robotics, LLMs, Photonics)...'
+                      : 'প্রফেসরের নাম, বিশ্ববিদ্যালয় বা রিসার্চ টপিক লিখে সার্চ করুন (যেমন: রোবোটিক্স, এলএলএম)...')
               }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -492,6 +580,29 @@ export default function ScholarFinderPage() {
               {loading ? 'Searching...' : lang === 'en' ? 'Search Faculty' : 'অনুসন্ধান'}
             </Button>
           </div>
+
+          {/* If Live mode, show entity type selector pill chips + hint */}
+          {searchMode === 'live' && (
+            <div className={styles.filterChipsRow} style={{ marginTop: '-4px', marginBottom: 'var(--space-3)' }}>
+              <span className={styles.filterLabel}>{lang === 'en' ? 'Target Entity:' : 'টার্গেট এনটিটি:'}</span>
+              {ENTITY_TYPE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  className={`${styles.filterChip} ${liveEntityType === opt.id ? styles.chipActive : ''}`}
+                  onClick={() => setLiveEntityType(opt.id)}
+                >
+                  <span>{opt.icon}</span>
+                  <span>{lang === 'en' ? opt.labelEn : opt.labelBn}</span>
+                </button>
+              ))}
+              <span className={styles.entityHint}>
+                • {lang === 'en'
+                    ? (ENTITY_TYPE_OPTIONS.find((o) => o.id === liveEntityType)?.hintEn)
+                    : (ENTITY_TYPE_OPTIONS.find((o) => o.id === liveEntityType)?.hintBn)}
+              </span>
+            </div>
+          )}
 
           {/* Domain Chips */}
           <div className={styles.filterChipsRow}>

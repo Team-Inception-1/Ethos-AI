@@ -102,6 +102,24 @@ const DisputesIcon = () => (
   </svg>
 );
 
+const FraudCheckIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    <path d="M12 8v4"/>
+    <path d="M12 16h.01"/>
+  </svg>
+);
+
+const AgreementIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+    <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+    <path d="M7 21h10"/>
+    <path d="M12 3v18"/>
+    <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
+  </svg>
+);
+
 const getNavItems = (role?: string): NavItem[] => {
   switch (role) {
     case 'agency':
@@ -194,6 +212,28 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <PaymentsIcon />,
         },
         {
+          href: '/dashboard/counselor',
+          label: 'AI Counselor',
+          labelBn: 'এআই কাউন্সেলর',
+          icon: <CounselorIcon />,
+          badge: 'AI',
+          section: 'AI Tools',
+        },
+        {
+          href: '/dashboard/fraud-checker',
+          label: 'AI Fraud Checker',
+          labelBn: 'এআই ফ্রড চেকার',
+          icon: <FraudCheckIcon />,
+          badge: 'AI',
+        },
+        {
+          href: '/dashboard/agreement-analyzer',
+          label: 'Agreement Analyzer',
+          labelBn: 'চুক্তি বিশ্লেষক',
+          icon: <AgreementIcon />,
+          badge: 'AI',
+        },
+        {
           href: '/dashboard/chat',
           label: 'Chat',
           labelBn: 'চ্যাট',
@@ -247,6 +287,20 @@ const getNavItems = (role?: string): NavItem[] => {
           label: 'Scholar Finder',
           labelBn: 'স্কলার ফাইন্ডার',
           icon: <ScholarIcon />,
+          badge: 'AI',
+        },
+        {
+          href: '/dashboard/fraud-checker',
+          label: 'AI Fraud Checker',
+          labelBn: 'এআই ফ্রড চেকার',
+          icon: <FraudCheckIcon />,
+          badge: 'AI',
+        },
+        {
+          href: '/dashboard/agreement-analyzer',
+          label: 'Agreement Analyzer',
+          labelBn: 'চুক্তি বিশ্লেষক',
+          icon: <AgreementIcon />,
           badge: 'AI',
         },
         {

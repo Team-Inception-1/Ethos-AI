@@ -186,7 +186,7 @@ export default function StudentDashboard() {
       <div className={styles.quickLinks}>
         {[
           { href: '/dashboard/documents', icon: <FolderIcon />, label: 'Upload Documents' },
-          { href: '/dashboard/ai-tools',  icon: <RobotIcon />,  label: 'AI Fraud Checker' },
+          { href: '/dashboard/fraud-checker', icon: <RobotIcon />, label: 'AI Fraud Checker' },
           { href: '/directory',           icon: <SearchIcon />, label: 'Find Agencies' },
           { href: '/dashboard/chat',      icon: <ChatIcon />,   label: 'Chat with Agency' },
         ].map(q => (

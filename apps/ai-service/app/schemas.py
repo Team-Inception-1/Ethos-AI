@@ -588,6 +588,7 @@ class LiveAcademicSearchRequest(BaseModel):
     query: str = Field(min_length=2, description="Search term, e.g. 'Neuromorphic computing' or 'Perovskite solar'")
     country: str | None = None
     limit: int = Field(default=10, ge=1, le=25)
+    entity_type: str = Field(default="all", description="Target OpenAlex entity: 'all', 'works', 'institutions', 'authors'")
 
 
 class LiveAcademicSearchResponse(BaseModel):

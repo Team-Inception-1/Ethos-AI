@@ -1,4 +1,11 @@
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'AI Tools' };
 import AIToolsPage from '@/components/pages/AIToolsPage';
-export default function AITools() { return <AIToolsPage />; }
+
+export const metadata: Metadata = {
+  title: 'AI Verification Suite | Ethos AI',
+  description: 'Verify consultancy agreements and admission offer letters before making milestone payments.',
+};
+
+export default function AITools() {
+  return <AIToolsPage initialTool="all" />;
+}

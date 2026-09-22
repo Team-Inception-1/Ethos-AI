@@ -828,6 +828,7 @@ export interface LiveAcademicSearchRequest {
   query: string;
   country?: string | null;
   limit?: number;
+  entity_type?: 'all' | 'works' | 'institutions' | 'authors';
 }
 
 export interface LiveAcademicSearchResponse {
@@ -938,7 +939,7 @@ export async function liveSearchAcademic(
   }
 
   const { searchOpenAlexOffline } = await import('./scholarOfflineEngine');
-  return searchOpenAlexOffline(payload.query, payload.limit);
+  return searchOpenAlexOffline(payload.query, payload.limit, payload.entity_type);
 }
 
 

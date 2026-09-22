@@ -281,3 +281,27 @@ def test_live_search_endpoint():
     assert len(data["results"]) >= 1
     assert data["source"]
 
+
+def test_live_search_entity_types():
+    # Test institutions entity search
+    payload_inst = {"query": "Toronto", "entity_type": "institutions", "limit": 3}
+    res_inst = client.post("/api/ai/scholar/live-search", json=payload_inst)
+    assert res_inst.status_code == 200
+    data_inst = res_inst.json()
+    assert len(data_inst["results"]) >= 1
+
+    # Test works entity search
+    payload_works = {"query": "Attention Is All You Need", "entity_type": "works", "limit": 3}
+    res_works = client.post("/api/ai/scholar/live-search", json=payload_works)
+    assert res_works.status_code == 200
+    data_works = res_works.json()
+    assert len(data_works["results"]) >= 1
+
+    # Test authors entity search
+    payload_authors = {"query": "Yoshua Bengio", "entity_type": "authors", "limit": 3}
+    res_authors = client.post("/api/ai/scholar/live-search", json=payload_authors)
+    assert res_authors.status_code == 200
+    data_authors = res_authors.json()
+    assert len(data_authors["results"]) >= 1
+
+

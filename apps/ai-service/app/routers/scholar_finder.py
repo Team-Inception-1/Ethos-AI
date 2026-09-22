@@ -194,7 +194,7 @@ async def deconstruct_paper_endpoint(payload: PaperDeconstructRequest) -> PaperD
 async def live_search_academic_endpoint(payload: LiveAcademicSearchRequest) -> LiveAcademicSearchResponse:
     """Performs dynamic live academic search using OpenAlex open access repository."""
     try:
-        return await search_openalex_live(payload.query, payload.country, payload.limit)
+        return await search_openalex_live(payload.query, payload.country, payload.limit, payload.entity_type)
     except Exception as exc:
         logger.exception("OpenAlex live search failed")
         raise HTTPException(
