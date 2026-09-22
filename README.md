@@ -138,6 +138,14 @@ See full details in [**`docs/KANBAN.md`**](docs/KANBAN.md) and the [GitHub Proje
    ```
    Open [**http://localhost:3000**](http://localhost:3000) in your browser.
 
+ONE-CLICK LAUNCH SCRIPT (WINDOWS POWERSHELL)
+================================================================================
+Run this directly in PowerShell from the project root to open all 3 services:
+
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:\Ethos AI\Ethos-AI\apps\web'; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:\Ethos AI\Ethos-AI\apps\ai-service'; .\.venv\Scripts\Activate.ps1; uvicorn app.main:app --reload --port 8001"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:\Ethos AI\Ethos-AI'; npx prisma studio"
+
 ---
 
 ## 📂 Repository Structure
