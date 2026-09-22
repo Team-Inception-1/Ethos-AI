@@ -42,29 +42,27 @@
 ┌─────────────────────────┬─────────────────────────┬─────────────────────────┬─────────────────────────┬─────────────────────────┐
 │       📥 BACKLOG        │        📝 TO DO         │     🚀 IN PROGRESS      │    🔍 REVIEW / QA       │        ✅ DONE          │
 ├─────────────────────────┼─────────────────────────┼─────────────────────────┼─────────────────────────┼─────────────────────────┤
-│ • #23 AI Counselor      │ • #6  Auth/RBAC JWT API │ • #7  App Tracking &    │ • #11 API Reliability   │ • #1  UI Design System  │
-│   Recommendation Engine │   (Sudiip)              │   Document Vault        │   & Edge-Case QA        │   (Sourav)              │
-│   (Sourav)              │ • #16 AI Agreement      │   (Sudiip)              │   (Taha)                │ • #2  Repo Hygiene &    │
-│                         │   Clause Highlighter    │ • #8  Directory Filters │ • #13 Code Quality Pass │   Issue Scripts (Taha)  │
-│                         │   (Tasin)               │   & Compare (Sudiip)    │   (Jannat)               │ • #3  Project Setup &   │
-│                         │ • #22 AI Microservice   │ • #10 Escrow Milestone  │ • #15 Accessibility     │   Context Doc (Tasin)   │
-│                         │   Scaffold + OCR Fraud  │   Ledger Engine (Taha)  │   Pass (Jannat)          │ • #4  Auth/Profile      │
+│ • #23 AI Counselor      │ • #6  Auth/RBAC JWT API │ • #7  App Tracking &    │ • #13 Code Quality Pass │ • #1  UI Design System  │
+│   Recommendation Engine │   (Sudiip)              │   Document Vault        │   (Jannat)              │   (Sourav)              │
+│   (Sourav)              │ • #16 AI Agreement      │   (Sudiip)              │ • #15 Accessibility     │ • #2  Repo Hygiene &    │
+│                         │   Clause Highlighter    │ • #8  Directory Filters │   Pass (Jannat)         │   Issue Scripts (Taha)  │
+│                         │   (Tasin)               │   & Compare (Sudiip)    │                         │ • #3  Project Setup &   │
+│                         │ • #22 AI Microservice   │                         │                         │   Context Doc (Tasin)   │
+│                         │   Scaffold + OCR Fraud  │                         │                         │ • #4  Auth/Profile      │
 │                         │   Detection (Sourav)    │                         │                         │   Shell (Sudiip)        │
-│                         │ • #23 Scam Alert Risk   │                         │                         │ • #5  README (Jannat)  │
-│                         │   Classifier (Tasin)    │                         │                         │ • #14 Prisma Schema &   │
-│                         │ • #25 Wire AI Tools ↔   │                         │                         │   Seed Data (Taha)      │
-│                         │   Live Microservice     │                         │                         │ • #17 Real-Time Chat    │
-│                         │   (Tasin)               │                         │                         │   (Taha)                │
-│                         │ • #9  E2E Workflow Test │                         │                         │                         │
-│                         │   (Jannat)              │                         │                         │                         │
-│                         │ • #12 Frontend↔API      │                         │                         │                         │
-│                         │   Client Wiring (Sudiip)│                         │                         │                         │
-│                         │ • #18 Demo Script       │                         │                         │                         │
-│                         │   (Jannat)              │                         │                         │                         │
+│                         │ • #23 Scam Alert Risk   │                         │                         │ • #5  README (Jannat)   │
+│                         │   Classifier (Tasin)    │                         │                         │ • #10 Escrow Milestone  │
+│                         │ • #25 Wire AI Tools ↔   │                         │                         │   Ledger Engine (Taha)  │
+│                         │   Live Microservice     │                         │                         │ • #11 API Reliability   │
+│                         │   (Tasin)               │                         │                         │   & Edge-Case QA (Taha) │
+│                         │ • #9  E2E Workflow Test │                         │                         │ • #14 Prisma Schema &   │
+│                         │   (Jannat)              │                         │                         │   Seed Data (Taha)      │
+│                         │ • #12 Frontend↔API      │                         │                         │ • #17 Real-Time Chat    │
+│                         │   Client Wiring (Sudiip)│                         │                         │   (Taha)                │
+│                         │ • #18 Demo Script       │                         │                         │ • #20 CI/CD Pipeline    │
+│                         │   (Jannat)              │                         │                         │   Checks (Taha)         │
 │                         │ • #19 Bangla Guardian   │                         │                         │                         │
 │                         │   Assistant (Sourav)    │                         │                         │                         │
-│                         │ • #20 CI/CD Pipeline    │                         │                         │                         │
-│                         │   Checks (Taha)         │                         │                         │                         │
 └─────────────────────────┴─────────────────────────┴─────────────────────────┴─────────────────────────┴─────────────────────────┘
 ```
 
@@ -118,6 +116,7 @@
 - **Labels:** `backend`
 - **Objective:** Escrow state machine (`held` → `released` → `disputed` → `refunded`), `PaymentProvider` interface, poisha integer arithmetic, append-only `LedgerEntry` table, digital receipts.
 - **DoD:** illegal transitions blocked (e.g. release while disputed); sandbox gateway webhook triggers `held`; ledger is append-only with transaction hash; receipt view generated on release.
+- **Status:** ✅ Implemented. Strict FSM in `apps/web/src/lib/escrowStateMachine.ts` with all invariants enforced; pluggable `PaymentProvider` interface for SSLCommerz, bKash, Nagad in `paymentProviders.ts`; SHA-256 chained immutable ledger in `db.ts`; REST endpoints `GET /api/escrow/milestones`, `POST /api/escrow/pay`, `POST /api/escrow/release`, `POST /api/escrow/dispute`, `POST /api/escrow/refund`, `POST /api/escrow/webhook`, `GET /api/escrow/ledger`, `GET /api/escrow/receipts/[id]`; live `PaymentsPage.tsx` wired to escrow client.
 
 ---
 
@@ -159,6 +158,7 @@
 - **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
 - **Labels:** `qa-devops`
 - **Objective:** GitHub Actions workflow gating every PR on lint, typecheck, and build success.
+- **Status:** ✅ Implemented. `.github/workflows/deploy-checks.yml` — three-job pipeline: (1) Web: ESLint + `tsc --noEmit` + `next build`, (2) Escrow QA: runs `scripts/test-escrow-api.ts` suite via Node native strip-types, (3) AI Service: Pytest offline suite. Triggers on push to `main` and all PRs targeting `main`.
 
 ---
 
@@ -224,6 +224,7 @@
 #### Issue #11 — K-15: Verify API Reliability & Edge-Case Behavior for Payment/Doc Flows
 - **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
 - **Labels:** `qa-devops`
+- **Status:** ✅ Implemented. `scripts/test-escrow-api.ts` — 31-test suite validating: all legal/illegal FSM transitions, Poisha precision integer arithmetic, `EscrowTransitionError` class, ledger type mapping, and edge cases (tamper detection, terminal state enforcement, idempotency invariants). Zero external dependencies; runs via Node 22/24 native strip-types.
 
 ---
 
@@ -235,7 +236,7 @@
 | **Sourav** | 3 (`#19` `#22` `#24`) | – | – | – | 3 |
 | **Sudiip** | 0 | 2 (`#6` `#7`) | 2 (`#8` `#12`) | – | 4 |
 | **Jannat** | 0 | – | 1 (`#15`) | 3 (`#9` `#13` `#18`) | 4 |
-| **Taha** | 0 | 2 (`#10` `#14`) `#17` (3) | – | 2 (`#11` `#20`) | 5 |
+| **Taha** | 0 | 0 ✅ (`#10` `#14` `#17` closed) | – | 0 ✅ (`#11` `#20` closed) | **0** |
 
 > Foundation/DONE issues (`#1`–`#5`) are excluded from this table as they are already closed-out ownership records, not active workload.
 
