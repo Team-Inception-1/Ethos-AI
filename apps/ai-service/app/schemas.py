@@ -247,6 +247,7 @@ class CounselorEvaluationRequest(BaseModel):
     moi_only: bool = Field(default=False, description="Whether to prioritize institutions accepting Medium of Instruction / Duolingo")
     field_category: str | None = Field(default=None, description="'cs_it' | 'engineering' | 'business' | 'health'")
     language: str = Field(default="en", description="'en' or 'bn'")
+    enable_live_discovery: bool = Field(default=False, description="Whether to query live web search for matching universities")
 
 
 class UniversityRecommendation(BaseModel):
@@ -272,6 +273,9 @@ class UniversityRecommendation(BaseModel):
     accepts_moi: bool = False
     coop_available: bool = False
     field_tags: list[str] = Field(default_factory=list)
+    website_url: str | None = Field(default=None, description="Direct university admissions or homepage URL")
+    is_live_grounded: bool = Field(default=False, description="True if discovered or verified via live web grounding")
+    grounding_citations: list[dict[str, str]] = Field(default_factory=list, description="Live web grounding sources/citations")
 
 
 class VisaRiskFlag(BaseModel):
@@ -306,6 +310,7 @@ class CounselorEvaluationResponse(BaseModel):
     dream_count: int
     target_count: int
     safe_count: int
+    live_discovery_active: bool = Field(default=False, description="True if real-time web discovery was executed")
 
 
 class ChatMessageRole(str, Enum):

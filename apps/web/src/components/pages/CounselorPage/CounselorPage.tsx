@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import {
   evaluateCounselorProfile,
+  discoverLiveUniversities,
   sendCounselorChatMessage,
   auditSOP,
   type CounselorEvaluationRequest,
@@ -50,6 +51,8 @@ export default function CounselorPage() {
   // Upgrade 4: Advanced Filter Flags
   const [scholarshipPriority, setScholarshipPriority] = useState(false);
   const [moiOnly, setMoiOnly] = useState(false);
+  const [enableLiveDiscovery, setEnableLiveDiscovery] = useState(false);
+  const [liveDiscoveryLoading, setLiveDiscoveryLoading] = useState(false);
 
   // Evaluation Result State
   const [loading, setLoading] = useState(false);
@@ -313,6 +316,7 @@ export default function CounselorPage() {
       scholarship_priority: scholarshipPriority,
       moi_only: moiOnly,
       language: lang,
+      enable_live_discovery: enableLiveDiscovery,
     };
 
     try {
@@ -326,6 +330,56 @@ export default function CounselorPage() {
       setError(err?.message || 'Error occurred during evaluation.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDiscoverLive = async () => {
+    setLiveDiscoveryLoading(true);
+    showToast(
+      lang === 'en'
+        ? '🌐 Searching live university portals & verified admission cutoffs via Gemini...'
+        : '🌐 জেমিনি সার্চ গ্রাউন্ডিং দিয়ে লাইভ বিশ্ববিদ্যালয়ের তথ্য সংগ্রহ করা হচ্ছে...'
+    );
+
+    const countriesToEvaluate =
+      selectedCountries.length > 0
+        ? selectedCountries
+        : ['Germany', 'UK', 'Canada', 'USA'];
+
+    const payload: CounselorEvaluationRequest = {
+      current_degree: degree,
+      gpa: parseFloat(gpa) || 3.0,
+      max_gpa: parseFloat(maxGpa) || 4.0,
+      ielts_score: parseFloat(ielts) || undefined,
+      budget_yearly_bdt_lakh: parseFloat(budgetLakh) || 20.0,
+      target_countries: countriesToEvaluate,
+      target_field: targetField.trim() || undefined,
+      study_gap_years: parseInt(studyGap, 10) || 0,
+      preferred_intake: preferredIntake,
+      has_work_experience: hasWorkExp,
+      scholarship_priority: scholarshipPriority,
+      moi_only: moiOnly,
+      language: lang,
+      enable_live_discovery: true,
+    };
+
+    try {
+      const result = await discoverLiveUniversities(payload);
+      setEvalResult(result);
+      const liveCount = result.recommendations.filter((r) => r.is_live_grounded).length;
+      showToast(
+        lang === 'en'
+          ? `🌐 Discovered ${liveCount > 0 ? liveCount : 'new'} live universities matching your profile!`
+          : `🌐 আপনার প্রোফাইল অনুযায়ী নতুন বিশ্ববিদ্যালয়সমূহ সফলভাবে যুক্ত হয়েছে!`
+      );
+      setTimeout(() => {
+        const el = document.getElementById('counselor-results');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } catch (err: any) {
+      showToast(err?.message || 'Live discovery failed. Please try again.');
+    } finally {
+      setLiveDiscoveryLoading(false);
     }
   };
 
@@ -669,7 +723,7 @@ export default function CounselorPage() {
             <label className={styles.label}>
               {lang === 'en' ? 'Preferences & Waivers' : 'অগ্রাধিকার ও বিশেষ সুবিধা'}
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label className={styles.checkboxRow}>
                 <input
                   type="checkbox"
@@ -685,6 +739,14 @@ export default function CounselorPage() {
                   onChange={(e) => setMoiOnly(e.target.checked)}
                 />
                 <span>📜 {lang === 'en' ? 'Accepts Medium of Instruction (MOI) / Duolingo' : 'আইইএলটিএস ছাড়া (MOI/ডুওলিঙ্গো) গ্রহণযোগ্য প্রতিষ্ঠান'}</span>
+              </label>
+              <label className={styles.checkboxRow} style={{ color: 'var(--blue-primary)', fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={enableLiveDiscovery}
+                  onChange={(e) => setEnableLiveDiscovery(e.target.checked)}
+                />
+                <span>🌐 {lang === 'en' ? 'Live Web Search (Gemini Grounding) — Discover real-time universities from Google' : 'লাইভ ওয়েব সার্চ (জেমিনি গ্রাউন্ডিং) — গুগল থেকে রিয়েল-টাইম তথ্য অনুসন্ধান'}</span>
               </label>
             </div>
           </div>
@@ -760,10 +822,23 @@ export default function CounselorPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {evalResult.live_discovery_active && (
+                <span className={styles.liveBadge}>🌐 LIVE WEB ACTIVE</span>
+              )}
               <Badge variant="warning" size="sm">🌟 {evalResult.dream_count} Dream</Badge>
               <Badge variant="info" size="sm">🎯 {evalResult.target_count} Target</Badge>
               <Badge variant="verified" size="sm">🛡️ {evalResult.safe_count} Safe</Badge>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                loading={liveDiscoveryLoading}
+                onClick={handleDiscoverLive}
+                title="Discover additional real-time universities using Google Search Grounding via Gemini"
+              >
+                🌐 {lang === 'en' ? 'Discover Live (AI Web Search)' : 'লাইভ ওয়েব সার্চ (জেমিনি)'}
+              </Button>
             </div>
           </div>
 
@@ -812,16 +887,19 @@ export default function CounselorPage() {
               const isTracked = trackedUnis.includes(uni.id);
 
               return (
-                <div key={uni.id} className={`${styles.uniCard} ${tierClass}`}>
+                <div key={uni.id} className={`${styles.uniCard} ${tierClass} ${uni.is_live_grounded ? styles.liveWebGlow : ''}`}>
                   <div className={styles.uniCardHeader}>
                     <div className={styles.uniTitleGroup}>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <Badge
                           variant={uni.tier === 'dream' ? 'warning' : uni.tier === 'safe' ? 'verified' : 'info'}
                           size="sm"
                         >
                           {uni.tier.toUpperCase()} TIER
                         </Badge>
+                        {uni.is_live_grounded && (
+                          <span className={styles.liveBadge}>🌐 LIVE WEB VERIFIED</span>
+                        )}
                         {uni.scholarship_info && (
                           <span className={styles.scholarshipPill}>★ Scholarship</span>
                         )}
@@ -910,8 +988,41 @@ export default function CounselorPage() {
                     </div>
                   )}
 
+                  {/* Citations if available from Google Search Grounding */}
+                  {uni.grounding_citations && uni.grounding_citations.length > 0 && (
+                    <div className={styles.citationsBox}>
+                      <span className={styles.citationsLabel}>🔍 Live Web Sources:</span>
+                      <div className={styles.citationsList}>
+                        {uni.grounding_citations.slice(0, 3).map((cit, cIdx) => (
+                          <a
+                            key={cIdx}
+                            href={cit.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.citationLink}
+                            title={cit.title || cit.url}
+                          >
+                            {cit.title ? (cit.title.length > 28 ? `${cit.title.slice(0, 28)}…` : cit.title) : 'Source'} ↗
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Upgrade 1: Platform Synergy Actions */}
                   <div className={`${styles.cardActions} noPrint`}>
+                    {uni.website_url && (
+                      <a
+                        href={uni.website_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.actionBtnPortal}
+                        title="Visit official admissions webpage"
+                      >
+                        🔗 {lang === 'en' ? 'Official Portal ↗' : 'অফিশিয়াল ওয়েবসাইট ↗'}
+                      </a>
+                    )}
+
                     <Link
                       href={`/directory?country=${encodeURIComponent(uni.country)}`}
                       className={`${styles.actionBtn} ${styles.actionBtnAgency}`}

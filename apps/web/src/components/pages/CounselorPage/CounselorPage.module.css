@@ -1922,3 +1922,158 @@
   :global([data-theme='light']) .tabBtn { border-bottom: 1px solid #CBD5E1; }
   .sopContextFields { grid-template-columns: 1fr; }
 }
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #E2E8F0;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.4;
+}
+
+:global([data-theme='light']) .checkboxRow {
+  color: #1E293B;
+}
+
+.checkboxRow input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--blue-primary);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ========================================================================= */
+/* Live Search Grounding & Real-time Discovery Styles                        */
+/* ========================================================================= */
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10B981;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+:global([data-theme='light']) .liveBadge {
+  background: #ECFDF5;
+  border: 1.5px solid #10B981;
+  color: #047857;
+}
+
+.liveWebGlow {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.12), 4px 4px 0 0 rgba(16, 185, 129, 0.25) !important;
+}
+
+:global([data-theme='light']) .liveWebGlow {
+  border-color: #10B981 !important;
+  box-shadow: 4px 4px 0 0 #10B981 !important;
+}
+
+.actionBtnPortal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #60A5FA;
+  transition: all var(--duration-fast) ease;
+}
+
+.actionBtnPortal:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3B82F6;
+  color: #93C5FD;
+  transform: translateY(-1px);
+}
+
+:global([data-theme='light']) .actionBtnPortal {
+  background: #EFF6FF;
+  border: 1.5px solid #3B82F6;
+  color: #1D4ED8;
+}
+
+:global([data-theme='light']) .actionBtnPortal:hover {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.citationsBox {
+  margin-top: var(--space-2);
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-sm);
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:global([data-theme='light']) .citationsBox {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+.citationsLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+:global([data-theme='light']) .citationsLabel {
+  color: #475569;
+}
+
+.citationsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.citationLink {
+  font-size: 11px;
+  color: #38BDF8;
+  text-decoration: none;
+  padding: 2px 6px;
+  background: rgba(56, 189, 248, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s ease;
+}
+
+.citationLink:hover {
+  background: rgba(56, 189, 248, 0.2);
+  text-decoration: underline;
+}
+
+:global([data-theme='light']) .citationLink {
+  color: #0284C7;
+  background: #E0F2FE;
+  border-color: #BAE6FD;
+}
+

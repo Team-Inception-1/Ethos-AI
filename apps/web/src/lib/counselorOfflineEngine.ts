@@ -335,6 +335,9 @@ export function evaluateOfflineProfile(
         accepts_moi: uni.acceptsMoi,
         coop_available: uni.coop,
         field_tags: ['cs_it'],
+        website_url: null,
+        is_live_grounded: false,
+        grounding_citations: [],
       },
     });
   }
@@ -368,8 +371,8 @@ export function evaluateOfflineProfile(
                   : `You have a ${req.study_gap_years}-year study gap. Prepare official appointment letters and salary slips.`,
               mitigation_tip:
                 req.language === 'bn'
-                  ? 'কখনোই জাল এক্সপেরিয়েন্স সার্টিফিকেট ব্যবহার করবেন না; ক্যারিয়ার প্ল্যান স্পষ্ট করুন।'
-                  : 'Never submit forged papers; articulate genuine career progression in your SOP.',
+                  ? 'পূর্ববর্তী কর্মসংস্থানের অফিশিয়াল সার্টিফিকেট, ট্যাক্স পেপার ও প্রভিডেন্ট ফান্ড স্টেটমেন্ট সংগ্রহ করুন।'
+                  : 'Collect official work experience certificates, tax certificates, and bank salary statements.',
             },
           ]
         : [],
@@ -440,6 +443,7 @@ export function evaluateOfflineProfile(
     dream_count: dreamCount,
     target_count: targetCount,
     safe_count: safeCount,
+    live_discovery_active: false,
   };
 }
 

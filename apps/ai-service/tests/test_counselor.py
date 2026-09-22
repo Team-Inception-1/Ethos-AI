@@ -200,3 +200,42 @@ def test_api_countries_endpoint():
     assert "countries" in data
     assert "Germany" in data["countries"]
     assert "UK" in data["countries"]
+
+
+def test_expanded_catalog_recommendations():
+    req = CounselorEvaluationRequest(
+        current_degree="bachelor",
+        gpa=3.5,
+        max_gpa=4.0,
+        ielts_score=6.5,
+        budget_yearly_bdt_lakh=30.0,
+        target_countries=[],
+        study_gap_years=1,
+    )
+    res = evaluate_counselor_profile(req)
+    # The catalog should return many more universities than the old 7 cutoff
+    assert len(res.recommendations) >= 10
+    assert res.dream_count > 0
+    assert res.target_count > 0
+    assert res.safe_count > 0
+
+
+def test_api_discover_live_endpoint_schema():
+    payload = {
+        "current_degree": "bachelor",
+        "gpa": 3.4,
+        "max_gpa": 4.0,
+        "ielts_score": 6.5,
+        "budget_yearly_bdt_lakh": 22.0,
+        "target_countries": ["Germany"],
+        "target_field": "Computer Science",
+        "enable_live_discovery": False,
+    }
+    # Test that /discover-live responds with 200 and CounselorEvaluationResponse schema
+    response = client.post("/api/ai/counselor/discover-live", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "recommendations" in data
+    assert "live_discovery_active" in data
+    assert len(data["recommendations"]) > 0
+

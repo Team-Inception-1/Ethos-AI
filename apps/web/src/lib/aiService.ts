@@ -311,6 +311,7 @@ export interface CounselorEvaluationRequest {
   moi_only?: boolean;
   field_category?: string | null;
   language?: 'en' | 'bn';
+  enable_live_discovery?: boolean;
 }
 
 export interface UniversityRecommendation {
@@ -336,6 +337,9 @@ export interface UniversityRecommendation {
   accepts_moi?: boolean;
   coop_available?: boolean;
   field_tags?: string[];
+  website_url?: string | null;
+  is_live_grounded?: boolean;
+  grounding_citations?: GroundingCitation[];
 }
 
 export interface VisaRiskFlag {
@@ -377,6 +381,7 @@ export interface CounselorEvaluationResponse {
   dream_count: number;
   target_count: number;
   safe_count: number;
+  live_discovery_active?: boolean;
 }
 
 export interface GroundingCitation {
@@ -422,6 +427,26 @@ export async function evaluateCounselorProfile(
   }
 
   // Graceful offline failover
+  const { evaluateOfflineProfile } = await import('./counselorOfflineEngine');
+  return evaluateOfflineProfile(payload);
+}
+
+/** POST /api/ai/counselor/discover-live — on-demand live Google Search Grounded university discovery */
+export async function discoverLiveUniversities(
+  payload: CounselorEvaluationRequest
+): Promise<CounselorEvaluationResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/counselor/discover-live`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, enable_live_discovery: true }),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('Live university discovery request failed, falling back to offline evaluator:', err);
+  }
   const { evaluateOfflineProfile } = await import('./counselorOfflineEngine');
   return evaluateOfflineProfile(payload);
 }

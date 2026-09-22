@@ -7,6 +7,7 @@ intake milestone roadmaps.
 """
 from __future__ import annotations
 
+import logging
 import math
 from typing import Any
 
@@ -255,9 +256,9 @@ def evaluate_counselor_profile(req: CounselorEvaluationRequest) -> CounselorEval
         promoted.admission_chance_percent = 32
         dreams.append(promoted)
 
-    # Take top 2-3 of each category
+    # Take top matches of each category (up to 20 total)
     final_recommendations: list[UniversityRecommendation] = (
-        dreams[:3] + targets[:4] + safes[:3]
+        dreams[:6] + targets[:8] + safes[:6]
     )
 
     # Evaluate Visa & Solvency
@@ -285,7 +286,53 @@ def evaluate_counselor_profile(req: CounselorEvaluationRequest) -> CounselorEval
         dream_count=dream_cnt,
         target_count=target_cnt,
         safe_count=safe_cnt,
+        live_discovery_active=False,
     )
+
+
+async def evaluate_counselor_profile_with_live(
+    req: CounselorEvaluationRequest,
+) -> CounselorEvaluationResponse:
+    """Evaluates student profile and optionally augments with live Google Search Grounded universities."""
+    base_response = evaluate_counselor_profile(req)
+    if not req.enable_live_discovery:
+        return base_response
+
+    try:
+        from app.services.live_university_finder import discover_live_universities_gemini
+
+        live_recs, _ = await discover_live_universities_gemini(req, limit=8)
+        if not live_recs:
+            return base_response
+
+        # Deduplicate against catalog items by lowercase name
+        existing_names = {r.university_name.lower().strip() for r in base_response.recommendations}
+        merged_recs = list(base_response.recommendations)
+
+        for l_rec in live_recs:
+            if l_rec.university_name.lower().strip() not in existing_names:
+                existing_names.add(l_rec.university_name.lower().strip())
+                merged_recs.append(l_rec)
+
+        dream_cnt = sum(1 for r in merged_recs if r.tier == UniversityTier.DREAM)
+        target_cnt = sum(1 for r in merged_recs if r.tier == UniversityTier.TARGET)
+        safe_cnt = sum(1 for r in merged_recs if r.tier == UniversityTier.SAFE)
+
+        return CounselorEvaluationResponse(
+            profile_summary=base_response.profile_summary,
+            recommendations=merged_recs,
+            visa_assessment=base_response.visa_assessment,
+            roadmap=base_response.roadmap,
+            dream_count=dream_cnt,
+            target_count=target_cnt,
+            safe_count=safe_cnt,
+            live_discovery_active=True,
+        )
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            f"Live university discovery failed during evaluation, returning baseline catalog: {exc}"
+        )
+        return base_response
 
 
 def assess_visa_feasibility(

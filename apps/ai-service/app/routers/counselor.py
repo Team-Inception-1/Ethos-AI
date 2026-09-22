@@ -30,7 +30,10 @@ from app.schemas import (
     SOPAuditResponse,
     GroundingCitation,
 )
-from app.services.counselor_engine import evaluate_counselor_profile
+from app.services.counselor_engine import (
+    evaluate_counselor_profile,
+    evaluate_counselor_profile_with_live,
+)
 from app.services.counselor_knowledge import COUNTRY_VISA_RULES
 
 logger = logging.getLogger(__name__)
@@ -49,14 +52,33 @@ async def evaluate_profile(
     """Evaluates a student profile and returns categorized university matches,
 
     admission chance percentages, financial proof requirements, and roadmap.
+    Supports optional live web discovery via Google Search Grounding.
     """
     try:
+        if payload.enable_live_discovery:
+            return await evaluate_counselor_profile_with_live(payload)
         return evaluate_counselor_profile(payload)
     except Exception as exc:
         logger.exception("Profile evaluation failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to evaluate student profile: {exc}",
+        ) from exc
+
+
+@router.post("/discover-live", response_model=CounselorEvaluationResponse)
+async def discover_live(
+    payload: CounselorEvaluationRequest,
+) -> CounselorEvaluationResponse:
+    """Discovers real-time universities matching the student's profile via live Google Search Grounding."""
+    try:
+        req = payload.model_copy(update={"enable_live_discovery": True})
+        return await evaluate_counselor_profile_with_live(req)
+    except Exception as exc:
+        logger.exception("Live university discovery failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Live university discovery failed: {exc}",
         ) from exc
 
 
