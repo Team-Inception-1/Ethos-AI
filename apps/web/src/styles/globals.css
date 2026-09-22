@@ -44,6 +44,7 @@ ul, ol { list-style: none; }
   --bg-surface:     #1E1D26;
   --bg-elevated:    #26242F;
   --bg-hover:       #2D2B38;
+  --bg-card:        #1E1D26;
   --bg-active:      rgba(79,142,247,0.14);
   --bg-overlay:     rgba(21,20,27,0.85);
 
@@ -198,6 +199,7 @@ ul, ol { list-style: none; }
   --bg-surface:     #FFFDF7;
   --bg-elevated:    #FFF6DE;
   --bg-hover:       #FFEFB8;
+  --bg-card:        #FFFDF7;
   --bg-active:      rgba(79,142,247,0.12);
   --bg-overlay:     rgba(251,243,227,0.88);
 

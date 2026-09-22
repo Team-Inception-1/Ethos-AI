@@ -508,7 +508,7 @@ export async function auditSOP(
 
 /** GET /api/ai/counselor/countries — supported destination countries & visa rules. */
 export async function getCounselorSupportedCountries(): Promise<{
-  countries: Record<string, any>;
+  countries: Record<string, unknown>;
 }> {
   const resp = await fetch(`${AI_SERVICE_URL}/api/ai/counselor/countries`);
   if (!resp.ok) {
@@ -516,4 +516,405 @@ export async function getCounselorSupportedCountries(): Promise<{
   }
   return resp.json();
 }
+
+// ---------------------------------------------------------------------------
+// ScholarFinder & RA/TA Full-Fund Scholarship Suite
+// ---------------------------------------------------------------------------
+
+export interface ProfessorPublication {
+  title: string;
+  year: number;
+  venue?: string | null;
+  link?: string | null;
+  summary?: string | null;
+}
+
+export interface ProfessorProfile {
+  id: string;
+  name: string;
+  title: string;
+  university: string;
+  department: string;
+  country: string;
+  tier: string;
+  lab_name: string;
+  lab_url?: string | null;
+  email: string;
+  google_scholar_url?: string | null;
+  primary_domain: string;
+  research_interests: string[];
+  active_funding_indicator: boolean;
+  funding_sources: string[];
+  accepting_students: boolean;
+  recent_publications: ProfessorPublication[];
+  h_index?: number | null;
+  citations_count?: number | null;
+  lab_location?: string | null;
+}
+
+export interface ProfessorSearchRequest {
+  domain?: string | null;
+  sub_topics?: string[];
+  countries?: string[];
+  university_tiers?: string[];
+  accepting_only?: boolean;
+  has_active_funding?: boolean;
+  query?: string | null;
+  page?: number;
+  limit?: number;
+}
+
+export interface ProfessorSearchResponse {
+  total: number;
+  page: number;
+  limit: number;
+  professors: ProfessorProfile[];
+  domains_available: string[];
+  countries_available: string[];
+  tiers_available: string[];
+}
+
+export interface ColdEmailVariant {
+  subject_line: string;
+  body: string;
+  word_count: number;
+  tone: string;
+}
+
+export interface EmailQualityAudit {
+  overall_score: number;
+  verdict: 'Ready to Send' | 'Needs Refinement' | 'High Spam Risk' | string;
+  word_count_status: string;
+  strengths: string[];
+  cautionary_flags: string[];
+  best_send_time_local: string;
+}
+
+export interface ColdEmailGenerateRequest {
+  professor: ProfessorProfile;
+  selected_paper_title: string;
+  student_name: string;
+  student_degree: string;
+  student_institution: string;
+  student_gpa: string | number;
+  student_skills: string[];
+  student_thesis_topic?: string | null;
+  target_degree?: string;
+  target_semester?: string;
+  language?: string;
+}
+
+export interface ColdEmailGenerateResponse {
+  initial_email: ColdEmailVariant;
+  subject_line_options: string[];
+  follow_up_1: ColdEmailVariant;
+  follow_up_2: ColdEmailVariant;
+  anti_spam_audit: EmailQualityAudit;
+  bangla_guidance: string;
+  model_used: string;
+}
+
+export interface InterviewPrepRequest {
+  professor_name: string;
+  university: string;
+  research_interests: string[];
+  recent_paper_title: string;
+  student_skills: string[];
+}
+
+export interface InterviewPrepQuestion {
+  question: string;
+  why_prof_asks_this: string;
+  strong_answer_strategy: string;
+  key_terms_to_mention: string[];
+}
+
+export interface InterviewPrepResponse {
+  professor_name: string;
+  university: string;
+  predicted_questions: InterviewPrepQuestion[];
+  lab_vibe_summary: string;
+  recommended_reading: string[];
+  model_used: string;
+}
+
+export interface TARAGuideItem {
+  country: string;
+  flag: string;
+  ra_overview: string;
+  ta_overview: string;
+  monthly_stipend_range: string;
+  monthly_stipend_bdt_lakh: number;
+  tuition_remission: string;
+  ta_speaking_score_requirement: string;
+  key_deadlines: string;
+  pro_tips: string[];
+}
+
+export interface TARAGuideResponse {
+  countries: TARAGuideItem[];
+  speaking_score_thresholds: Record<string, string>;
+  grant_cycles_overview: Array<{ mechanism: string; timeline: string }>;
+}
+
+/** POST /api/ai/scholar/search — searches faculty with offline failover. */
+export async function searchProfessors(
+  payload: ProfessorSearchRequest
+): Promise<ProfessorSearchResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice scholar search unreachable, falling back to offline:', err);
+  }
+
+  const { searchProfessorsOffline } = await import('./scholarOfflineEngine');
+  return searchProfessorsOffline(payload);
+}
+
+/** POST /api/ai/scholar/generate-email — synthesizes cold email with offline failover. */
+export async function generateColdEmail(
+  payload: ColdEmailGenerateRequest
+): Promise<ColdEmailGenerateResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/generate-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice email generation unreachable, falling back to offline:', err);
+  }
+
+  const { generateColdEmailOffline } = await import('./scholarOfflineEngine');
+  return generateColdEmailOffline(payload);
+}
+
+/** POST /api/ai/scholar/interview-prep — predicts interview questions with offline failover. */
+export async function prepareInterview(
+  payload: InterviewPrepRequest
+): Promise<InterviewPrepResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/interview-prep`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice interview prep unreachable, falling back to offline:', err);
+  }
+
+  const { prepareInterviewOffline } = await import('./scholarOfflineEngine');
+  return prepareInterviewOffline(payload);
+}
+
+/** GET /api/ai/scholar/guide — gets RA/TA funding guide with offline failover. */
+export async function getTARAGuide(): Promise<TARAGuideResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/guide`);
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice funding guide unreachable, falling back to offline:', err);
+  }
+
+  const { getTARAGuideOffline } = await import('./scholarOfflineEngine');
+  return getTARAGuideOffline();
+}
+
+// ---------------------------------------------------------------------------
+// Elite AI Superpowers: CV Parsing, Matchmaker, Paper Deconstruction, OpenAlex
+// ---------------------------------------------------------------------------
+
+export interface CVParsedData {
+  student_name: string;
+  email?: string | null;
+  degree: string;
+  institution: string;
+  gpa: string;
+  skills: string[];
+  thesis_topic?: string | null;
+  publications: string[];
+}
+
+export interface CVParseResponse {
+  success: boolean;
+  parsed_data: CVParsedData;
+  raw_char_count: number;
+  model_used: string;
+}
+
+export interface ProfessorMatchScore {
+  professor_id: string;
+  professor_name: string;
+  university: string;
+  compatibility_score: number;
+  matching_skills: string[];
+  adjacent_skills: string[];
+  skill_gaps: string[];
+  recommendation_snippet: string;
+}
+
+export interface ProfileMatchRequest {
+  parsed_cv: CVParsedData;
+  professor_id?: string | null;
+  professors?: ProfessorProfile[] | null;
+}
+
+export interface ProfileMatchResponse {
+  matches: ProfessorMatchScore[];
+  top_matched_prof_id?: string | null;
+  average_score: number;
+}
+
+export interface PaperDeconstructRequest {
+  paper_title: string;
+  professor_name: string;
+  student_skills?: string[];
+  student_thesis?: string | null;
+  abstract_or_summary?: string | null;
+}
+
+export interface PaperDeconstructResponse {
+  paper_title: string;
+  professor_name: string;
+  core_contribution: string;
+  unsolved_limitation: string;
+  methodology_keywords: string[];
+  tailored_cold_hook: string;
+  prep_questions: string[];
+  model_used: string;
+}
+
+export interface LiveAcademicSearchRequest {
+  query: string;
+  country?: string | null;
+  limit?: number;
+}
+
+export interface LiveAcademicSearchResponse {
+  total: number;
+  query: string;
+  results: ProfessorProfile[];
+  source: string;
+}
+
+/** POST /api/ai/scholar/parse-cv/file — parses uploaded CV PDF/DOC. */
+export async function parseCVFile(file: File): Promise<CVParseResponse> {
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/parse-cv/file`, {
+      method: 'POST',
+      body: form,
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice CV parse file unreachable, falling back to offline:', err);
+  }
+
+  // If text file, read text directly
+  const text = await file.text();
+  const { parseCVTextOffline } = await import('./scholarOfflineEngine');
+  return parseCVTextOffline(text);
+}
+
+/** POST /api/ai/scholar/parse-cv/text — parses raw CV text. */
+export async function parseCVText(raw_text: string): Promise<CVParseResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/parse-cv/text`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw_text }),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice CV parse text unreachable, falling back to offline:', err);
+  }
+
+  const { parseCVTextOffline } = await import('./scholarOfflineEngine');
+  return parseCVTextOffline(raw_text);
+}
+
+/** POST /api/ai/scholar/match-profile — computes compatibility match and skill gaps. */
+export async function matchProfile(
+  payload: ProfileMatchRequest
+): Promise<ProfileMatchResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/match-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice match-profile unreachable, falling back to offline:', err);
+  }
+
+  const { calculateProfileMatchOffline } = await import('./scholarOfflineEngine');
+  return calculateProfileMatchOffline(payload.parsed_cv, payload.professors ?? undefined);
+}
+
+/** POST /api/ai/scholar/deconstruct-paper — deconstructs paper into contribution and hook. */
+export async function deconstructPaper(
+  payload: PaperDeconstructRequest
+): Promise<PaperDeconstructResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/deconstruct-paper`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice deconstruct-paper unreachable, falling back to offline:', err);
+  }
+
+  const { deconstructPaperOffline } = await import('./scholarOfflineEngine');
+  return deconstructPaperOffline(payload);
+}
+
+/** POST /api/ai/scholar/live-search — queries OpenAlex global academic repository. */
+export async function liveSearchAcademic(
+  payload: LiveAcademicSearchRequest
+): Promise<LiveAcademicSearchResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/live-search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice live-search unreachable, falling back to offline:', err);
+  }
+
+  const { searchOpenAlexOffline } = await import('./scholarOfflineEngine');
+  return searchOpenAlexOffline(payload.query, payload.limit);
+}
+
+
 

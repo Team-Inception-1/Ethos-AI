@@ -11,6 +11,7 @@ const navLinks = [
   { href: '/directory', label: 'Directory', labelBn: 'ডিরেক্টরি' },
   { href: '/compare', label: 'Compare', labelBn: 'তুলনা' },
   { href: '/counselor', label: 'AI Counselor', labelBn: 'এআই কাউন্সেলর' },
+  { href: '/scholar-finder', label: 'Scholar Finder', labelBn: 'প্রফেসর ও ফান্ডিং' },
   { href: '/ai-tools', label: 'AI Tools', labelBn: 'এআই টুলস' },
   { href: '/agency', label: 'For Agencies', labelBn: 'এজেন্সি' },
 ];

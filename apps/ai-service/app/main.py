@@ -26,6 +26,7 @@ from app.routers.agreement import router as agreement_router
 from app.routers.counselor import router as counselor_router
 from app.routers.offer_letter import router as offer_letter_router
 from app.routers.scam import router as scam_router
+from app.routers.scholar_finder import router as scholar_finder_router
 from app.schemas import HealthResponse
 from app.services.agency_risk_store import get_agency_risk_store
 from app.services.seed_demo_risk_events import seed_demo_risk_events
@@ -68,6 +69,7 @@ app.include_router(agreement_router)
 app.include_router(offer_letter_router)
 app.include_router(scam_router)
 app.include_router(counselor_router)
+app.include_router(scholar_finder_router)
 
 
 @app.get("/health", response_model=HealthResponse)

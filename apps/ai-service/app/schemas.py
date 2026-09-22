@@ -373,3 +373,224 @@ class SOPAuditResponse(BaseModel):
     model_used: str
 
 
+# =============================================================================
+# Module: ScholarFinder & RA/TA Full-Fund Scholarship Suite
+# =============================================================================
+
+class ProfessorPublication(BaseModel):
+    title: str
+    year: int
+    venue: str | None = None
+    link: str | None = None
+    summary: str | None = None
+
+
+class ProfessorProfile(BaseModel):
+    id: str
+    name: str
+    title: str
+    university: str
+    department: str
+    country: str
+    tier: str
+    lab_name: str
+    lab_url: str | None = None
+    email: str
+    google_scholar_url: str | None = None
+    primary_domain: str
+    research_interests: list[str] = Field(default_factory=list)
+    active_funding_indicator: bool = True
+    funding_sources: list[str] = Field(default_factory=list)
+    accepting_students: bool = True
+    recent_publications: list[ProfessorPublication] = Field(default_factory=list)
+    h_index: int | None = None
+    citations_count: int | None = None
+    lab_location: str | None = None
+
+
+class ProfessorSearchRequest(BaseModel):
+    domain: str | None = None
+    sub_topics: list[str] = Field(default_factory=list)
+    countries: list[str] = Field(default_factory=list)
+    university_tiers: list[str] = Field(default_factory=list)
+    accepting_only: bool = False
+    has_active_funding: bool = False
+    query: str | None = None
+    page: int = Field(default=1, ge=1)
+    limit: int = Field(default=20, ge=1, le=100)
+
+
+class ProfessorSearchResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    professors: list[ProfessorProfile]
+    domains_available: list[str]
+    countries_available: list[str]
+    tiers_available: list[str]
+
+
+class ColdEmailVariant(BaseModel):
+    subject_line: str
+    body: str
+    word_count: int
+    tone: str
+
+
+class ColdEmailGenerateRequest(BaseModel):
+    professor: ProfessorProfile
+    selected_paper_title: str
+    student_name: str
+    student_degree: str
+    student_institution: str
+    student_gpa: str | float
+    student_skills: list[str]
+    student_thesis_topic: str | None = None
+    target_degree: str = "PhD"  # "PhD" or "MS with Thesis"
+    target_semester: str = "Fall 2026"
+    language: str = "en"
+
+
+class EmailQualityAudit(BaseModel):
+    overall_score: int = Field(ge=0, le=100)
+    verdict: str  # "Ready to Send", "Needs Refinement", "High Spam Risk"
+    word_count_status: str
+    strengths: list[str]
+    cautionary_flags: list[str]
+    best_send_time_local: str
+
+
+class ColdEmailGenerateResponse(BaseModel):
+    initial_email: ColdEmailVariant
+    subject_line_options: list[str]
+    follow_up_1: ColdEmailVariant
+    follow_up_2: ColdEmailVariant
+    anti_spam_audit: EmailQualityAudit
+    bangla_guidance: str
+    model_used: str
+
+
+class InterviewPrepRequest(BaseModel):
+    professor_name: str
+    university: str
+    research_interests: list[str]
+    recent_paper_title: str
+    student_skills: list[str]
+
+
+class InterviewPrepQuestion(BaseModel):
+    question: str
+    why_prof_asks_this: str
+    strong_answer_strategy: str
+    key_terms_to_mention: list[str]
+
+
+class InterviewPrepResponse(BaseModel):
+    professor_name: str
+    university: str
+    predicted_questions: list[InterviewPrepQuestion]
+    lab_vibe_summary: str
+    recommended_reading: list[str]
+    model_used: str
+
+
+class TARAGuideItem(BaseModel):
+    country: str
+    flag: str
+    ra_overview: str
+    ta_overview: str
+    monthly_stipend_range: str
+    monthly_stipend_bdt_lakh: float
+    tuition_remission: str
+    ta_speaking_score_requirement: str
+    key_deadlines: str
+    pro_tips: list[str]
+
+
+class TARAGuideResponse(BaseModel):
+    countries: list[TARAGuideItem]
+    speaking_score_thresholds: dict[str, str]
+    grant_cycles_overview: list[dict[str, str]]
+
+
+# --- 1. AI CV / Resume Parser & Profile Matchmaker --------------------------
+
+class CVParsedData(BaseModel):
+    student_name: str
+    email: str | None = None
+    degree: str
+    institution: str
+    gpa: str
+    skills: list[str] = Field(default_factory=list)
+    thesis_topic: str | None = None
+    publications: list[str] = Field(default_factory=list)
+
+
+class CVParseResponse(BaseModel):
+    success: bool = True
+    parsed_data: CVParsedData
+    raw_char_count: int
+    model_used: str
+
+
+class ProfessorMatchScore(BaseModel):
+    professor_id: str
+    professor_name: str
+    university: str
+    compatibility_score: int = Field(ge=0, le=100)
+    matching_skills: list[str] = Field(default_factory=list)
+    adjacent_skills: list[str] = Field(default_factory=list)
+    skill_gaps: list[str] = Field(default_factory=list)
+    recommendation_snippet: str
+
+
+class ProfileMatchRequest(BaseModel):
+    parsed_cv: CVParsedData
+    professor_id: str | None = None
+    professors: list[ProfessorProfile] | None = None
+
+
+class ProfileMatchResponse(BaseModel):
+    matches: list[ProfessorMatchScore]
+    top_matched_prof_id: str | None = None
+    average_score: float = 0.0
+
+
+# --- 2. AI Research Paper Deconstructor & Hook Generator --------------------
+
+class PaperDeconstructRequest(BaseModel):
+    paper_title: str
+    professor_name: str
+    student_skills: list[str] = Field(default_factory=list)
+    student_thesis: str | None = None
+    abstract_or_summary: str | None = None
+
+
+class PaperDeconstructResponse(BaseModel):
+    paper_title: str
+    professor_name: str
+    core_contribution: str
+    unsolved_limitation: str
+    methodology_keywords: list[str] = Field(default_factory=list)
+    tailored_cold_hook: str
+    prep_questions: list[str] = Field(default_factory=list)
+    model_used: str
+
+
+# --- 6. Live OpenAlex Global Academic Deep Fetcher -------------------------
+
+class LiveAcademicSearchRequest(BaseModel):
+    query: str = Field(min_length=2, description="Search term, e.g. 'Neuromorphic computing' or 'Perovskite solar'")
+    country: str | None = None
+    limit: int = Field(default=10, ge=1, le=25)
+
+
+class LiveAcademicSearchResponse(BaseModel):
+    total: int
+    query: str
+    results: list[ProfessorProfile]
+    source: str = "OpenAlex Global Index"
+
+
+
+

@@ -19,6 +19,7 @@ import {
   type GroundingCitation,
 } from '@/lib/aiService';
 import styles from './CounselorPage.module.css';
+import MarkdownContent, { stripMarkdown } from '@/components/ui/MarkdownContent';
 
 const DESTINATION_OPTIONS = [
   { id: 'Germany', nameEn: 'Germany 🇩🇪', nameBn: 'জার্মানি 🇩🇪' },
@@ -181,8 +182,9 @@ export default function CounselorPage() {
 
     try {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      const isBn = languageHint === 'bn' || /[\u0980-\u09FF]/.test(text);
+      const cleanText = stripMarkdown(text);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const isBn = languageHint === 'bn' || /[\u0980-\u09FF]/.test(cleanText);
 
       const voices = window.speechSynthesis.getVoices() || [];
       if (isBn) {
@@ -504,6 +506,13 @@ export default function CounselorPage() {
         >
           📝 {lang === 'bn' ? 'SOP অডিট' : 'SOP Audit'}
         </button>
+        <Link
+          href="/scholar-finder"
+          className={styles.tabBtn}
+          style={{ textDecoration: 'none' }}
+        >
+          🎓 {lang === 'bn' ? 'প্রফেসর ও আরএ/টিএ ফান্ডিং ↗' : 'Find Funding Professors (RA/TA) ↗'}
+        </Link>
       </div>
 
       {activeTab === 'evaluation' && (
@@ -1118,7 +1127,20 @@ export default function CounselorPage() {
                   msg.role === 'user' ? styles.msgBubbleUser : styles.msgBubbleBot
                 }`}
               >
-                {msg.content}
+                {msg.role === 'assistant' ? (
+                  <>
+                    <div className={styles.counselorBadge}>
+                      <span className={styles.counselorBadgeDot} />
+                      <span>{lang === 'bn' ? 'ইথোস এআই কাউন্সেলর' : 'Ethos AI Counselor'}</span>
+                    </div>
+                    <MarkdownContent
+                      content={msg.content}
+                      onQuestionClick={(q) => handleSendMessage(q)}
+                    />
+                  </>
+                ) : (
+                  msg.content
+                )}
 
                 {/* Citation bar for grounded responses */}
                 {msg.role === 'assistant' && msg.citations && msg.citations.length > 0 && (
