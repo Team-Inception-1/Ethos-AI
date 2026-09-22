@@ -7,6 +7,7 @@ import {
   QUICK_CATEGORIES,
   NavAction,
 } from '@/lib/navigationBot';
+import { EthosLogoIcon } from '@/components/ui/EthosLogo/EthosLogo';
 import styles from './AIBubble.module.css';
 
 interface Message {
@@ -144,7 +145,7 @@ export default function AIBubble() {
         onClick={() => setOpen(prev => !prev)}
         aria-label="Toggle Ethos AI Navigation Assistant"
         aria-expanded={open}
-        title="Open Navigation Helper (Ctrl + /)"
+        title="Open Ethos AI Assistant (Ctrl + /)"
       >
         {open ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
@@ -153,8 +154,8 @@ export default function AIBubble() {
           </svg>
         ) : (
           <div className={styles.triggerInner}>
-            <span className={styles.botIcon}>✦</span>
-            <span className={styles.triggerBadge}>Helper</span>
+            <EthosLogoIcon size={20} />
+            <span className={styles.triggerBadge}>Ethos AI</span>
           </div>
         )}
         {!open && <span className={styles.pulse} aria-hidden="true" />}
@@ -162,20 +163,20 @@ export default function AIBubble() {
 
       {/* Main Chat Assistant Modal */}
       {open && (
-        <div className={styles.panel} role="dialog" aria-label="Ethos AI System Navigation Helper">
+        <div className={styles.panel} role="dialog" aria-label="Ethos AI System Assistant">
           {/* Header */}
           <div className={styles.panelHeader}>
             <div className={styles.headerLeft}>
               <div className={styles.aiAvatar} aria-hidden="true">
-                <span>✦</span>
+                <EthosLogoIcon size={20} />
               </div>
               <div>
                 <div className={styles.aiName}>
-                  Ethos <span className={styles.accentText}>Navigator</span>
+                  Ethos <span className={styles.accentText}>AI</span>
                 </div>
                 <div className={styles.aiStatus}>
                   <span className={styles.statusDot} aria-hidden="true" />
-                  {lang === 'en' ? 'Site-Wide Helper • Ctrl+/' : 'সাইট ন্যাভিগেটর • Ctrl+/'}
+                  {lang === 'en' ? 'AI Assistant • Ctrl+/' : 'এআই সহকারী • Ctrl+/'}
                 </div>
               </div>
             </div>
