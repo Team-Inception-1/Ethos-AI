@@ -36,11 +36,11 @@ echo "====================================================="
 # 1. Branch naming standard
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 if [[ -n "$CURRENT_BRANCH" && "$CURRENT_BRANCH" != "main" && "$CURRENT_BRANCH" != "HEAD" ]]; then
-    if [[ "$CURRENT_BRANCH" =~ ^(feature|bugfix|docs|chore|refactor|test)/[a-zA-Z0-9_-]+$ ]]; then
+    if [[ "$CURRENT_BRANCH" =~ ^(feature|feat|bugfix|fix|docs|chore|refactor|test)/[a-zA-Z0-9_.-]+$ ]]; then
         echo "✅ Branch naming matches standard: '$CURRENT_BRANCH'"
     else
         echo "❌ Branch naming violation: '$CURRENT_BRANCH'"
-        echo "   Expected format: feature/<id>-<desc>, bugfix/<id>-<desc>, or docs/<desc>"
+        echo "   Expected format: feature/<id>-<desc>, feat/<desc>, bugfix/<id>-<desc>, or docs/<desc>"
         TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
     fi
 fi
