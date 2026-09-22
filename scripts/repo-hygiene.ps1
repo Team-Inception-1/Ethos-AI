@@ -34,12 +34,12 @@ if (-not $Branch) {
 }
 
 if ($Branch -and $Branch -ne "main" -and $Branch -ne "HEAD") {
-    $BranchPattern = '^(feature|bugfix|docs|chore|refactor|test)/[a-zA-Z0-9_-]+$'
+    $BranchPattern = '^(feature|feat|bugfix|fix|docs|chore|refactor|test)/[a-zA-Z0-9_.-]+$'
     if ($Branch -match $BranchPattern) {
         Write-Host "[PASS] Branch naming matches standard: '$Branch'" -ForegroundColor Green
     } else {
         Write-Host "[FAIL] Branch naming violation: '$Branch'" -ForegroundColor Red
-        Write-Host "       Expected format: feature/<id>-<desc>, bugfix/<id>-<desc>, or docs/<desc>" -ForegroundColor Yellow
+        Write-Host "       Expected format: feature/<id>-<desc>, feat/<desc>, bugfix/<id>-<desc>, or docs/<desc>" -ForegroundColor Yellow
         $TotalErrors++
     }
 } elseif ($Branch -eq "main") {

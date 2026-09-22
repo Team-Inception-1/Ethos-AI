@@ -94,6 +94,8 @@
 #### Issue #2 — K-05: Base Scripts for Issue/Project Workflow & Repo Hygiene
 - **Assignee:** [`@Taha-Mim-Tasfa`](https://github.com/Taha-Mim-Tasfa)
 - **Labels:** `qa-devops`
+- **Objective:** Automated audit scripts for Git standards, branch naming, conventional commit pattern validation, sensitive file leaks, merge conflict marker checks, and GitHub Kanban sync.
+- **Status:** ✅ Implemented. Cross-platform automated verification scripts (`scripts/repo-hygiene.ps1`, `scripts/repo-hygiene.sh`, `scripts/create_github_issues.ps1`, `scripts/create_github_issues.sh`) enforcing Criterion 4 Git conventions, secret leak scans, and conflict-free repo hygiene.
 
 ---
 
