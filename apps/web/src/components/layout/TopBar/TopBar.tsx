@@ -34,8 +34,12 @@ const INITIAL_NOTIFICATIONS = [
 
 export default function TopBar() {
   const { user } = useAuth();
-  const userName = user?.name || 'Student User';
-  const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'S';
+  let userName = user?.name || 'Student User';
+  if (userName.includes('@')) {
+    const local = userName.split('@')[0].replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim();
+    userName = local ? local.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : userName;
+  }
+  const initial = userName ? userName.charAt(0).toUpperCase() : 'S';
 
   const [notifs, setNotifs] = React.useState(INITIAL_NOTIFICATIONS);
   const [openNotifs, setOpenNotifs] = React.useState(false);

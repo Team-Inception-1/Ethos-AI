@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import fs from 'fs';
 import path from 'path';
 
@@ -7,6 +7,13 @@ export interface StorageUploadResult {
   url: string;
   sizeBytes: number;
   provider: 'neon-s3' | 'local';
+}
+
+export interface StorageObjectItem {
+  key: string;
+  url: string;
+  sizeBytes: number;
+  lastModified?: Date;
 }
 
 /**
@@ -127,6 +134,39 @@ export async function deleteDocumentFile(storageKey: string): Promise<boolean> {
 
   return true;
 }
+
+/**
+ * Lists document objects from the Neon Object Storage bucket 'documents'.
+ */
+export async function listDocumentFiles(prefix: string = 'documents/'): Promise<StorageObjectItem[]> {
+  const s3 = getS3Client();
+  const bucketName = 'documents';
+  const endpoint = (process.env.AWS_ENDPOINT_URL_S3 || '').replace(/\/$/, '');
+
+  if (!s3 || !endpoint) {
+    return [];
+  }
+
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: prefix,
+    });
+    const res = await s3.send(command);
+    if (!res.Contents) return [];
+
+    return res.Contents.map((obj) => ({
+      key: obj.Key || '',
+      url: `${endpoint}/${bucketName}/${obj.Key}`,
+      sizeBytes: obj.Size || 0,
+      lastModified: obj.LastModified,
+    }));
+  } catch (err) {
+    console.warn('[Neon Object Storage] Failed to list objects:', err);
+    return [];
+  }
+}
+
 
 /**
  * Uploads a profile avatar photo to Neon Object Storage.

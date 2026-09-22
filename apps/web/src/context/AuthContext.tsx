@@ -144,6 +144,20 @@ export const DEMO_USERS: Record<UserRole, User> = {
   },
 };
 
+export function formatDisplayName(emailOrName: string): string {
+  if (!emailOrName) return 'Student User';
+  const clean = emailOrName.includes('@') ? emailOrName.split('@')[0] : emailOrName;
+  const words = clean.replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim();
+  if (words.length > 1) {
+    return words
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
 /**
  * Normalizes any user object to ensure full mandatory fields:
  * id, name, email, phone, role, isVerified, agencyDetails, studentDetails, avatarUrl
@@ -152,9 +166,14 @@ export function normalizeUser(u: Partial<User> & { role?: UserRole }): User {
   const role: UserRole = u.role || 'student';
   const demo = DEMO_USERS[role] || DEMO_USERS.student;
 
+  let resolvedName = u.name;
+  if (!resolvedName || resolvedName === 'Student User' || resolvedName === 'hola') {
+    resolvedName = u.email ? formatDisplayName(u.email) : demo.name;
+  }
+
   return {
     id: u.id || demo.id || `usr-${role}-${Date.now()}`,
-    name: u.name || demo.name,
+    name: resolvedName,
     email: u.email || demo.email,
     phone: u.phone || demo.phone,
     role: role,
@@ -285,7 +304,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setUser(normalizeUser(parsed));
+        const norm = normalizeUser(parsed);
+        setUser(norm);
+
+        // Background sync with Neon Postgres profile
+        if (norm.email) {
+          fetch(`/api/user/profile?email=${encodeURIComponent(norm.email)}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => {
+              if (data?.user) {
+                const refreshed = normalizeUser({ ...norm, ...data.user });
+                saveUser(refreshed);
+              }
+            })
+            .catch(() => {});
+        }
       } else {
         const initialDemoUser = normalizeUser(DEMO_USERS.student);
         setUser(initialDemoUser);
@@ -296,7 +329,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     checkNeonAuth();
-  }, [checkNeonAuth]);
+  }, [checkNeonAuth, saveUser]);
 
   // OTP Countdown Timer
   useEffect(() => {
@@ -366,17 +399,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sendNeonEmailOtp(clean, 'sign-in');
     }
 
-    // Fallback user state while awaiting OTP verification
-    const fallbackUser = normalizeUser({
-      id: `usr-${Date.now()}`,
-      name: emailOrPhone.split('@')[0],
-      email: targetEmail,
-      phone: emailOrPhone.includes('+880') ? emailOrPhone : '+8801712345678',
-      role: 'student',
-      isVerified: false,
-    });
+    // Attempt to fetch existing profile from Neon Postgres
+    let resolvedUser: User | null = null;
+    try {
+      const res = await fetch(`/api/user/profile?email=${encodeURIComponent(targetEmail)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.user) {
+          resolvedUser = normalizeUser({ ...data.user, isVerified: false });
+        }
+      }
+    } catch {
+      // ignore network fetch error, fallback below
+    }
 
-    saveUser(fallbackUser);
+    if (!resolvedUser) {
+      resolvedUser = normalizeUser({
+        id: `usr-${targetEmail.replace(/[^a-zA-Z0-9]/g, '')}`,
+        name: formatDisplayName(emailOrPhone),
+        email: targetEmail,
+        phone: emailOrPhone.includes('+880') ? emailOrPhone : '+8801712345678',
+        role: 'student',
+        isVerified: false,
+      });
+    }
+
+    saveUser(resolvedUser);
     setOtpSent(true);
     setOtpCountdown(60);
     return true;
@@ -468,18 +516,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const authData = await verifyRes.json().catch(() => ({}));
           console.log('[Neon Auth] Email OTP verified successfully via Better Auth:', authData);
 
+          // Fetch full persistent profile from Neon Postgres
+          let dbUser: Partial<User> | null = null;
+          try {
+            const profileRes = await fetch(`/api/user/profile?email=${encodeURIComponent(targetEmail)}`);
+            if (profileRes.ok) {
+              const pData = await profileRes.json();
+              if (pData?.user) dbUser = pData.user;
+            }
+          } catch (e) {
+            console.warn('[Neon Auth] Could not fetch profile on verify:', e);
+          }
+
           if (pendingRegistration) {
-            const fullUser = normalizeUser({ ...pendingRegistration, isVerified: true });
+            const fullUser = normalizeUser({
+              ...pendingRegistration,
+              ...(dbUser || {}),
+              name: pendingRegistration.name || dbUser?.name || authData?.user?.name || formatDisplayName(targetEmail),
+              id: authData?.user?.id || dbUser?.id || pendingRegistration.id,
+              isVerified: true,
+            });
             saveUser(fullUser);
+
+            // Persist registration updates to Neon Postgres
+            try {
+              fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(fullUser),
+              }).catch(() => {});
+            } catch {}
+
             setPendingRegistration(null);
             setOtpSent(false);
             return true;
-          } else if (user) {
-            saveUser(normalizeUser({ ...user, isVerified: true }));
+          } else {
+            const fullUser = normalizeUser({
+              ...(user || {}),
+              ...(dbUser || {}),
+              ...(authData?.user?.name && authData.user.name !== 'hola' && authData.user.name !== 'Test' ? { name: authData.user.name } : {}),
+              id: authData?.user?.id || dbUser?.id || user?.id,
+              email: targetEmail,
+              isVerified: true,
+            });
+            saveUser(fullUser);
             setOtpSent(false);
             return true;
           }
-          return true;
         } else {
           const errData = await verifyRes.json().catch(() => ({}));
           console.warn('[Neon Auth] OTP Verification failed:', errData);
@@ -537,6 +620,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         : user.agencyDetails,
     });
     saveUser(updated);
+
+    // Save permanently to Neon Postgres
+    try {
+      fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch((err) => console.warn('[AuthContext] Profile DB update error:', err));
+    } catch {
+      // ignore
+    }
   };
 
   const linkStudent = (identifier: string): { success: boolean; message: string } => {

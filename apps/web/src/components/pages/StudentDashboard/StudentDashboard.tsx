@@ -1,6 +1,7 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -77,12 +78,37 @@ const typeColors: Record<string, string> = {
 };
 
 export default function StudentDashboard() {
+  const { user } = useAuth();
+  const [docCount, setDocCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetch(`/api/documents?ownerId=${encodeURIComponent(user.id)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.documents) setDocCount(data.documents.length);
+        })
+        .catch(() => {});
+    }
+  }, [user?.id]);
+
+  const currentHour = new Date().getHours();
+  const timeGreeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Student';
+
+  const dynamicStats = [
+    { label: 'Active Applications', value: '2', icon: <ClipboardIcon />, color: 'blue' },
+    { label: 'Documents Uploaded', value: docCount !== null ? String(docCount) : '7', icon: <FolderIcon />, color: 'purple' },
+    { label: 'Escrow Held', value: '৳45K', icon: <LockIcon />, color: 'amber' },
+    { label: 'AI Scans Done', value: '3', icon: <RobotIcon />, color: 'emerald' },
+  ];
+
   return (
     <div className={styles.page}>
       {/* Greeting */}
       <div className={styles.greeting}>
         <div>
-          <h1 className={styles.greetingText}>Good evening, Riya 👋</h1>
+          <h1 className={styles.greetingText}>{timeGreeting}, {firstName} 👋</h1>
           <p className={styles.greetingSubtitle}>Here&apos;s your application summary for today.</p>
         </div>
         <Link href="/dashboard/applications">
@@ -92,7 +118,7 @@ export default function StudentDashboard() {
 
       {/* Stats Row */}
       <div className={styles.statsRow} role="list" aria-label="Dashboard statistics">
-        {stats.map(s => (
+        {dynamicStats.map(s => (
           <div key={s.label} className={`${styles.statCard} ${styles[`stat-${s.color}`]}`}>
             <div className={styles.statHeader}>
               <div className={styles.statIconWrap} aria-hidden="true">{s.icon}</div>

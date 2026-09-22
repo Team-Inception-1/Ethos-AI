@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -516,6 +517,47 @@ class TARAGuideResponse(BaseModel):
     countries: list[TARAGuideItem]
     speaking_score_thresholds: dict[str, str]
     grant_cycles_overview: list[dict[str, str]]
+
+
+# --- RA vs TA Personalized AI Strategy & Advisor ---------------------------
+
+class TARAStrategyRequest(BaseModel):
+    degree_goal: str = Field(default="PhD", description="Target degree: 'PhD' or 'MS with Thesis'")
+    gpa: str = Field(default="3.75", description="Undergrad GPA out of 4.0")
+    undergrad_major: str = Field(default="Computer Science & Engineering")
+    research_experience: str = Field(
+        default="thesis_only",
+        description="'none', 'thesis_only', 'preprint_workshop', 'peer_reviewed'",
+    )
+    english_test_type: str = Field(default="toefl", description="'toefl', 'ielts', 'duolingo', 'none'")
+    speaking_score: float = Field(default=24.0, description="Speaking subscore, e.g. 24 for TOEFL or 7.0 for IELTS")
+    target_country: str = Field(default="USA", description="'USA', 'Canada', 'Germany', 'UK', 'Australia'")
+    coding_depth: str = Field(default="intermediate", description="'beginner', 'intermediate', 'advanced'")
+
+
+class TARAStrategyResponse(BaseModel):
+    ra_viability_score: int
+    ta_viability_score: int
+    primary_recommendation: str
+    oral_english_status: str  # "cleared" | "borderline" | "restricted_ra_only"
+    oral_english_analysis: str
+    action_steps: list[str]
+    cold_pitch_paragraph: str
+    summer_funding_strategy: str
+    negotiation_tip: str
+    model_used: str = "Ethos Academic AI"
+
+
+class TARAAdvisorQuestionRequest(BaseModel):
+    question: str = Field(min_length=3, description="Student's funding or RA/TA question")
+    student_context: dict[str, Any] | None = None
+
+
+class TARAAdvisorQuestionResponse(BaseModel):
+    answer: str
+    key_takeaway: str
+    suggested_followups: list[str] = Field(default_factory=list)
+    model_used: str = "Ethos Academic AI"
 
 
 # --- 1. AI CV / Resume Parser & Profile Matchmaker --------------------------

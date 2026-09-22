@@ -21,6 +21,10 @@ import type {
   PaperDeconstructRequest,
   PaperDeconstructResponse,
   LiveAcademicSearchResponse,
+  TARAStrategyRequest,
+  TARAStrategyResponse,
+  TARAAdvisorQuestionRequest,
+  TARAAdvisorQuestionResponse,
 } from './aiService';
 
 export const OFFLINE_PROFESSORS: ProfessorProfile[] = [
@@ -1101,3 +1105,255 @@ export function searchOpenAlexOffline(
   };
 }
 
+/**
+ * Client-Side Offline Evaluator for RA vs TA Strategy & Viability.
+ */
+export function evaluateTARAStrategyOffline(
+  payload: TARAStrategyRequest
+): TARAStrategyResponse {
+  const gpaVal = parseFloat(payload.gpa || '3.5') || 3.5;
+  const degreeGoal = payload.degree_goal || 'PhD';
+  const major = payload.undergrad_major || 'Computer Science & Engineering';
+  const researchExp = payload.research_experience || 'thesis_only';
+  const coding = payload.coding_depth || 'intermediate';
+  const testType = (payload.english_test_type || 'toefl').toLowerCase();
+  const speaking = payload.speaking_score ?? 24;
+  const country = (payload.target_country || 'USA').toUpperCase();
+
+  // 1. Calculate RA Viability Score
+  let raScore = 20;
+  const expMap: Record<string, number> = {
+    peer_reviewed: 40,
+    preprint_workshop: 30,
+    thesis_only: 20,
+    none: 5,
+  };
+  raScore += expMap[researchExp] ?? 15;
+
+  const codingMap: Record<string, number> = {
+    advanced: 25,
+    intermediate: 15,
+    beginner: 5,
+  };
+  raScore += codingMap[coding] ?? 10;
+
+  if (gpaVal >= 3.8) raScore += 15;
+  else if (gpaVal >= 3.5) raScore += 10;
+  else raScore += 5;
+
+  if (degreeGoal === 'PhD') raScore += 10;
+  else raScore += 5;
+
+  // 2. Calculate TA Viability Score & Oral English Analysis
+  let taScore = 25;
+  let oralStatus: 'cleared' | 'borderline' | 'restricted_ra_only' = 'cleared';
+  let oralAnalysis = '';
+
+  if (country.includes('USA') || country.includes('US')) {
+    const isToefl = testType.includes('toefl');
+    if ((isToefl && speaking >= 26) || (!isToefl && speaking >= 8.0)) {
+      oralStatus = 'cleared';
+      taScore += 45;
+      oralAnalysis = `✅ Full Instructional Clearance: Your speaking score (${speaking}) satisfies strict US state mandates (TOEFL ≥26 / IELTS ≥8.0). You represent zero departmental liability, meaning the graduate committee can award you an unconditional TA package immediately.`;
+    } else if ((isToefl && speaking >= 23) || (!isToefl && speaking >= 7.0)) {
+      oralStatus = 'borderline';
+      taScore += 25;
+      oralAnalysis = `⚠️ Provisional / Borderline Zone (${speaking}): You meet baseline admission requirements, but US state statutes require you to pass an on-campus SPEAK test or ITA oral interview during August orientation before teaching introductory undergrad recitations.`;
+    } else {
+      oralStatus = 'restricted_ra_only';
+      taScore = Math.min(taScore, 35);
+      oralAnalysis = `🚫 Direct TA Restriction (${speaking}): Most US R1 graduate schools require TOEFL Speaking ≥23 or IELTS ≥7.0 to lead classrooms. Focus aggressively on Research Assistantships (RA) directly from professors' external research grants, which bypass state teaching regulations.`;
+    }
+  } else if (country.includes('CAN')) {
+    if (speaking >= 7.5 || (testType.includes('toefl') && speaking >= 25)) {
+      oralStatus = 'cleared';
+      taScore += 40;
+      oralAnalysis = `✅ Cleared for Canadian TA union appointment: Your speaking score meets Canadian departmental union guidelines (CUPE / AGSEM).`;
+    } else {
+      oralStatus = 'borderline';
+      taScore += 20;
+      oralAnalysis = `⚠️ Evaluated during departmental intake: Canadian universities require a brief department interview for tutorial TA allocation.`;
+    }
+  } else {
+    oralStatus = 'cleared';
+    taScore += 35;
+    oralAnalysis = `✅ High viability: European/UK research institutes prioritize technical project competence and English literacy over state oral certification exams.`;
+  }
+
+  // Factor GPA into TA
+  if (gpaVal >= 3.7) taScore += 15;
+  else if (gpaVal >= 3.4) taScore += 10;
+
+  // Cap scores to 100
+  raScore = Math.min(99, Math.max(15, raScore));
+  taScore = Math.min(99, Math.max(15, taScore));
+
+  // 3. Primary Recommendation
+  let recommendation = '';
+  if (raScore >= 65 && taScore >= 65) {
+    recommendation = 'Dual Application (Target RA & TA simultaneously)';
+  } else if (raScore >= taScore) {
+    recommendation = 'Research Assistantship (RA)';
+  } else {
+    recommendation = 'Teaching Assistantship (TA)';
+  }
+
+  // 4. Action Steps
+  const actionSteps: string[] = [];
+  if (raScore >= 60) {
+    actionSteps.push(
+      'Target 15-20 Principal Investigators (PIs) with newly awarded NSF/NIH/DARPA grants using the ScholarFinder cold email generator.'
+    );
+    actionSteps.push(
+      `Showcase your ${coding} programming background and relevant GitHub repositories directly in the 3rd paragraph of your pitch.`
+    );
+  }
+  if (oralStatus === 'borderline') {
+    actionSteps.push(
+      'Request the department graduate secretary for past sample recordings or rubric criteria for the campus SPEAK/ITA test.'
+    );
+  }
+  if (degreeGoal.includes('MS')) {
+    actionSteps.push(
+      'Apply to thesis-track MS programs at high-research state universities (e.g. Purdue, UIUC, Texas A&M) which extend TA fee remissions to master students.'
+    );
+  } else {
+    actionSteps.push(
+      'Request guaranteed 4-5 year funding letters in your formal PhD offer packet specifying full tuition remission and 12-month stipend.'
+    );
+  }
+
+  // 5. Tailored Cold Pitch
+  const coldPitch = `I am a prospective ${degreeGoal} candidate in ${major} (GPA: ${gpaVal.toFixed(2)}) with ${researchExp.replace(/_/g, ' ')} experience and ${coding} technical capabilities in systems and computational analysis. Given my background, I am eager to contribute immediately to ongoing funded projects in your laboratory as a Graduate Research Assistant (GRA).`;
+
+  // 6. Summer Funding Strategy
+  const summerStrategy =
+    'Standard TA appointments run for 9 academic months (August through May). For the 3 summer months (June to August), protect yourself by: (1) Securing a faculty RA summer buyout (paying 20-40h/week on grant funds), (2) Doing a high-paying US industry CPT internship ($7,000–$10,000/month in tech), or (3) Registering for summer departmental recitation teaching.';
+
+  // 7. Negotiation Tip
+  const negotiationTip =
+    degreeGoal === 'PhD'
+      ? 'Negotiation Formula: Never negotiate base TA/RA stipend rates (they are union or department-fixed scales). Instead, negotiate: (1) Sign-on or Dean Fellowship top-ups ($3,000–$5,000/yr), (2) Relocation stipend allowances, (3) Summer funding guarantees, and (4) Laptop/conference travel budgets.'
+      : 'MS Funding Formula: If admitted without funding, ask the Graduate Director if secondary grader/TA positions open up in the first 2 weeks of classes when enrollments surge. Over 30% of self-funded MS students land departmental TA positions by semester 2.';
+
+  return {
+    ra_viability_score: raScore,
+    ta_viability_score: taScore,
+    primary_recommendation: recommendation,
+    oral_english_status: oralStatus,
+    oral_english_analysis: oralAnalysis,
+    action_steps: actionSteps,
+    cold_pitch_paragraph: coldPitch,
+    summer_funding_strategy: summerStrategy,
+    negotiation_tip: negotiationTip,
+    model_used: 'Ethos Academic AI (Offline Failover)',
+  };
+}
+
+/**
+ * Client-Side Offline Knowledge-Driven Academic Funding Advisor Q&A.
+ */
+export function askTARAAdvisorOffline(
+  payload: TARAAdvisorQuestionRequest
+): TARAAdvisorQuestionResponse {
+  const q = payload.question.toLowerCase();
+
+  if (q.includes('ms') && (q.includes('phd') || q.includes('master') || q.includes('only'))) {
+    return {
+      answer: `### MS vs PhD Assistantship Funding Reality
+
+1. **PhD Funding is Institutional Default**: In the US and Canada, virtually 95%+ of admitted PhD students receive **guaranteed full funding** (100% tuition waiver + monthly stipend) for 4–5 years through department TAs or faculty RAs.
+2. **Thesis-Track MS Opportunities**: You CAN get funded for an MS, but it is competitive:
+   - **Research State Universities**: Schools like Iowa State, Texas A&M, SUNY Buffalo, and Purdue frequently award TAs to strong thesis-track MS students when undergraduate enrollments exceed PhD student availability.
+   - **Faculty Grants**: If you possess rare technical skills (e.g. ROS, PyTorch, FPGA, microfluidics), a PI can hire you on an RA grant from day one.
+3. **Coursework (Non-Thesis) MS**: Almost never funded at admission. However, many students get hired as hourly lab assistants or graders ($18–$25/hr) once on campus.`,
+      key_takeaway:
+        'Target Thesis-track MS programs at major public land-grant universities, or apply directly to PhD programs with an MS en-route.',
+      suggested_followups: [
+        'Which public universities fund MS students with TAs?',
+        'Can I convert from a self-funded MS to a funded PhD after semester 1?',
+        'How does an hourly grading position compare to an official TA?',
+      ],
+      model_used: 'Ethos Academic Knowledge Base (Client Failover)',
+    };
+  }
+
+  if (q.includes('grant') || q.includes('run out') || q.includes('loss') || q.includes('fired')) {
+    return {
+      answer: `### Safeguards If a Professor's RA Grant Expires
+
+- **Departmental Backstop Policy**: At reputable US & Canadian universities, admitted PhD students are backed by the **Graduate School Guarantee**. If your advisor loses an NSF/NIH grant, the department chair automatically transfers you to a **Teaching Assistantship (TA)** to cover your tuition and stipend.
+- **Co-Advising & Secondary Grants**: You can collaborate with a co-PI or transition to a related department lab that currently holds active funding.
+- **Immediate Action Steps**:
+  1. Maintain clear standing with the Director of Graduate Studies (DGS).
+  2. Ensure your spoken English meets the state instructional TA cutoff so the department can deploy you as a TA without friction.`,
+      key_takeaway:
+        'Your department is institutionally motivated to prevent you from dropping out due to lost grants—TA positions act as the safety net.',
+      suggested_followups: [
+        'How can I verify active NSF/NIH grants before picking an advisor?',
+        'What should I do if my advisor tells me funding will end next term?',
+        'How early in advance do professors know their grant renewals?',
+      ],
+      model_used: 'Ethos Academic Knowledge Base (Client Failover)',
+    };
+  }
+
+  if (q.includes('20') || q.includes('hour') || q.includes('f1') || q.includes('f-1') || q.includes('work')) {
+    return {
+      answer: `### The 20-Hour F-1 / Student Visa Work Limit
+
+- **US Federal Regulation (8 CFR § 214.2(f)(9))**: International students on an F-1 visa are **strictly limited to a maximum of 20 hours per week** of on-campus employment while academic semesters are in session.
+- **Full Assistantship Definition**: A "Full RA" or "Full TA" is legally designated as a **20-hour/week appointment** (0.50 FTE). It provides 100% tuition remission and your full monthly stipend.
+- **Summer & Official Breaks**: During summer vacation, winter break, and spring recess, F-1 regulations allow international students to work **full-time (up to 40 hours per week)** on-campus or on pre-approved Curricular Practical Training (CPT) off-campus.`,
+      key_takeaway:
+        'Never exceed 20 hours on the payroll during the semester—it constitutes a severe visa status violation.',
+      suggested_followups: [
+        'Can I do an external remote freelance job while on an F-1 assistantship?',
+        'How do taxes work on a 20-hour graduate stipend?',
+        'What is CPT and how do I use it for summer internships?',
+      ],
+      model_used: 'Ethos Academic Knowledge Base (Client Failover)',
+    };
+  }
+
+  if (q.includes('negotiate') || q.includes('bargain') || q.includes('offer')) {
+    return {
+      answer: `### How to Professionally Negotiate Assistantship Offers
+
+1. **What You CANNOT Negotiate**: Base RA/TA salary scales. These are strictly codified by graduate employee unions or university pay matrices.
+2. **What You CAN Negotiate**:
+   - **Dean's / Departmental Top-Up Fellowships**: Extra $2,000–$5,000/year awards.
+   - **Summer Funding Guarantees**: Request written confirmation of summer RA funding rather than entering summer blind.
+   - **Relocation Assistance**: One-time transition allowance ($1,000–$2,500) to assist with flights and initial apartment lease deposits.
+   - **Hardware / Travel Budget**: Ask the PI for a dedicated research workstation and at least 1 guaranteed international conference trip per year.
+3. **The Leverage Rule**: Always anchor your request respectfully around competing offers from peer institutions.`,
+      key_takeaway:
+        'Negotiate discretionary perks (fellowship top-ups, summer stipends, travel budgets) rather than fixed base pay scales.',
+      suggested_followups: [
+        'What email template should I use to request a fellowship top-up?',
+        'When is the right deadline to discuss funding adjustments?',
+        'Will asking for more funding jeopardize my admission offer?',
+      ],
+      model_used: 'Ethos Academic Knowledge Base (Client Failover)',
+    };
+  }
+
+  // Default answer for other questions
+  return {
+    answer: `### Academic Assistantship Strategy Advisory
+
+Navigating Graduate Research Assistantships (RA) and Teaching Assistantships (TA) requires understanding the dual funding mechanisms:
+1. **Research Assistantships (RA)**: Funded from faculty research grants (NSF, NIH, DARPA, industry sponsors). PIs hire students who can execute technical work immediately (programming, simulation, lab protocols, paper drafting).
+2. **Teaching Assistantships (TA)**: Funded from state and departmental instructional budgets. Chairs hire students who possess high spoken English fluency to lead recitation sections, lab tutorials, and grading.
+3. **Key Recommendation**: Dual-target both. Secure faculty sponsorship via proactive cold emailing while submitting formal university applications to maximize your funding odds.`,
+    key_takeaway:
+      'Align your research outreach with active faculty grants, while keeping your spoken English credentials ready for departmental TA pools.',
+    suggested_followups: [
+      'Can I get full funding for an MS, or is it only for PhDs?',
+      'What happens if my professor runs out of grant money?',
+      'Can I work more than 20 hours per week on an F-1 visa?',
+      'How do I negotiate an assistantship offer letter?',
+    ],
+    model_used: 'Ethos Academic Knowledge Base (Client Failover)',
+  };
+}

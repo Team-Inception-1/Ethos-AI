@@ -304,4 +304,38 @@ def test_live_search_entity_types():
     data_authors = res_authors.json()
     assert len(data_authors["results"]) >= 1
 
+def test_tara_strategy_endpoint():
+    payload = {
+        "degree_goal": "PhD",
+        "gpa": "3.85",
+        "undergrad_major": "Computer Science & Engineering",
+        "research_experience": "peer_reviewed",
+        "english_test_type": "toefl",
+        "speaking_score": 26.0,
+        "target_country": "USA",
+        "coding_depth": "advanced",
+    }
+    response = client.post("/api/ai/scholar/tara-strategy", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ra_viability_score"] >= 70
+    assert data["ta_viability_score"] >= 70
+    assert "RA" in data["primary_recommendation"] or "TA" in data["primary_recommendation"]
+    assert data["oral_english_status"] in ["cleared", "borderline", "restricted_ra_only"]
+    assert len(data["cold_pitch_paragraph"]) > 20
+    assert len(data["action_steps"]) >= 2
+    assert len(data["summer_funding_strategy"]) > 20
+
+
+def test_tara_advisor_endpoint():
+    payload = {
+        "question": "Can I get full funding for an MS, or is it only for PhDs?",
+        "student_context": {"degree_goal": "MS", "major": "CS"},
+    }
+    response = client.post("/api/ai/scholar/tara-advisor", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["answer"]) > 50
+    assert len(data["key_takeaway"]) > 10
+    assert len(data["suggested_followups"]) >= 1
 

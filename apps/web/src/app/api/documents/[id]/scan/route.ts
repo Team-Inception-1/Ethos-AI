@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import fs from 'fs';
 import path from 'path';
 
@@ -160,6 +161,27 @@ export async function POST(
       verdict,
       flags,
     });
+
+    // Also persist scan result in Neon Postgres
+    try {
+      await prisma.documentScan.upsert({
+        where: { documentId: id },
+        create: {
+          documentId: id,
+          riskScore,
+          verdict,
+          flags: flags as any,
+          modelVersion: 'ocr-v1.0',
+        },
+        update: {
+          riskScore,
+          verdict,
+          flags: flags as any,
+        },
+      });
+    } catch (e) {
+      console.warn('[DocumentScan] DB save error:', e);
+    }
 
     return NextResponse.json({
       document: updated,

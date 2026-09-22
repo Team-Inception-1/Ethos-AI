@@ -32,7 +32,11 @@ from app.schemas import (
     ProfessorSearchResponse,
     ProfileMatchRequest,
     ProfileMatchResponse,
+    TARAAdvisorQuestionRequest,
+    TARAAdvisorQuestionResponse,
     TARAGuideResponse,
+    TARAStrategyRequest,
+    TARAStrategyResponse,
 )
 from app.services.scholar_engine import (
     calculate_profile_match,
@@ -43,6 +47,10 @@ from app.services.scholar_engine import (
     prepare_interview,
     search_openalex_live,
     search_professors,
+)
+from app.services.tara_strategy_engine import (
+    ask_tara_advisor,
+    evaluate_tara_strategy,
 )
 from app.services.scholar_knowledge import SEED_PROFESSORS
 from app.services.text_extraction import extract_normalized_text
@@ -101,6 +109,32 @@ async def get_tara_guide_endpoint() -> TARAGuideResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve funding guide: {exc}",
+        ) from exc
+
+
+@router.post("/tara-strategy", response_model=TARAStrategyResponse)
+async def evaluate_tara_strategy_endpoint(payload: TARAStrategyRequest) -> TARAStrategyResponse:
+    """Evaluates student's profile to determine RA vs TA fit, English instructional hurdles, and customized cold pitch."""
+    try:
+        return evaluate_tara_strategy(payload)
+    except Exception as exc:
+        logger.exception("Failed to evaluate RA vs TA strategy")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Strategy evaluation failed: {exc}",
+        ) from exc
+
+
+@router.post("/tara-advisor", response_model=TARAAdvisorQuestionResponse)
+async def ask_tara_advisor_endpoint(payload: TARAAdvisorQuestionRequest) -> TARAAdvisorQuestionResponse:
+    """Answers funding, stipend, waiver, and assistantship policy questions."""
+    try:
+        return ask_tara_advisor(payload)
+    except Exception as exc:
+        logger.exception("Failed to answer advisor question")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Advisor failed: {exc}",
         ) from exc
 
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import MarkdownContent, { stripMarkdown } from '@/components/ui/MarkdownContent';
 import {
   searchProfessors,
   generateColdEmail,
@@ -15,6 +16,8 @@ import {
   matchProfile,
   deconstructPaper,
   liveSearchAcademic,
+  evaluateTARAStrategy,
+  askTARAAdvisor,
   type ProfessorProfile,
   type ColdEmailGenerateResponse,
   type InterviewPrepResponse,
@@ -22,6 +25,10 @@ import {
   type CVParsedData,
   type ProfessorMatchScore,
   type PaperDeconstructResponse,
+  type TARAStrategyRequest,
+  type TARAStrategyResponse,
+  type TARAAdvisorQuestionRequest,
+  type TARAAdvisorQuestionResponse,
 } from '@/lib/aiService';
 import styles from './ScholarFinderPage.module.css';
 
@@ -100,6 +107,43 @@ const ENTITY_TYPE_OPTIONS: {
   },
 ];
 
+interface AdvisorChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  keyTakeaway?: string;
+  suggestedFollowups?: string[];
+  modelUsed?: string;
+  timestamp: string;
+}
+
+const INITIAL_ADVISOR_MESSAGES: AdvisorChatMessage[] = [
+  {
+    id: 'msg-welcome',
+    role: 'assistant',
+    content: `### Welcome to the Ethos AI Funding Advisor 🎓
+
+I provide data-backed, institutional intelligence on **Research Assistantships (RA)**, **Teaching Assistantships (TA)**, **international student work authorizations**, and **financial negotiation**.
+
+#### Strategic Focus Areas:
+- **Assistantship Mechanics**: Differences in funding sources (Departmental GTR vs. PI NSF/NIH grant).
+- **Oral English Hurdles**: State laws and university policies for TA eligibility (e.g. Texas, Ohio, California speaking cutoffs).
+- **Visa & Work Hours**: F-1 20-hour/week restrictions, CPT summer internships, and tax withholding.
+- **Offer Evaluation**: Comparing 9-month vs 12-month stipends, mandatory student fees, and tuition remissions.`,
+    keyTakeaway:
+      'PhD applicants almost universally receive guaranteed multi-year tuition waivers + stipends; MS applicants should target specialized lab technical gaps (PyTorch, ROS, hardware) to convert into an RA after Semester 1.',
+    suggestedFollowups: [
+      'Can I get full funding for an MS, or is it only for PhDs?',
+      "What happens if my professor's grant runs out?",
+      'Can I work more than 20 hours/week as an RA or TA?',
+      'How do I negotiate my stipend and tuition remission offer?',
+      'My TOEFL Speaking is 22 / IELTS 6.5. Can I still get funded?',
+    ],
+    modelUsed: 'Ethos AI Funding Model v2.4',
+    timestamp: 'Just now',
+  },
+];
+
 export default function ScholarFinderPage() {
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [activeTab, setActiveTab] = useState<'search' | 'email_studio' | 'pipeline' | 'guide'>('search');
@@ -162,12 +206,55 @@ export default function ScholarFinderPage() {
   // Guide Data
   const [guideData, setGuideData] = useState<TARAGuideResponse | null>(null);
 
+  // Tab 4: Graduate Assistantship & Funding Suite State
+  const [guideSubTab, setGuideSubTab] = useState<'evaluator' | 'simulator' | 'advisor' | 'matrix'>('evaluator');
+
+  // Module 1: Fit Evaluator State
+  const [taraDegreeGoal, setTaraDegreeGoal] = useState<'PhD' | 'MS with Thesis'>('PhD');
+  const [taraGpa, setTaraGpa] = useState<string>('3.82');
+  const [taraMajor, setTaraMajor] = useState<string>('Computer Science & Engineering');
+  const [taraResearchExp, setTaraResearchExp] = useState<'peer_reviewed' | 'preprint_workshop' | 'thesis_only' | 'none'>('thesis_only');
+  const [taraCoding, setTaraCoding] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
+  const [taraEnglishTest, setTaraEnglishTest] = useState<'toefl' | 'ielts' | 'duolingo' | 'none'>('toefl');
+  const [taraSpeakingScore, setTaraSpeakingScore] = useState<number>(24);
+  const [taraTargetCountry, setTaraTargetCountry] = useState<string>('USA');
+  const [taraLoading, setTaraLoading] = useState<boolean>(false);
+  const [taraResult, setTaraResult] = useState<TARAStrategyResponse | null>(null);
+
+  // Module 2: Financial Simulator State
+  const [simCountry, setSimCountry] = useState<'USA' | 'Canada' | 'Germany' | 'UK' | 'Australia'>('USA');
+  const [simRole, setSimRole] = useState<'RA' | 'TA'>('RA');
+  const [simCityCost, setSimCityCost] = useState<'low' | 'medium' | 'high'>('medium');
+
+  // Module 3: AI Funding Advisor Chat Stream & Audio State
+  const [advisorChatMessages, setAdvisorChatMessages] = useState<AdvisorChatMessage[]>(INITIAL_ADVISOR_MESSAGES);
+  const [advisorInputText, setAdvisorInputText] = useState<string>('');
+  const [advisorLoading, setAdvisorLoading] = useState<boolean>(false);
+  const [advisorSpeakingMsgId, setAdvisorSpeakingMsgId] = useState<string | null>(null);
+  const advisorChatEndRef = useRef<HTMLDivElement>(null);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Load initial pipeline and guide
+  // Cleanup speech synthesis on component unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  // Auto-scroll advisor chat when new message arrives or loading state changes
+  useEffect(() => {
+    if (guideSubTab === 'advisor' && advisorChatEndRef.current) {
+      advisorChatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [advisorChatMessages, advisorLoading, guideSubTab]);
+
+  // Load initial pipeline, guide, and run baseline TARA evaluation
   useEffect(() => {
     try {
       const saved = localStorage.getItem('ethos_scholar_pipeline');
@@ -181,7 +268,341 @@ export default function ScholarFinderPage() {
     getTARAGuide()
       .then((data) => setGuideData(data))
       .catch((err) => console.warn('Failed to fetch guide data', err));
+
+    evaluateTARAStrategy({
+      degree_goal: 'PhD',
+      gpa: '3.82',
+      undergrad_major: 'Computer Science & Engineering',
+      research_experience: 'thesis_only',
+      coding_depth: 'intermediate',
+      english_test_type: 'toefl',
+      speaking_score: 24,
+      target_country: 'USA',
+    })
+      .then((res) => setTaraResult(res))
+      .catch((e) => console.warn('Initial TARA evaluation error', e));
   }, []);
+
+  // TARA Strategy Evaluation Handler
+  const runTARAEvaluation = async () => {
+    setTaraLoading(true);
+    try {
+      const res = await evaluateTARAStrategy({
+        degree_goal: taraDegreeGoal,
+        gpa: taraGpa,
+        undergrad_major: taraMajor,
+        research_experience: taraResearchExp,
+        coding_depth: taraCoding,
+        english_test_type: taraEnglishTest,
+        speaking_score: taraSpeakingScore,
+        target_country: taraTargetCountry,
+      });
+      setTaraResult(res);
+      showToast('🎯 Assistantship & funding strategy evaluated!');
+    } catch (err) {
+      console.error('Failed to evaluate TARA strategy:', err);
+      showToast('Evaluation error. Please check parameters.');
+    } finally {
+      setTaraLoading(false);
+    }
+  };
+
+  // Voice Speech Synthesis Toggle for Advisor Answers
+  const toggleAdvisorSpeech = (msgId: string, text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      showToast('⚠️ Speech synthesis is not supported on this browser.');
+      return;
+    }
+
+    if (advisorSpeakingMsgId === msgId) {
+      window.speechSynthesis.cancel();
+      setAdvisorSpeakingMsgId(null);
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      const cleanText = stripMarkdown(text);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const isBn = lang === 'bn' || /[\u0980-\u09FF]/.test(cleanText);
+
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (isBn) {
+        const bnVoice = voices.find((v) => v.lang.toLowerCase().startsWith('bn'));
+        if (bnVoice) {
+          utterance.voice = bnVoice;
+          utterance.lang = bnVoice.lang;
+        } else {
+          utterance.lang = 'bn-BD';
+        }
+      } else {
+        const enVoice = voices.find((v) => v.lang.toLowerCase().startsWith('en'));
+        if (enVoice) {
+          utterance.voice = enVoice;
+          utterance.lang = enVoice.lang;
+        } else {
+          utterance.lang = 'en-US';
+        }
+      }
+      utterance.rate = 0.95;
+
+      utterance.onstart = () => {
+        setAdvisorSpeakingMsgId(msgId);
+      };
+      utterance.onend = () => {
+        setAdvisorSpeakingMsgId(null);
+      };
+      utterance.onerror = () => {
+        setAdvisorSpeakingMsgId(null);
+      };
+
+      setAdvisorSpeakingMsgId(msgId);
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      setAdvisorSpeakingMsgId(null);
+      showToast('⚠️ Speech playback not permitted by device.');
+    }
+  };
+
+  // TARA Advisor Question Handler (Conversational Stream)
+  const handleAskAdvisor = async (questionToAsk?: string) => {
+    const qText = (questionToAsk || advisorInputText).trim();
+    if (!qText || advisorLoading) return;
+
+    const userMsgId = `user-${Date.now()}`;
+    const userMsg: AdvisorChatMessage = {
+      id: userMsgId,
+      role: 'user',
+      content: qText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setAdvisorChatMessages((prev) => [...prev, userMsg]);
+    setAdvisorInputText('');
+    setAdvisorLoading(true);
+
+    try {
+      const res = await askTARAAdvisor({
+        question: qText,
+        student_context: {
+          gpa: taraGpa,
+          degree_goal: taraDegreeGoal,
+          major: taraMajor,
+          target_country: taraTargetCountry,
+        },
+      });
+
+      const botMsgId = `bot-${Date.now()}`;
+      const botMsg: AdvisorChatMessage = {
+        id: botMsgId,
+        role: 'assistant',
+        content: res.answer,
+        keyTakeaway: res.key_takeaway,
+        suggestedFollowups: res.suggested_followups,
+        modelUsed: res.model_used,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setAdvisorChatMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      console.error('Failed to ask advisor:', err);
+      const errMsg: AdvisorChatMessage = {
+        id: `err-${Date.now()}`,
+        role: 'assistant',
+        content:
+          lang === 'en'
+            ? 'I apologize, but I encountered a connection timeout while analyzing this funding policy. Please try again or rephrase your inquiry.'
+            : 'দুঃখিত, ফান্ডিং পলিসি পর্যালোচনা করার সময় নেটওয়ার্ক ত্রুটি হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+        keyTakeaway:
+          lang === 'en'
+            ? 'Connection failover encountered. Check your internet or re-submit your prompt.'
+            : 'নেটওয়ার্ক ফেইলওভার হয়েছে। পুনরায় প্রশ্নটি পাঠান।',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setAdvisorChatMessages((prev) => [...prev, errMsg]);
+      showToast('Advisor query failed. Please try again.');
+    } finally {
+      setAdvisorLoading(false);
+    }
+  };
+
+  const handleResetAdvisorChat = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setAdvisorSpeakingMsgId(null);
+    setAdvisorChatMessages(INITIAL_ADVISOR_MESSAGES);
+    setAdvisorInputText('');
+    showToast('Advisor conversation reset.');
+  };
+
+  const handleCopyPitch = () => {
+    if (!taraResult?.cold_pitch_paragraph) return;
+    navigator.clipboard.writeText(taraResult.cold_pitch_paragraph);
+    showToast('📋 Tailored RA pitch copied to clipboard!');
+  };
+
+  // Financial Simulator reactive calculation
+  const simData = React.useMemo(() => {
+    const isRA = simRole === 'RA';
+    let currencySymbol = '$';
+    let currencyCode = 'USD';
+    let exchangeRateBDT = 122;
+    let baseStipend = isRA ? 2800 : 2550;
+    let tuitionWaiverAnnual = 44000;
+    let termFees = 1250;
+    let monthlyRent = 950;
+    let monthlyFoodLiving = 550;
+    let monthlyHealthInsurance = 180;
+    let summerMonthsCovered = isRA ? 3 : 0;
+    let summerTip = isRA
+      ? '✅ 12-Month Coverage: RAs typically receive 12-month funding directly from faculty grant accounts, including June–August.'
+      : '⚠️ 9-Month Gap: TAs are appointed for 9 academic months (Aug–May). June–August requires summer teaching, RA buyout, or CPT industry internship ($7,500–$10,500/mo).';
+
+    if (simCountry === 'USA') {
+      currencySymbol = '$';
+      currencyCode = 'USD';
+      exchangeRateBDT = 122;
+      tuitionWaiverAnnual = 44000;
+      termFees = 1250;
+      if (simCityCost === 'low') {
+        baseStipend = isRA ? 2300 : 2100;
+        monthlyRent = 650;
+        monthlyFoodLiving = 450;
+        monthlyHealthInsurance = 150;
+      } else if (simCityCost === 'high') {
+        baseStipend = isRA ? 3400 : 3100;
+        monthlyRent = 1450;
+        monthlyFoodLiving = 700;
+        monthlyHealthInsurance = 220;
+      } else {
+        baseStipend = isRA ? 2800 : 2550;
+        monthlyRent = 950;
+        monthlyFoodLiving = 550;
+        monthlyHealthInsurance = 180;
+      }
+    } else if (simCountry === 'Canada') {
+      currencySymbol = 'C$';
+      currencyCode = 'CAD';
+      exchangeRateBDT = 89;
+      tuitionWaiverAnnual = 24000;
+      termFees = 850;
+      summerTip = '🇨🇦 U15 Guarantee: Canadian research universities provide a 12-month minimum guaranteed funding package split between TAships and RA top-ups.';
+      if (simCityCost === 'low') {
+        baseStipend = isRA ? 2200 : 2050;
+        monthlyRent = 700;
+        monthlyFoodLiving = 480;
+        monthlyHealthInsurance = 90;
+      } else if (simCityCost === 'high') {
+        baseStipend = isRA ? 3100 : 2850;
+        monthlyRent = 1350;
+        monthlyFoodLiving = 650;
+        monthlyHealthInsurance = 110;
+      } else {
+        baseStipend = isRA ? 2600 : 2400;
+        monthlyRent = 950;
+        monthlyFoodLiving = 550;
+        monthlyHealthInsurance = 100;
+      }
+    } else if (simCountry === 'Germany') {
+      currencySymbol = '€';
+      currencyCode = 'EUR';
+      exchangeRateBDT = 132;
+      tuitionWaiverAnnual = 0;
+      termFees = 320;
+      summerTip = '🇩🇪 Full 12-Month TV-L E13 Contract: PhD candidates are salaried university/institute employees with 30 paid annual vacation days.';
+      if (simCityCost === 'low') {
+        baseStipend = 1750;
+        monthlyRent = 450;
+        monthlyFoodLiving = 420;
+        monthlyHealthInsurance = 110;
+      } else if (simCityCost === 'high') {
+        baseStipend = 2250;
+        monthlyRent = 850;
+        monthlyFoodLiving = 550;
+        monthlyHealthInsurance = 130;
+      } else {
+        baseStipend = 1950;
+        monthlyRent = 600;
+        monthlyFoodLiving = 480;
+        monthlyHealthInsurance = 120;
+      }
+    } else if (simCountry === 'UK') {
+      currencySymbol = '£';
+      currencyCode = 'GBP';
+      exchangeRateBDT = 158;
+      tuitionWaiverAnnual = 26000;
+      termFees = 0;
+      summerTip = '🇬🇧 UKRI Doctoral Training: Tax-free stipend paid across all 12 months for 3.5 to 4 years.';
+      if (simCityCost === 'low') {
+        baseStipend = 1600;
+        monthlyRent = 550;
+        monthlyFoodLiving = 400;
+        monthlyHealthInsurance = 60;
+      } else if (simCityCost === 'high') {
+        baseStipend = 1900;
+        monthlyRent = 1050;
+        monthlyFoodLiving = 550;
+        monthlyHealthInsurance = 75;
+      } else {
+        baseStipend = 1700;
+        monthlyRent = 750;
+        monthlyFoodLiving = 460;
+        monthlyHealthInsurance = 65;
+      }
+    } else if (simCountry === 'Australia') {
+      currencySymbol = 'A$';
+      currencyCode = 'AUD';
+      exchangeRateBDT = 79;
+      tuitionWaiverAnnual = 38000;
+      termFees = 300;
+      summerTip = '🇦🇺 RTP Scholarship: Tax-free stipend paid bi-weekly across all 12 months for 3 to 3.5 years.';
+      if (simCityCost === 'low') {
+        baseStipend = 2600;
+        monthlyRent = 850;
+        monthlyFoodLiving = 600;
+        monthlyHealthInsurance = 120;
+      } else if (simCityCost === 'high') {
+        baseStipend = 3200;
+        monthlyRent = 1500;
+        monthlyFoodLiving = 800;
+        monthlyHealthInsurance = 140;
+      } else {
+        baseStipend = 2850;
+        monthlyRent = 1100;
+        monthlyFoodLiving = 700;
+        monthlyHealthInsurance = 130;
+      }
+    }
+
+    const totalMonthlyLiving = monthlyRent + monthlyFoodLiving + monthlyHealthInsurance;
+    const monthlyAmortizedFees = termFees > 0 ? Math.round(termFees / 4.5) : 0;
+    const netMonthlySavings = Math.max(0, baseStipend - totalMonthlyLiving - monthlyAmortizedFees);
+    const grossStipendBDT = Math.round((baseStipend * exchangeRateBDT) / 1000) * 1000;
+    const netSavingsBDT = Math.round((netMonthlySavings * exchangeRateBDT) / 1000) * 1000;
+    const tuitionSavingsBDTLakh = tuitionWaiverAnnual > 0 ? ((tuitionWaiverAnnual * exchangeRateBDT) / 100000).toFixed(1) : '0';
+
+    return {
+      currencySymbol,
+      currencyCode,
+      baseStipend,
+      grossStipendBDT,
+      grossStipendBDTLakh: (grossStipendBDT / 100000).toFixed(2),
+      tuitionWaiverAnnual,
+      tuitionSavingsBDTLakh,
+      termFees,
+      totalMonthlyLiving,
+      monthlyRent,
+      monthlyFoodLiving,
+      monthlyHealthInsurance,
+      monthlyAmortizedFees,
+      netMonthlySavings,
+      netSavingsBDT,
+      netSavingsBDTLakh: (netSavingsBDT / 100000).toFixed(2),
+      summerMonthsCovered,
+      summerTip,
+    };
+  }, [simCountry, simRole, simCityCost]);
 
   // Save pipeline
   const savePipeline = (items: PipelineItem[]) => {
@@ -258,9 +679,18 @@ export default function ScholarFinderPage() {
       const res = await parseCVFile(file);
       setCvParsedData(res.parsed_data);
       if (res.parsed_data.student_name) setStudentName(res.parsed_data.student_name);
-      if (res.parsed_data.degree) setStudentDegree(res.parsed_data.degree);
+      if (res.parsed_data.degree) {
+        setStudentDegree(res.parsed_data.degree);
+        setTaraMajor(res.parsed_data.degree);
+      }
       if (res.parsed_data.institution) setStudentInstitution(res.parsed_data.institution);
-      if (res.parsed_data.gpa) setStudentGpa(res.parsed_data.gpa);
+      if (res.parsed_data.gpa) {
+        setStudentGpa(res.parsed_data.gpa);
+        setTaraGpa(res.parsed_data.gpa);
+      }
+      if (res.parsed_data.publications && res.parsed_data.publications.length > 0) {
+        setTaraResearchExp('peer_reviewed');
+      }
       if (res.parsed_data.skills && res.parsed_data.skills.length > 0) {
         setStudentSkills(res.parsed_data.skills.join(', '));
       }
@@ -450,33 +880,10 @@ export default function ScholarFinderPage() {
 
       {/* Header Section */}
       <header className={styles.hero}>
-        <div className={styles.heroTagline}>
+        <h1 className={styles.heroTagline}>
           <span>🎓</span>
-          <span>{lang === 'en' ? 'Full-Fund Scholarship & RA/TA Navigator' : 'ফুল-ফান্ড স্কলারশিপ ও আরএ/টিএ নেভিগেটর'}</span>
-        </div>
-        <h1 className={styles.heroTitle}>
-          {lang === 'en' ? 'Ethos ScholarFinder' : 'ইথোস স্কলার-ফাইন্ডার'}
+          <span>{lang === 'en' ? 'Ethos ScholarFinder' : 'ইথোস স্কলার-ফাইন্ডার'}</span>
         </h1>
-        <p className={styles.heroDesc}>
-          {lang === 'en'
-            ? 'Discover professors with active research grants (NSF, NIH, NSERC, Horizon), synthesize hyper-personalized 3-paragraph cold emails, and secure fully funded RA/TA positions.'
-            : 'সক্রিয় গ্র্যান্টধারী প্রফেসরদের খুঁজুন, নির্দিষ্ট পেপারের আলোকে হাইপার-পার্সোনালাইজড কোল্ড ইমেইল ড্রাফট করুন এবং ফুল-ফান্ডেড আরএ/টিএ পজিশন নিশ্চিত করুন।'}
-        </p>
-
-        <div className={styles.heroStats}>
-          <div className={styles.heroStatItem}>
-            <span>🏛️</span>
-            <strong>{lang === 'en' ? 'Top R1 / U15 / TU9 Universities' : 'শীর্ষ আর১ / ইউ১৫ / টিইউ৯ বিশ্ববিদ্যালয়'}</strong>
-          </div>
-          <div className={styles.heroStatItem}>
-            <span>💰</span>
-            <strong>{lang === 'en' ? '100% Tuition Remission + Stipend' : '১০০% টিউশন ওয়েভার + মাসিক স্টাইপেন্ড'}</strong>
-          </div>
-          <div className={styles.heroStatItem}>
-            <span>🛡️</span>
-            <strong>{lang === 'en' ? 'Zero Consultancy Exploitation' : 'দালাল ও এজেন্সিমুক্ত গবেষণা পথ'}</strong>
-          </div>
-        </div>
       </header>
 
       {/* Main Tabs Navigation */}
@@ -512,7 +919,8 @@ export default function ScholarFinderPage() {
           onClick={() => setActiveTab('guide')}
         >
           <span>💡</span>
-          <span>{lang === 'en' ? 'RA vs TA Strategy & Stipend' : 'আরএ বনাম টিএ গাইড'}</span>
+          <span>{lang === 'en' ? 'Funding Intel' : 'ফান্ডিং ইন্টেল'}</span>
+          <span className={styles.tabBadge}>AI</span>
         </button>
       </div>
 
@@ -1326,86 +1734,968 @@ export default function ScholarFinderPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: RA vs TA STRATEGY & STIPEND GUIDE                                   */}
+      {/* TAB 4: RA / TA FUNDING INTEL                                              */}
       {/* ========================================================================= */}
-      {activeTab === 'guide' && guideData && (
+      {activeTab === 'guide' && (
         <section>
-          <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
-            <h2 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'bold', marginBottom: 'var(--space-1)' }}>
-              {lang === 'en' ? 'RA vs TA Graduate Funding Masterclass' : 'রিসার্চ অ্যাসিস্ট্যান্টশিপ (RA) বনাম টিচিং অ্যাসিস্ট্যান্টশিপ (TA)'}
+          {/* Header */}
+          <div className={styles.taraSuiteHeader}>
+            <h2 className={styles.taraSuiteTitle}>
+              {lang === 'en'
+                ? 'RA / TA Funding Intel'
+                : 'আরএ / টিএ ফান্ডিং ইন্টেল'}
             </h2>
-            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', maxWidth: '680px', margin: '0 auto' }}>
-              Understand how graduate stipends and 100% tuition waivers work across destination countries.
+            <p className={styles.taraSuiteSubtitle}>
+              {lang === 'en'
+                ? 'Strategic Assistantship Fit, Oral English Clearances, Living Stipends & Real-World Funding Advisory.'
+                : 'রিসার্চ অ্যাসিস্ট্যান্টশিপ (RA), টিচিং অ্যাসিস্ট্যান্টশিপ (TA), স্পোকেন টেস্ট নিয়মাবলী এবং মাসিক সঞ্চয়ের বাস্তবসম্মত এআই সিমুলেটর।'}
             </p>
           </div>
 
-          <div className={styles.guideGrid}>
-            {guideData.countries.map((item, idx) => (
-              <GlassCard key={idx} variant="bordered" className={styles.guideCard}>
-                <div className={styles.guideCountryHeader}>
-                  <div className={styles.guideCountryName}>
-                    <span>{item.flag}</span>
-                    <span>{item.country}</span>
-                  </div>
+          {/* Sub-Navigation Tabs */}
+          <div className={styles.taraSubNav}>
+            <button
+              type="button"
+              className={`${styles.taraSubNavBtn} ${guideSubTab === 'evaluator' ? styles.taraSubNavBtnActive : ''}`}
+              onClick={() => setGuideSubTab('evaluator')}
+            >
+              <span>🎯</span>
+              <span>{lang === 'en' ? 'Fit & Viability Evaluator' : 'প্রোফাইল ফিট ও যোগ্যতা মূল্যায়ন'}</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.taraSubNavBtn} ${guideSubTab === 'simulator' ? styles.taraSubNavBtnActive : ''}`}
+              onClick={() => setGuideSubTab('simulator')}
+            >
+              <span>💰</span>
+              <span>{lang === 'en' ? 'Stipend & Savings Simulator' : 'স্টাইপেন্ড ও সেভিংস সিমুলেটর'}</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.taraSubNavBtn} ${guideSubTab === 'advisor' ? styles.taraSubNavBtnActive : ''}`}
+              onClick={() => setGuideSubTab('advisor')}
+            >
+              <span>🤖</span>
+              <span>{lang === 'en' ? 'AI Funding Advisor' : 'এআই ফান্ডিং অ্যাডভাইজর'}</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.taraSubNavBtn} ${guideSubTab === 'matrix' ? styles.taraSubNavBtnActive : ''}`}
+              onClick={() => setGuideSubTab('matrix')}
+            >
+              <span>🌐</span>
+              <span>{lang === 'en' ? 'Destination Matrix' : 'গ্লোবাল ফান্ডিং ম্যাট্রিক্স'}</span>
+            </button>
+          </div>
+
+          {/* ================================================================= */}
+          {/* SUB-TAB 1: AI PROFILE FIT & VIABILITY EVALUATOR                   */}
+          {/* ================================================================= */}
+          {guideSubTab === 'evaluator' && (
+            <div className={styles.evaluatorGrid}>
+              {/* Form Input Card */}
+              <div className={styles.evaluatorFormCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                    ⚙️ {lang === 'en' ? 'Academic & Test Credentials' : 'একাডেমিক ও টেস্ট তথ্য'}
+                  </h3>
                   <Badge variant="verified" size="sm">
-                    {item.tuition_remission.includes('100%') ? '100% Tuition Free' : 'Partial/Full Offset'}
+                    {lang === 'en' ? 'Custom Evaluator' : 'কাস্টম ইভালুয়েটর'}
                   </Badge>
                 </div>
 
-                <div className={styles.stipendHighlight}>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Monthly Living Stipend:</div>
-                  <div className={styles.stipendBdt}>
-                    {item.monthly_stipend_range} (~৳{item.monthly_stipend_bdt_lakh} Lakh BDT/mo)
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>{lang === 'en' ? 'Degree Goal' : 'টার্গেট ডিগ্রি'}</label>
+                  <select
+                    className={styles.formSelect}
+                    value={taraDegreeGoal}
+                    onChange={(e) => setTaraDegreeGoal(e.target.value as 'PhD' | 'MS with Thesis')}
+                  >
+                    <option value="PhD">Direct PhD (Higher Grant & TA Priority)</option>
+                    <option value="MS with Thesis">MS with Thesis (Competitive Assistantships)</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>{lang === 'en' ? 'Undergrad GPA' : 'অনার্স সিজিপিএ'}</label>
+                    <input
+                      type="text"
+                      className={styles.formInput}
+                      value={taraGpa}
+                      onChange={(e) => setTaraGpa(e.target.value)}
+                      placeholder="e.g. 3.82"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>{lang === 'en' ? 'Target Country' : 'টার্গেট দেশ'}</label>
+                    <select
+                      className={styles.formSelect}
+                      value={taraTargetCountry}
+                      onChange={(e) => setTaraTargetCountry(e.target.value)}
+                    >
+                      <option value="USA">USA (Strict State ITA Laws)</option>
+                      <option value="Canada">Canada (U15 Package)</option>
+                      <option value="Germany">Germany (Salaried Contract)</option>
+                      <option value="UK">UK (UKRI Research)</option>
+                      <option value="Australia">Australia (RTP Scholarship)</option>
+                    </select>
                   </div>
                 </div>
 
-                <div>
-                  <div className={styles.guideSectionTitle}>🔬 Research Assistantship (RA):</div>
-                  <div className={styles.guideText}>{item.ra_overview}</div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>{lang === 'en' ? 'Field / Major' : 'বিষয় বা বিভাগ'}</label>
+                  <input
+                    type="text"
+                    className={styles.formInput}
+                    value={taraMajor}
+                    onChange={(e) => setTaraMajor(e.target.value)}
+                    placeholder="e.g. Computer Science, EEE, Robotics"
+                  />
                 </div>
 
-                <div>
-                  <div className={styles.guideSectionTitle}>👨‍🏫 Teaching Assistantship (TA):</div>
-                  <div className={styles.guideText}>{item.ta_overview}</div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    {lang === 'en' ? 'Research Track Record' : 'রিসার্চ পূর্বঅভিজ্ঞতা'}
+                  </label>
+                  <select
+                    className={styles.formSelect}
+                    value={taraResearchExp}
+                    onChange={(e) =>
+                      setTaraResearchExp(
+                        e.target.value as 'peer_reviewed' | 'preprint_workshop' | 'thesis_only' | 'none'
+                      )
+                    }
+                  >
+                    <option value="peer_reviewed">Peer-Reviewed First/Co-Author Paper (Highest RA Priority)</option>
+                    <option value="preprint_workshop">arXiv Preprint / Workshop Paper</option>
+                    <option value="thesis_only">Undergraduate Senior Thesis / Capstone</option>
+                    <option value="none">No Prior Publications (Early Stage)</option>
+                  </select>
                 </div>
 
-                <div className={styles.speakingCutoffBox}>
-                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#f59e0b', textTransform: 'uppercase' }}>
-                    🗣️ Spoken English Cutoff for TA:
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    {lang === 'en' ? 'Technical & Coding Depth' : 'কোডিং ও টেকনিক্যাল গভীরতা'}
+                  </label>
+                  <select
+                    className={styles.formSelect}
+                    value={taraCoding}
+                    onChange={(e) =>
+                      setTaraCoding(e.target.value as 'beginner' | 'intermediate' | 'advanced')
+                    }
+                  >
+                    <option value="advanced">Advanced (PyTorch, CUDA, C++, Distributed Systems, Hardware)</option>
+                    <option value="intermediate">Intermediate (Python, NumPy, Git, Standard ML Frameworks)</option>
+                    <option value="beginner">Foundational (Coursework Programming)</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>{lang === 'en' ? 'English Test' : 'ইংরেজি টেস্ট'}</label>
+                    <select
+                      className={styles.formSelect}
+                      value={taraEnglishTest}
+                      onChange={(e) => setTaraEnglishTest(e.target.value as 'toefl' | 'ielts' | 'duolingo' | 'none')}
+                    >
+                      <option value="toefl">TOEFL iBT</option>
+                      <option value="ielts">IELTS Academic</option>
+                      <option value="duolingo">Duolingo / Other</option>
+                      <option value="none">Native / Exempt</option>
+                    </select>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {item.ta_speaking_score_requirement}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>
+                      {lang === 'en' ? 'Speaking Score' : 'স্পিকিং স্কোর'}
+                    </label>
+                    <input
+                      type="number"
+                      step={taraEnglishTest === 'ielts' ? '0.5' : '1'}
+                      className={styles.formInput}
+                      value={taraSpeakingScore}
+                      onChange={(e) => setTaraSpeakingScore(parseFloat(e.target.value) || 0)}
+                      placeholder={taraEnglishTest === 'ielts' ? 'e.g. 7.5' : 'e.g. 26'}
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <div className={styles.guideSectionTitle}>💡 Pro Tips:</div>
-                  <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    {item.pro_tips.map((tip, tIdx) => (
-                      <li key={tIdx} style={{ marginBottom: '4px' }}>
-                        {tip}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </GlassCard>
-            ))}
-          </div>
+                <Button
+                  variant="primary"
+                  onClick={runTARAEvaluation}
+                  disabled={taraLoading}
+                  style={{ width: '100%', marginTop: '6px' }}
+                >
+                  {taraLoading ? '⚡ Evaluating Profile...' : '🎯 Run Strategic Funding Assessment'}
+                </Button>
+              </div>
 
-          {/* Grant Cycles Timeline */}
-          <GlassCard variant="elevated" padding="lg">
-            <h3 style={{ fontSize: 'var(--font-size-base)', fontWeight: 'bold', marginBottom: 'var(--space-3)' }}>
-              📅 Global Academic Grant & Hiring Timelines
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-4)' }}>
-              {guideData.grant_cycles_overview.map((cycle, i) => (
-                <div key={i} className={styles.grantCycleCard}>
-                  <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{cycle.mechanism}</strong>
-                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>{cycle.timeline}</p>
-                </div>
-              ))}
+              {/* Results Column */}
+              <div className={styles.evaluatorResultCol}>
+                {taraResult ? (
+                  <>
+                    {/* Dual Meter Row */}
+                    <div className={styles.viabilityMeterRow}>
+                      {/* RA Viability Card */}
+                      <div className={styles.viabilityMeterCard}>
+                        <div className={styles.meterHeader}>
+                          <span className={styles.meterTitle}>
+                            <span>🔬</span>
+                            <span>{lang === 'en' ? 'RA Viability Score' : 'আরএ সম্ভাবনা'}</span>
+                          </span>
+                          <Badge
+                            variant={
+                              taraResult.ra_viability_score >= 70
+                                ? 'success'
+                                : taraResult.ra_viability_score >= 50
+                                ? 'verified'
+                                : 'neutral'
+                            }
+                            size="sm"
+                          >
+                            {taraResult.ra_viability_score >= 70
+                              ? 'High Fit'
+                              : taraResult.ra_viability_score >= 50
+                              ? 'Moderate'
+                              : 'Emerging'}
+                          </Badge>
+                        </div>
+                        <div
+                          className={styles.meterScoreNumber}
+                          style={{
+                            color:
+                              taraResult.ra_viability_score >= 70
+                                ? '#10b981'
+                                : taraResult.ra_viability_score >= 50
+                                ? '#818cf8'
+                                : '#f59e0b',
+                          }}
+                        >
+                          {taraResult.ra_viability_score}%
+                        </div>
+                        <div className={styles.meterProgressBar}>
+                          <div
+                            className={styles.meterProgressFill}
+                            style={{
+                              width: `${taraResult.ra_viability_score}%`,
+                              background: 'linear-gradient(90deg, #6366f1 0%, #10b981 100%)',
+                            }}
+                          />
+                        </div>
+                        <div className={styles.meterSubtext}>
+                          Grant readiness driven by publication output, {taraCoding} programming & thesis depth.
+                        </div>
+                      </div>
+
+                      {/* TA Viability Card */}
+                      <div className={styles.viabilityMeterCard}>
+                        <div className={styles.meterHeader}>
+                          <span className={styles.meterTitle}>
+                            <span>👨‍🏫</span>
+                            <span>{lang === 'en' ? 'TA Viability Score' : 'টিএ সম্ভাবনা'}</span>
+                          </span>
+                          <Badge
+                            variant={
+                              taraResult.ta_viability_score >= 70
+                                ? 'success'
+                                : taraResult.ta_viability_score >= 50
+                                ? 'verified'
+                                : 'neutral'
+                            }
+                            size="sm"
+                          >
+                            {taraResult.ta_viability_score >= 70
+                              ? 'Instruction Clear'
+                              : taraResult.ta_viability_score >= 50
+                              ? 'Conditional'
+                              : 'Restricted'}
+                          </Badge>
+                        </div>
+                        <div
+                          className={styles.meterScoreNumber}
+                          style={{
+                            color:
+                              taraResult.ta_viability_score >= 70
+                                ? '#10b981'
+                                : taraResult.ta_viability_score >= 50
+                                ? '#f59e0b'
+                                : '#ef4444',
+                          }}
+                        >
+                          {taraResult.ta_viability_score}%
+                        </div>
+                        <div className={styles.meterProgressBar}>
+                          <div
+                            className={styles.meterProgressFill}
+                            style={{
+                              width: `${taraResult.ta_viability_score}%`,
+                              background:
+                                taraResult.ta_viability_score >= 70
+                                  ? 'linear-gradient(90deg, #818cf8 0%, #10b981 100%)'
+                                  : 'linear-gradient(90deg, #f59e0b 0%, #ef4444 100%)',
+                            }}
+                          />
+                        </div>
+                        <div className={styles.meterSubtext}>
+                          Governed by department teaching capacity & state spoken English certifications.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Primary Strategy Recommendation */}
+                    <GlassCard variant="bordered" padding="md">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '18px' }}>💡</span>
+                        <strong style={{ fontSize: '14px', color: '#818CF8' }}>
+                          {lang === 'en' ? 'Primary AI Recommendation:' : 'প্রধান সুপারিশ:'}
+                        </strong>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>
+                          {taraResult.primary_recommendation}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                        Based on your GPA ({taraGpa}), {taraResearchExp.replace(/_/g, ' ')} background, and{' '}
+                        {taraSpeakingScore} speaking score in {taraTargetCountry}.
+                      </p>
+                    </GlassCard>
+
+                    {/* Spoken English Clearance Alert */}
+                    <div
+                      className={`${styles.oralClearanceBox} ${
+                        taraResult.oral_english_status === 'cleared'
+                          ? styles.oralClearanceCleared
+                          : taraResult.oral_english_status === 'borderline'
+                          ? styles.oralClearanceBorderline
+                          : styles.oralClearanceRestricted
+                      }`}
+                    >
+                      <strong style={{ fontSize: '13px' }}>
+                        🗣️ {lang === 'en' ? 'Spoken English & Institutional Clearance:' : 'স্পোকেন ইংলিশ মূল্যায়ন:'}
+                      </strong>
+                      <div style={{ fontSize: '12px', lineHeight: 1.5 }}>
+                        {taraResult.oral_english_analysis}
+                      </div>
+                    </div>
+
+                    {/* Tailored Cold Pitch for RA Outreach */}
+                    <div className={styles.pitchBox}>
+                      <div className={styles.pitchBoxHeader}>
+                        <strong style={{ fontSize: '13px', color: '#818CF8' }}>
+                          ✨ {lang === 'en' ? 'Tailored Cold Pitch Hook (for Faculty Outreach):' : 'প্রফেসরের জন্য কোল্ড পিচ হুক:'}
+                        </strong>
+                        <button
+                          type="button"
+                          className={styles.copyEmailBtn}
+                          onClick={handleCopyPitch}
+                          title="Copy pitch to clipboard"
+                        >
+                          📋 Copy Pitch
+                        </button>
+                      </div>
+                      <div className={styles.pitchText}>"{taraResult.cold_pitch_paragraph}"</div>
+                      <div className={styles.pitchActions}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActiveTab('email_studio');
+                            showToast('✉️ Jumped to Cold Outreach Studio!');
+                          }}
+                        >
+                          🚀 Insert into Cold Outreach Studio
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Action Steps Checklist */}
+                    <GlassCard variant="bordered" padding="md">
+                      <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#E2E8F0', marginTop: 0, marginBottom: '8px' }}>
+                        📋 {lang === 'en' ? 'Next Actionable Steps for Funding:' : 'ফান্ডিং নিশ্চিত করার পরবর্তী পদক্ষেপ:'}
+                      </h4>
+                      <ul className={styles.actionStepList}>
+                        {taraResult.action_steps.map((step, sIdx) => (
+                          <li key={sIdx} className={styles.actionStepItem}>
+                            <span className={styles.actionStepIcon}>✓</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </GlassCard>
+
+                    {/* Summer Strategy & Negotiation Tips */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                      <GlassCard variant="bordered" padding="md">
+                        <strong style={{ fontSize: '12.5px', color: '#F59E0B', display: 'block', marginBottom: '6px' }}>
+                          ☀️ {lang === 'en' ? 'Summer Funding Reality:' : 'গ্রীষ্মকালীন ফান্ডিং গ্যাপ:'}
+                        </strong>
+                        <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                          {taraResult.summer_funding_strategy}
+                        </p>
+                      </GlassCard>
+
+                      <GlassCard variant="bordered" padding="md">
+                        <strong style={{ fontSize: '12.5px', color: '#10B981', display: 'block', marginBottom: '6px' }}>
+                          💼 {lang === 'en' ? 'Negotiation Formula:' : 'নেগোসিয়েশন ফর্মুলা:'}
+                        </strong>
+                        <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                          {taraResult.negotiation_tip}
+                        </p>
+                      </GlassCard>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: 'var(--space-12)', color: 'var(--text-muted)' }}>
+                    Loading personalized funding assessment...
+                  </div>
+                )}
+              </div>
             </div>
-          </GlassCard>
+          )}
+
+          {/* ================================================================= */}
+          {/* SUB-TAB 2: INTERACTIVE STIPEND & FINANCIAL SIMULATOR              */}
+          {/* ================================================================= */}
+          {guideSubTab === 'simulator' && (
+            <div>
+              {/* Simulator Controls Card */}
+              <div className={styles.simulatorControlsCard}>
+                <div className={styles.simControlsGrid}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>{lang === 'en' ? 'Destination Country' : 'টার্গেট দেশ'}</label>
+                    <select
+                      className={styles.formSelect}
+                      value={simCountry}
+                      onChange={(e) =>
+                        setSimCountry(
+                          e.target.value as 'USA' | 'Canada' | 'Germany' | 'UK' | 'Australia'
+                        )
+                      }
+                    >
+                      <option value="USA">🇺🇸 United States (R1 / R2 Universities)</option>
+                      <option value="Canada">🇨🇦 Canada (U15 Research Consortium)</option>
+                      <option value="Germany">🇩🇪 Germany (TU9 / Max Planck / Fraunhofer)</option>
+                      <option value="UK">🇬🇧 United Kingdom (Russell Group)</option>
+                      <option value="Australia">🇦🇺 Australia (Group of Eight)</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>{lang === 'en' ? 'Assistantship Role' : 'দায়িত্ব'}</label>
+                    <select
+                      className={styles.formSelect}
+                      value={simRole}
+                      onChange={(e) => setSimRole(e.target.value as 'RA' | 'TA')}
+                    >
+                      <option value="RA">Research Assistantship (RA - Lab Grant)</option>
+                      <option value="TA">Teaching Assistantship (TA - Department)</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>{lang === 'en' ? 'City Cost of Living' : 'শহরের জীবনযাত্রার খরচ'}</label>
+                    <select
+                      className={styles.formSelect}
+                      value={simCityCost}
+                      onChange={(e) =>
+                        setSimCityCost(e.target.value as 'low' | 'medium' | 'high')
+                      }
+                    >
+                      <option value="low">Moderate / College Town (e.g. Purdue, Texas A&M, Aachen)</option>
+                      <option value="medium">Metropolitan / Urban (e.g. Austin, Toronto, Berlin, Manchester)</option>
+                      <option value="high">Tier-1 High Cost (e.g. Bay Area, NYC, London, Vancouver, Sydney)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Metric Tiles */}
+              <div className={styles.simTilesGrid}>
+                {/* Gross Monthly Stipend */}
+                <div className={styles.simTile}>
+                  <span className={styles.simTileLabel}>
+                    💵 {lang === 'en' ? 'Gross Monthly Stipend' : 'মাসিক গ্রস স্টাইপেন্ড'}
+                  </span>
+                  <div className={styles.simTilePrimaryVal}>
+                    {simData.currencySymbol}
+                    {simData.baseStipend.toLocaleString()}/mo
+                  </div>
+                  <div className={styles.simTileSecondaryVal}>
+                    ≈ ৳{simData.grossStipendBDTLakh} Lakh BDT/mo
+                  </div>
+                </div>
+
+                {/* 100% Tuition Waiver Value */}
+                <div className={styles.simTile}>
+                  <span className={styles.simTileLabel}>
+                    🎓 {lang === 'en' ? 'Tuition Remission Value' : 'মওকুফকৃত বাৎসরিক টিউশন'}
+                  </span>
+                  <div className={styles.simTilePrimaryVal} style={{ color: '#10B981' }}>
+                    {simData.tuitionWaiverAnnual > 0
+                      ? `${simData.currencySymbol}${simData.tuitionWaiverAnnual.toLocaleString()}/yr`
+                      : '100% Free Tuition'}
+                  </div>
+                  <div className={styles.simTileSecondaryVal}>
+                    {simData.tuitionWaiverAnnual > 0
+                      ? `≈ ৳${simData.tuitionSavingsBDTLakh} Lakhs saved per year`
+                      : 'Guaranteed 0 Tuition by State Law'}
+                  </div>
+                </div>
+
+                {/* Mandatory Semester Fees */}
+                <div className={styles.simTile}>
+                  <span className={styles.simTileLabel}>
+                    ⚠️ {lang === 'en' ? 'Mandatory Student Fees' : 'বাধ্যতামূলক সেমিস্টার ফি (পকেট থেকে)'}
+                  </span>
+                  <div className={styles.simTilePrimaryVal} style={{ color: '#F59E0B' }}>
+                    {simData.termFees > 0
+                      ? `${simData.currencySymbol}${simData.termFees}/sem`
+                      : 'Included'}
+                  </div>
+                  <div className={styles.simTileSecondaryVal} style={{ color: '#94A3B8' }}>
+                    {simData.termFees > 0
+                      ? `≈ ${simData.currencySymbol}${simData.monthlyAmortizedFees}/mo amortized`
+                      : 'No out-of-pocket term fees'}
+                  </div>
+                </div>
+
+                {/* Estimated Monthly Living Cost */}
+                <div className={styles.simTile}>
+                  <span className={styles.simTileLabel}>
+                    🏠 {lang === 'en' ? 'Total Living Expenses' : 'মাসিক আবাসন ও জীবনযাত্রা খরচ'}
+                  </span>
+                  <div className={styles.simTilePrimaryVal} style={{ color: '#94A3B8' }}>
+                    {simData.currencySymbol}
+                    {simData.totalMonthlyLiving.toLocaleString()}/mo
+                  </div>
+                  <div className={styles.simTileSecondaryVal} style={{ color: '#94A3B8' }}>
+                    Rent {simData.currencySymbol}{simData.monthlyRent} • Food {simData.currencySymbol}{simData.monthlyFoodLiving} • Health {simData.currencySymbol}{simData.monthlyHealthInsurance}
+                  </div>
+                </div>
+
+                {/* Net Monthly Discretionary Savings */}
+                <div
+                  className={styles.simTile}
+                  style={{
+                    borderColor: '#10B981',
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 20, 32, 0.9) 100%)',
+                  }}
+                >
+                  <span className={styles.simTileLabel} style={{ color: '#10B981' }}>
+                    💰 {lang === 'en' ? 'Net Monthly Savings' : 'মাসিক নেট সঞ্চয় (হাতখরচ বাদে)'}
+                  </span>
+                  <div className={styles.simTilePrimaryVal} style={{ color: '#10B981' }}>
+                    {simData.currencySymbol}
+                    {simData.netMonthlySavings.toLocaleString()}/mo
+                  </div>
+                  <div className={styles.simTileSecondaryVal} style={{ color: '#6EE7B7' }}>
+                    ≈ ৳{simData.netSavingsBDTLakh} Lakh BDT/mo (~৳{simData.netSavingsBDT.toLocaleString()})
+                  </div>
+                </div>
+              </div>
+
+              {/* Summer Funding Gap Reality Alert */}
+              <div className={styles.summerGapBanner}>
+                <div className={styles.summerGapTitle}>
+                  <span>☀️</span>
+                  <span>{lang === 'en' ? 'The Summer Gap Alert (June – August Reality)' : 'গ্রীষ্মকালীন ফান্ডিং গ্যাপ ও সতর্কতা'}</span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#E2E8F0', margin: 0, lineHeight: 1.5 }}>
+                  {simData.summerTip}
+                </p>
+
+                <div className={styles.summerGapList}>
+                  <div className={styles.summerGapItem}>
+                    <strong>1. Faculty RA Summer Buyout:</strong>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      Ask your PI for 20h–40h/week summer grant payroll. Pays full stipend ($2,500–$3,500/mo) while conducting pure research.
+                    </div>
+                  </div>
+                  <div className={styles.summerGapItem}>
+                    <strong>2. US/Canada Industry CPT Internship:</strong>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      Eligible after 2 semesters. Tech companies (Google, Meta, Nvidia, Intel, Bloomberg) pay $7,500–$10,500/month for PhD/MS interns.
+                    </div>
+                  </div>
+                  <div className={styles.summerGapItem}>
+                    <strong>3. Summer Session Teaching:</strong>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      Large state universities offer 6–8 week accelerated summer courses needing TAs. Covers living expenses during June and July.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* SUB-TAB 3: ASK ETHOS AI FUNDING ADVISOR (CONVERSATIONAL CHAT)     */}
+          {/* ================================================================= */}
+          {guideSubTab === 'advisor' && (
+            <div className={styles.advisorChatSection}>
+              {/* Header */}
+              <div className={styles.advisorChatHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h3 className={styles.advisorChatTitle}>
+                    <span>🤖</span>
+                    <span>{lang === 'en' ? 'Ethos AI Funding Advisor' : 'ইথোস এআই ফান্ডিং অ্যাডভাইজর'}</span>
+                  </h3>
+                  <Badge variant="verified" size="sm">
+                    {lang === 'en' ? 'Assistantship & Visa Intelligence' : 'অ্যাসিস্ট্যান্টশিপ ও ভিসা ইন্টেলিজেন্স'}
+                  </Badge>
+                </div>
+                <button
+                  type="button"
+                  className={styles.resetChatBtn}
+                  onClick={handleResetAdvisorChat}
+                  title="Reset conversation thread"
+                >
+                  🔄 {lang === 'en' ? 'Reset Chat' : 'রিসেট চ্যাট'}
+                </button>
+              </div>
+
+              {/* Chat Thread Window */}
+              <div className={styles.advisorChatWindow}>
+                {advisorChatMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`${styles.messageRow} ${
+                      msg.role === 'user' ? styles.messageRowUser : styles.messageRowBot
+                    }`}
+                  >
+                    <div
+                      className={`${styles.msgBubble} ${
+                        msg.role === 'user' ? styles.msgBubbleUser : styles.msgBubbleBot
+                      }`}
+                    >
+                      {msg.role === 'assistant' ? (
+                        <>
+                          {/* Bot Badge with live pulsing dot */}
+                          <div className={styles.advisorBadge}>
+                            <span className={styles.advisorBadgeDot} />
+                            <span>{lang === 'bn' ? 'ইথোস এআই ফান্ডিং অ্যাডভাইজর' : 'Ethos AI Funding Advisor'}</span>
+                            {msg.modelUsed && (
+                              <span style={{ opacity: 0.65, fontSize: '10px', marginLeft: '6px', fontWeight: 500 }}>
+                                • {msg.modelUsed}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Markdown formatted content */}
+                          <MarkdownContent
+                            content={msg.content}
+                            onQuestionClick={(q) => handleAskAdvisor(q)}
+                          />
+
+                          {/* Key Institutional Takeaway Callout */}
+                          {msg.keyTakeaway && (
+                            <div className={styles.advisorTakeawayBox}>
+                              <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
+                              <div>
+                                <strong style={{ display: 'block', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>
+                                  {lang === 'bn' ? 'কোর টেকঅ্যাওয়ে:' : 'Core Institutional Takeaway:'}
+                                </strong>
+                                <span style={{ lineHeight: 1.5 }}>{msg.keyTakeaway}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Suggested Follow-up Question Chips */}
+                          {msg.suggestedFollowups && msg.suggestedFollowups.length > 0 && (
+                            <div className={styles.suggestedQueriesRow}>
+                              {msg.suggestedFollowups.map((followup, fIdx) => (
+                                <button
+                                  key={fIdx}
+                                  type="button"
+                                  className={styles.suggestedQueryBtn}
+                                  onClick={() => handleAskAdvisor(followup)}
+                                >
+                                  💭 {followup}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Speech Read Aloud Action */}
+                          <div className={styles.chatActionsRow}>
+                            <button
+                              type="button"
+                              onClick={() => toggleAdvisorSpeech(msg.id, msg.content)}
+                              className={`${styles.speechBtn} ${advisorSpeakingMsgId === msg.id ? styles.speechBtnActive : ''}`}
+                              title="Read response aloud"
+                            >
+                              {advisorSpeakingMsgId === msg.id
+                                ? (lang === 'en' ? '🔊 Speaking...' : '🔊 পড়ছে...')
+                                : (lang === 'en' ? '🔊 Read Aloud' : '🔊 পড়ে শোনান')}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div>{msg.content}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Loading State */}
+                {advisorLoading && (
+                  <div className={`${styles.messageRow} ${styles.messageRowBot}`}>
+                    <div
+                      className={`${styles.msgBubble} ${styles.msgBubbleBot}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                    >
+                      <span className={styles.advisorBadgeDot} style={{ animation: 'pulse 1s infinite' }} />
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {lang === 'en'
+                          ? 'Advisor is reviewing institutional funding rules & evaluating your inquiry...'
+                          : 'অ্যাডভাইজর ফান্ডিং নীতিমালা পর্যালোচনা করছে...'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={advisorChatEndRef} />
+              </div>
+
+              {/* Fast Suggested Prompts bar */}
+              <div style={{ padding: '10px 16px', background: 'rgba(16, 20, 32, 0.7)', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <div className={styles.advisorPromptChips}>
+                  {[
+                    'Can I get full funding for an MS, or is it only for PhDs?',
+                    "What happens if my professor's grant runs out?",
+                    'Can I work more than 20 hours/week as an RA or TA?',
+                    'How do I negotiate my stipend and tuition remission offer?',
+                    'My TOEFL Speaking is 22 / IELTS 6.5. Can I still get funded?',
+                  ].map((chipText, cIdx) => (
+                    <button
+                      key={cIdx}
+                      type="button"
+                      className={styles.advisorChipBtn}
+                      onClick={() => handleAskAdvisor(chipText)}
+                    >
+                      💬 {chipText}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bottom Input Bar */}
+              <div className={styles.advisorInputBar}>
+                <input
+                  type="text"
+                  className={styles.advisorInput}
+                  placeholder={
+                    lang === 'en'
+                      ? 'Ask any specific question about assistantships, stipends, or visa hours...'
+                      : 'অ্যাসিস্ট্যান্টশিপ বা ফান্ডিং সংক্রান্ত যেকোনো প্রশ্ন লিখুন...'
+                  }
+                  value={advisorInputText}
+                  onChange={(e) => setAdvisorInputText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAskAdvisor()}
+                  disabled={advisorLoading}
+                />
+                <Button
+                  variant="primary"
+                  onClick={() => handleAskAdvisor()}
+                  disabled={advisorLoading || !advisorInputText.trim()}
+                >
+                  {advisorLoading ? (lang === 'en' ? 'Analyzing...' : 'বিশ্লেষণ হচ্ছে...') : (lang === 'en' ? 'Send Query' : 'পাঠান')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* SUB-TAB 4: GLOBAL COMPARATIVE DESTINATION MATRIX                  */}
+          {/* ================================================================= */}
+          {guideSubTab === 'matrix' && (
+            <div>
+              <div className={styles.matrixWrapper}>
+                <table className={styles.matrixTable}>
+                  <thead>
+                    <tr>
+                      <th>Country & Hub</th>
+                      <th>Primary Funding Model</th>
+                      <th>Gross Monthly Stipend</th>
+                      <th>Tuition Remission Policy</th>
+                      <th>Oral English / Speaking Hurdle</th>
+                      <th>Summer Months Pay</th>
+                      <th>Visa Work Rights</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className={styles.matrixCountryCol}>
+                        🇺🇸 USA<br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>R1 / R2 Universities</span>
+                      </td>
+                      <td>
+                        <strong>Faculty RA Grants (NSF/NIH)</strong><br />
+                        Departmental Teaching Assistantships (TA)
+                      </td>
+                      <td>
+                        <strong>$2,400 – $3,400/mo</strong><br />
+                        <span style={{ color: '#10B981' }}>≈ ৳2.9L – ৳4.1L BDT/mo</span>
+                      </td>
+                      <td>
+                        <Badge variant="success" size="sm">100% Full Waiver</Badge><br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>($40k–$60k/yr saved)</span>
+                      </td>
+                      <td>
+                        <span style={{ color: '#F59E0B', fontWeight: 'bold' }}>Strict State Law:</span><br />
+                        TOEFL Speaking ≥26 or IELTS ≥8.0 for direct TA without campus SPEAK test.
+                      </td>
+                      <td>
+                        <span style={{ color: '#F59E0B' }}>9-month TA / 12-month RA</span><br />
+                        (CPT internships pay $8k–$10k/mo)
+                      </td>
+                      <td>
+                        <strong>F-1 Visa:</strong> Strictly max 20h/week during term; 40h/week in summer.
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td className={styles.matrixCountryCol}>
+                        🇨🇦 Canada<br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>U15 Consortium</span>
+                      </td>
+                      <td>
+                        <strong>U15 Guaranteed Package:</strong><br />
+                        Blended Graduate Assistantship + NSERC/SSHRC
+                      </td>
+                      <td>
+                        <strong>C$2,300 – C$3,100/mo</strong><br />
+                        <span style={{ color: '#10B981' }}>≈ ৳2.0L – ৳2.8L BDT/mo</span>
+                      </td>
+                      <td>
+                        <Badge variant="verified" size="sm">Tuition Differential Award</Badge><br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>Offsets international fees</span>
+                      </td>
+                      <td>
+                        <strong>Department Union Standard:</strong><br />
+                        IELTS ≥7.5 or brief departmental pedagogical interview.
+                      </td>
+                      <td>
+                        <span style={{ color: '#10B981' }}>Guaranteed 12-month</span><br />
+                        funding package spread over 3 terms.
+                      </td>
+                      <td>
+                        <strong>Study Permit:</strong> 20h/week on/off campus during study terms.
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td className={styles.matrixCountryCol}>
+                        🇩🇪 Germany<br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>TU9 / Max Planck</span>
+                      </td>
+                      <td>
+                        <strong>TV-L E13 Salaried Contract:</strong><br />
+                        Scientific Employee (Wissenschaftlicher Mitarbeiter)
+                      </td>
+                      <td>
+                        <strong>€1,750 – €2,300/mo (Net)</strong><br />
+                        <span style={{ color: '#10B981' }}>≈ ৳2.3L – ৳3.0L BDT/mo</span>
+                      </td>
+                      <td>
+                        <Badge variant="success" size="sm">100% Free Tuition</Badge><br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>No tuition fee across public unis</span>
+                      </td>
+                      <td>
+                        <strong>No State Oral Exam:</strong><br />
+                        English is working lab language. IELTS 6.5–7.0 baseline.
+                      </td>
+                      <td>
+                        <span style={{ color: '#10B981' }}>Full 12-month Salaried</span><br />
+                        Includes 30 paid annual leave days.
+                      </td>
+                      <td>
+                        <strong>Employee Contract:</strong> Full social security, health & pension benefits.
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td className={styles.matrixCountryCol}>
+                        🇬🇧 United Kingdom<br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>Russell Group</span>
+                      </td>
+                      <td>
+                        <strong>UKRI Studentships:</strong><br />
+                        Doctoral Training Partnerships (DTP / CDT)
+                      </td>
+                      <td>
+                        <strong>£1,650 – £1,950/mo (Tax-Free)</strong><br />
+                        <span style={{ color: '#10B981' }}>≈ ৳2.6L – ৳3.1L BDT/mo</span>
+                      </td>
+                      <td>
+                        <Badge variant="verified" size="sm">Full International Fee Waiver</Badge><br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>For UKRI-funded awardees</span>
+                      </td>
+                      <td>
+                        <strong>Visa English Clearance:</strong><br />
+                        IELTS Academic overall 6.5–7.0 (no subscore below 6.0).
+                      </td>
+                      <td>
+                        <span style={{ color: '#10B981' }}>12-month Continuous</span><br />
+                        Paid quarterly or monthly for 3.5 to 4 years.
+                      </td>
+                      <td>
+                        <strong>Student Route:</strong> 20h/week during term; hourly tutoring permitted.
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td className={styles.matrixCountryCol}>
+                        🇦🇺 Australia<br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>Group of Eight (Go8)</span>
+                      </td>
+                      <td>
+                        <strong>Research Training Program (RTP):</strong><br />
+                        Commonwealth & University Fellowships
+                      </td>
+                      <td>
+                        <strong>A$2,600 – A$3,300/mo (Tax-Free)</strong><br />
+                        <span style={{ color: '#10B981' }}>≈ ৳2.1L – ৳2.6L BDT/mo</span>
+                      </td>
+                      <td>
+                        <Badge variant="success" size="sm">100% RTP Fee Offset</Badge><br />
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>Covers 3.5 years of fees</span>
+                      </td>
+                      <td>
+                        <strong>Standard IELTS/PTE:</strong><br />
+                        IELTS ≥6.5 or PTE ≥58. No separate state ITA exam.
+                      </td>
+                      <td>
+                        <span style={{ color: '#10B981' }}>12-month Bi-weekly</span><br />
+                        Standard Australian stipend paid year-round.
+                      </td>
+                      <td>
+                        <strong>Subclass 500:</strong> 48 hours per fortnight during research sessions.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Grant Cycles Timeline */}
+              {guideData && (
+                <div style={{ marginTop: 'var(--space-6)' }}>
+                  <GlassCard variant="elevated" padding="lg">
+                    <h3 style={{ fontSize: 'var(--font-size-base)', fontWeight: 'bold', marginBottom: 'var(--space-3)' }}>
+                      📅 Global Academic Grant & Hiring Timelines
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-4)' }}>
+                      {guideData.grant_cycles_overview.map((cycle, i) => (
+                        <div key={i} className={styles.grantCycleCard}>
+                          <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{cycle.mechanism}</strong>
+                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>{cycle.timeline}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </GlassCard>
+                </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 

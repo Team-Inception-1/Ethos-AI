@@ -53,7 +53,8 @@ export default function DocumentsPage() {
   const fetchDocs = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/documents');
+      const ownerParam = user?.id ? `?ownerId=${encodeURIComponent(user.id)}` : '';
+      const res = await fetch(`/api/documents${ownerParam}`);
       if (res.ok) {
         const data = await res.json();
         setDocs(data.documents || []);
@@ -67,7 +68,7 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     fetchDocs();
-  }, []);
+  }, [user?.id]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

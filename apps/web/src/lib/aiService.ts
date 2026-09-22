@@ -942,5 +942,84 @@ export async function liveSearchAcademic(
   return searchOpenAlexOffline(payload.query, payload.limit, payload.entity_type);
 }
 
+// ---------------------------------------------------------------------------
+// Module 5.11 — RA vs TA Intelligence & AI Funding Advisor
+// ---------------------------------------------------------------------------
 
+export interface TARAStrategyRequest {
+  degree_goal?: string; // 'PhD' | 'MS with Thesis'
+  gpa?: string;
+  undergrad_major?: string;
+  research_experience?: string; // 'none' | 'thesis_only' | 'preprint_workshop' | 'peer_reviewed'
+  english_test_type?: string; // 'toefl' | 'ielts' | 'duolingo' | 'none'
+  speaking_score?: number;
+  target_country?: string; // 'USA' | 'Canada' | 'Germany' | 'UK' | 'Australia'
+  coding_depth?: string; // 'beginner' | 'intermediate' | 'advanced'
+}
 
+export interface TARAStrategyResponse {
+  ra_viability_score: number;
+  ta_viability_score: number;
+  primary_recommendation: string;
+  oral_english_status: 'cleared' | 'borderline' | 'restricted_ra_only';
+  oral_english_analysis: string;
+  action_steps: string[];
+  cold_pitch_paragraph: string;
+  summer_funding_strategy: string;
+  negotiation_tip: string;
+  model_used: string;
+}
+
+export interface TARAAdvisorQuestionRequest {
+  question: string;
+  student_context?: Record<string, any>;
+}
+
+export interface TARAAdvisorQuestionResponse {
+  answer: string;
+  key_takeaway: string;
+  suggested_followups: string[];
+  model_used: string;
+}
+
+/** POST /api/ai/scholar/tara-strategy — evaluates personalized RA vs TA suitability. */
+export async function evaluateTARAStrategy(
+  payload: TARAStrategyRequest
+): Promise<TARAStrategyResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/tara-strategy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice tara-strategy unreachable, falling back to offline:', err);
+  }
+
+  const { evaluateTARAStrategyOffline } = await import('./scholarOfflineEngine');
+  return evaluateTARAStrategyOffline(payload);
+}
+
+/** POST /api/ai/scholar/tara-advisor — asks the funding expert academic questions. */
+export async function askTARAAdvisor(
+  payload: TARAAdvisorQuestionRequest
+): Promise<TARAAdvisorQuestionResponse> {
+  try {
+    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/tara-advisor`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch (err) {
+    console.warn('AI microservice tara-advisor unreachable, falling back to offline:', err);
+  }
+
+  const { askTARAAdvisorOffline } = await import('./scholarOfflineEngine');
+  return askTARAAdvisorOffline(payload);
+}

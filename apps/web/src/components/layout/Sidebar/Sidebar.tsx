@@ -336,9 +336,13 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
   const { user } = useAuth();
 
   const navItems = getNavItems(user?.role);
-  const userName = user?.name || 'Student User';
+  let userName = user?.name || 'Student User';
+  if (userName.includes('@')) {
+    const local = userName.split('@')[0].replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim();
+    userName = local ? local.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : userName;
+  }
   const userRoleDisplay = user?.role?.toUpperCase() || 'STUDENT';
-  const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'S';
+  const initial = userName ? userName.charAt(0).toUpperCase() : 'S';
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
