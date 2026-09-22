@@ -102,6 +102,10 @@ export default function DirectoryPage() {
       const params = new URLSearchParams(window.location.search);
       const c = params.get('country');
       if (c) setCountryFilter(c);
+      const cmp = params.get('compare');
+      if (cmp) {
+        setCompare(cmp.split(',').map(s => s.trim()).filter(Boolean));
+      }
     }
   }, []);
 
