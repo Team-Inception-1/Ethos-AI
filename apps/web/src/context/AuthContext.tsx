@@ -25,6 +25,7 @@ export interface User {
   phone: string;
   role: UserRole;
   isVerified: boolean;
+  avatarUrl?: string;
   linkedParentIds: string[];
   linkedStudentIds: string[];
   studentDetails?: StudentDetails;
@@ -48,6 +49,7 @@ export const DEMO_USERS: Record<UserRole, User> = {
     phone: '+8801712345678',
     role: 'student',
     isVerified: true,
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
     linkedParentIds: ['usr-parent-01'],
     linkedStudentIds: [],
     studentDetails: {
@@ -72,6 +74,7 @@ export const DEMO_USERS: Record<UserRole, User> = {
     phone: '+8801812345679',
     role: 'parent',
     isVerified: true,
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
     linkedParentIds: [],
     linkedStudentIds: ['usr-student-01'],
     studentDetails: {
@@ -96,6 +99,7 @@ export const DEMO_USERS: Record<UserRole, User> = {
     phone: '+8801912345680',
     role: 'agency',
     isVerified: true,
+    avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150',
     linkedParentIds: [],
     linkedStudentIds: [],
     agencyDetails: {
@@ -120,6 +124,7 @@ export const DEMO_USERS: Record<UserRole, User> = {
     phone: '+8801512345681',
     role: 'admin',
     isVerified: true,
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     linkedParentIds: [],
     linkedStudentIds: [],
     agencyDetails: {
@@ -141,7 +146,7 @@ export const DEMO_USERS: Record<UserRole, User> = {
 
 /**
  * Normalizes any user object to ensure full mandatory fields:
- * id, name, email, phone, role, isVerified, agencyDetails, studentDetails
+ * id, name, email, phone, role, isVerified, agencyDetails, studentDetails, avatarUrl
  */
 export function normalizeUser(u: Partial<User> & { role?: UserRole }): User {
   const role: UserRole = u.role || 'student';
@@ -154,6 +159,7 @@ export function normalizeUser(u: Partial<User> & { role?: UserRole }): User {
     phone: u.phone || demo.phone,
     role: role,
     isVerified: u.isVerified !== undefined ? u.isVerified : true,
+    avatarUrl: u.avatarUrl !== undefined ? u.avatarUrl : demo.avatarUrl || '',
     linkedParentIds: u.linkedParentIds || demo.linkedParentIds || [],
     linkedStudentIds: u.linkedStudentIds || demo.linkedStudentIds || [],
     studentDetails: u.studentDetails || demo.studentDetails,
@@ -169,7 +175,6 @@ interface AuthContextValue {
   otpSent: boolean;
   otpCountdown: number;
   otpEmail: string;
-  lastGeneratedOtp: string;
   linkedStudents: User[];
   linkedParents: User[];
   neonAuthStatus: NeonAuthStatus;
@@ -200,7 +205,6 @@ const AuthContext = createContext<AuthContextValue>({
   otpSent: false,
   otpCountdown: 0,
   otpEmail: '',
-  lastGeneratedOtp: '123456',
   linkedStudents: [],
   linkedParents: [],
   neonAuthStatus: DEFAULT_AUTH_STATUS,
@@ -225,7 +229,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [otpEmail, setOtpEmail] = useState<string>('');
-  const [lastGeneratedOtp, setLastGeneratedOtp] = useState<string>('123456');
   const [neonAuthStatus, setNeonAuthStatus] = useState<NeonAuthStatus>(DEFAULT_AUTH_STATUS);
 
   const saveUser = useCallback((u: User | null) => {
@@ -306,22 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Dispatches real email OTP via direct dispatcher and Neon Auth's Better Auth provider
    */
   const sendNeonEmailOtp = async (email: string, type: 'sign-in' | 'email-verification') => {
-    // 1. Generate real 6-digit verification code
-    const genCode = Math.floor(100000 + Math.random() * 900000).toString();
-    setLastGeneratedOtp(genCode);
-
-    // 2. Dispatch to server-side OTP sender (logs to terminal & dispatches via Resend if configured)
-    try {
-      fetch('/api/auth/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), otp: genCode }),
-      }).catch((e) => console.warn('[Direct OTP Sender Error]:', e));
-    } catch (e) {
-      console.warn('[Direct OTP Error]:', e);
-    }
-
-    // 3. Dispatch to Neon Auth upstream
+    // 1. Dispatch to Neon Auth Better Auth upstream (delivers real OTP to inbox)
     try {
       const res = await fetch('/api/auth/email-otp/send-verification-otp', {
         method: 'POST',
@@ -452,33 +440,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const verifyOtp = async (code: string): Promise<boolean> => {
-    if (code.length < 4) return false;
+    const trimmed = code.trim();
+    if (trimmed.length < 4) return false;
 
     const targetEmail = pendingRegistration?.email || user?.email || otpEmail;
 
-    // 1. If demo bypass code '123456' OR session generated OTP is entered, accept immediately
-    if (code === '123456' || (lastGeneratedOtp && code === lastGeneratedOtp)) {
-      if (pendingRegistration) {
-        const fullUser = normalizeUser({ ...pendingRegistration, isVerified: true });
-        saveUser(fullUser);
-        setPendingRegistration(null);
-        setOtpSent(false);
-        return true;
-      } else if (user) {
-        saveUser(normalizeUser({ ...user, isVerified: true }));
-        setOtpSent(false);
-        return true;
-      }
-    }
-
-    // 2. Attempt real OTP verification with Neon Auth Better Auth
+    // 1. Real OTP verification with Neon Managed Better Auth
     if (targetEmail) {
       try {
         // Try sign-in OTP endpoint first
         let verifyRes = await fetch('/api/auth/sign-in/email-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: targetEmail, otp: code }),
+          body: JSON.stringify({ email: targetEmail, otp: trimmed }),
         });
 
         // If not sign-in, try email-verification endpoint
@@ -486,13 +460,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           verifyRes = await fetch('/api/auth/email-otp/verify-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: targetEmail, otp: code }),
+            body: JSON.stringify({ email: targetEmail, otp: trimmed }),
           });
         }
 
         if (verifyRes.ok) {
           const authData = await verifyRes.json().catch(() => ({}));
-          console.log('[Neon Auth] Email OTP verified successfully:', authData);
+          console.log('[Neon Auth] Email OTP verified successfully via Better Auth:', authData);
 
           if (pendingRegistration) {
             const fullUser = normalizeUser({ ...pendingRegistration, isVerified: true });
@@ -506,13 +480,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
           }
           return true;
+        } else {
+          const errData = await verifyRes.json().catch(() => ({}));
+          console.warn('[Neon Auth] OTP Verification failed:', errData);
         }
       } catch (err) {
         console.warn('[Neon Auth] OTP verification network error:', err);
       }
     }
 
-    // 3. Fallback for demo users
+    // 2. Fallback only for pre-seeded offline demo accounts (e.g. riya@example.com)
     if (user && Object.values(DEMO_USERS).some((d) => d.email.toLowerCase() === user.email.toLowerCase())) {
       saveUser(normalizeUser({ ...user, isVerified: true }));
       setOtpSent(false);
@@ -622,7 +599,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         otpSent,
         otpCountdown,
         otpEmail,
-        lastGeneratedOtp,
         linkedStudents,
         linkedParents,
         neonAuthStatus,

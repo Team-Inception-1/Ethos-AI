@@ -1,32 +1,107 @@
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { useAuth, UserRole } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import styles from './ProfilePage.module.css';
 
 export default function ProfilePage() {
-  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, switchActiveRole, logout } = useAuth();
+  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, logout } = useAuth();
 
   const [copied, setCopied] = useState(false);
   const [linkInput, setLinkInput] = useState('');
   const [linkMessage, setLinkMessage] = useState<{ success: boolean; text: string } | null>(null);
 
   // Form states initialized from user
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
+
   const [targetField, setTargetField] = useState(user?.studentDetails?.targetField || 'Computer Science');
   const [budgetRange, setBudgetRange] = useState(user?.studentDetails?.budgetRange || '৳15L - ৳25L / year');
   const [ieltsScore, setIeltsScore] = useState(user?.studentDetails?.ieltsScore || '7.5');
   const [targetCountriesStr, setTargetCountriesStr] = useState(user?.studentDetails?.targetCountries?.join(', ') || 'Canada, Australia, UK');
 
+  const [agencyName, setAgencyName] = useState(user?.agencyDetails?.agencyName || user?.name || '');
+  const [agencyLicense, setAgencyLicense] = useState(user?.agencyDetails?.licenseNo || 'MOE-BD-2024-889');
+  const [agencyCountries, setAgencyCountries] = useState(user?.agencyDetails?.countriesServed?.join(', ') || 'Canada, UK, Australia');
+
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarSuccess, setAvatarSuccess] = useState<string | null>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Image must be under 5MB');
+      setTimeout(() => setAvatarError(null), 4000);
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setAvatarError(null);
+    setAvatarSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', user.id);
+
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upload photo');
+      }
+
+      updateProfile({
+        avatarUrl: data.avatarUrl,
+      });
+      setAvatarSuccess('Avatar saved to Neon Storage!');
+      setTimeout(() => setAvatarSuccess(null), 3000);
+    } catch (err: any) {
+      setAvatarError(err.message || 'Avatar upload failed');
+      setTimeout(() => setAvatarError(null), 4000);
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
+  React.useEffect(() => {
+    if (user) {
+      setFullName(user.name);
+      setPhone(user.phone);
+      setEmail(user.email);
+      setTargetField(user.studentDetails?.targetField || 'Computer Science');
+      setBudgetRange(user.studentDetails?.budgetRange || '৳15L - ৳25L / year');
+      setIeltsScore(user.studentDetails?.ieltsScore || '7.5');
+      setTargetCountriesStr(user.studentDetails?.targetCountries?.join(', ') || 'Canada, Australia, UK');
+      setAgencyName(user.agencyDetails?.agencyName || user.name);
+      setAgencyLicense(user.agencyDetails?.licenseNo || 'MOE-BD-2024-889');
+      setAgencyCountries(user.agencyDetails?.countriesServed?.join(', ') || 'Canada, UK, Australia');
+    }
+  }, [user]);
 
   if (!user) {
     return (
       <div className={`${styles.page} container`} style={{ paddingTop: 'var(--topbar-height)' }}>
         <GlassCard padding="lg">
           <h2>You are not signed in.</h2>
-          <Button size="md" onClick={() => switchActiveRole('student')}>Sign in as Demo Student</Button>
+          <p style={{ margin: '12px 0 20px', color: 'var(--text-secondary)' }}>
+            Please sign in to access your profile settings.
+          </p>
+          <Link href="/login">
+            <Button size="md">Sign In to Ethos AI</Button>
+          </Link>
         </GlassCard>
       </div>
     );
@@ -38,6 +113,32 @@ export default function ProfilePage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleSaveAccountDetails = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfile({
+      name: fullName.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+    });
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2500);
+  };
+
+  const handleSaveAgencyDetails = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfile({
+      name: fullName.trim(),
+      agencyDetails: {
+        agencyName: agencyName.trim(),
+        licenseNo: agencyLicense.trim(),
+        licenseStatus: user?.agencyDetails?.licenseStatus || 'verified',
+        countriesServed: agencyCountries.split(',').map((s) => s.trim()).filter(Boolean),
+      },
+    });
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2500);
   };
 
   const handleSaveStudentDetails = (e: React.FormEvent) => {
@@ -82,7 +183,56 @@ export default function ProfilePage() {
         <div className={styles.grid}>
           {/* Left Column: User Summary Card */}
           <GlassCard padding="lg" className={styles.userCard}>
-            <div className={styles.avatar}>{user.name.charAt(0)}</div>
+            <div className={styles.avatarWrapper}>
+              <div className={styles.avatar}>
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className={styles.avatarImg}
+                  />
+                ) : (
+                  user.name.charAt(0)
+                )}
+                {uploadingAvatar && (
+                  <div className={styles.avatarLoadingOverlay} aria-label="Uploading...">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+                      <line x1="12" y1="2" x2="12" y2="6"/>
+                      <line x1="12" y1="18" x2="12" y2="22"/>
+                      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+                      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+                      <line x1="2" y1="12" x2="6" y2="12"/>
+                      <line x1="18" y1="12" x2="22" y2="12"/>
+                      <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+                      <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <label
+                htmlFor="avatar-file-input"
+                className={styles.avatarEditBadge}
+                title="Upload profile photo to Neon Storage"
+                aria-label="Upload profile photo"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <input
+                  id="avatar-file-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={handleAvatarChange}
+                  disabled={uploadingAvatar}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
+
+            {avatarSuccess && <p className={`${styles.avatarNotice} ${styles.avatarSuccess}`}>✓ {avatarSuccess}</p>}
+            {avatarError && <p className={`${styles.avatarNotice} ${styles.avatarError}`}>⚠ {avatarError}</p>}
+
             <div>
               <h2 className={styles.userName}>{user.name}</h2>
               <p className={styles.userEmail}>{user.email}</p>
@@ -114,22 +264,51 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Demo Role Switcher */}
-            <div className={styles.roleSwitcherCard}>
-              <span className={styles.roleSwitcherTitle}>⚡ Instant Role Switcher (Demo)</span>
-              <div className={styles.roleBtnGroup}>
-                {(['student', 'parent', 'agency', 'admin'] as UserRole[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    className={`${styles.roleBtn} ${user.role === r ? styles.roleBtnActive : ''}`}
-                    onClick={() => switchActiveRole(r)}
-                  >
-                    {r === 'student' ? '🎓 Student' : r === 'parent' ? '👨‍👧 Parent' : r === 'agency' ? '🏢 Agency' : '🛡️ Admin'}
-                  </button>
-                ))}
+            {/* Editable Contact Info Form */}
+            <form onSubmit={handleSaveAccountDetails} style={{ marginTop: 'var(--space-4)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Personal Information</span>
+                {savedSuccess && <span style={{ fontSize: '11px', color: 'var(--emerald)', fontWeight: 700 }}>✓ Saved!</span>}
               </div>
-            </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Full Name</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    style={{ padding: '6px 10px', fontSize: '12px' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Phone Number</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    style={{ padding: '6px 10px', fontSize: '12px' }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Email Address</label>
+                  <input
+                    type="email"
+                    className={styles.input}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{ padding: '6px 10px', fontSize: '12px' }}
+                    required
+                  />
+                </div>
+                <Button type="submit" size="sm" variant="outline" style={{ marginTop: '4px' }}>
+                  Save Personal Info
+                </Button>
+              </div>
+            </form>
           </GlassCard>
 
           {/* Right Column: Dynamic Role Content */}
@@ -320,22 +499,45 @@ export default function ProfilePage() {
                   </Badge>
                 </div>
 
-                <div className={styles.formGrid}>
+                <form className={styles.formGrid} onSubmit={handleSaveAgencyDetails}>
                   <div className={styles.fieldGroup}>
                     <label className={styles.label}>Agency Business Name</label>
-                    <input type="text" className={styles.input} value={user.agencyDetails?.agencyName || user.name} readOnly />
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={agencyName}
+                      onChange={(e) => setAgencyName(e.target.value)}
+                      required
+                    />
                   </div>
 
                   <div className={styles.fieldGroup}>
                     <label className={styles.label}>Government License Number</label>
-                    <input type="text" className={styles.input} value={user.agencyDetails?.licenseNo || 'MOE-BD-2024-889'} readOnly />
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={agencyLicense}
+                      onChange={(e) => setAgencyLicense(e.target.value)}
+                      required
+                    />
                   </div>
 
                   <div className={styles.fieldGroupFull}>
-                    <label className={styles.label}>Countries Served</label>
-                    <input type="text" className={styles.input} value={user.agencyDetails?.countriesServed.join(', ')} readOnly />
+                    <label className={styles.label}>Countries Served (comma separated)</label>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={agencyCountries}
+                      onChange={(e) => setAgencyCountries(e.target.value)}
+                    />
                   </div>
-                </div>
+
+                  <div className={styles.fieldGroupFull}>
+                    <Button type="submit" size="md" glow>
+                      Save Agency Profile
+                    </Button>
+                  </div>
+                </form>
               </>
             )}
 

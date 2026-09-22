@@ -55,9 +55,9 @@ export async function POST(request: Request) {
 
     // Server log fallback
     console.log(`\n======================================================`);
-    console.log(`🔑 [ETHOS AI AUTH] ONE-TIME PASSWORD DISPATCHED`);
+    console.log(`🔒 [ETHOS AI AUTH] ONE-TIME PASSWORD DISPATCHED`);
     console.log(`📧 Target Email: ${email}`);
-    console.log(`🔢 Code:        ${otp}  (or bypass with 123456)`);
+    console.log(`🔢 Code:        ${otp}`);
     console.log(`🕒 Valid for:   10 minutes`);
     console.log(`======================================================\n`);
 

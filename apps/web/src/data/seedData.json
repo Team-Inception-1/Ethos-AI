@@ -439,6 +439,13 @@
       "agencyId": "agt-001",
       "createdAt": "2026-07-10T11:05:00Z",
       "updatedAt": "2026-07-25T15:10:00Z"
+    },
+    {
+      "id": "thd-002",
+      "applicationId": "app-002",
+      "agencyId": "agt-002",
+      "createdAt": "2026-08-01T09:00:00Z",
+      "updatedAt": "2026-08-01T09:30:00Z"
     }
   ],
   "chatMessages": [
@@ -481,6 +488,26 @@
       "msgHash": "5c15a1d2e9bc35a64d1f2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d41",
       "isRead": true,
       "sentAt": "2026-07-25T11:00:00Z"
+    },
+    {
+      "id": "msg-201",
+      "threadId": "thd-002",
+      "senderId": "usr-agency-02",
+      "senderRole": "AGENCY",
+      "body": "Welcome! We have started reviewing your application for Technical University of Munich (TUM).",
+      "msgHash": "4b14a1d2e9bc35a64d1f2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d42",
+      "isRead": true,
+      "sentAt": "2026-08-01T09:00:00Z"
+    },
+    {
+      "id": "msg-202",
+      "threadId": "thd-002",
+      "senderId": "usr-agency-02",
+      "senderRole": "AGENCY",
+      "body": "Your German blocked account documents are verified. Please confirm your passport copy.",
+      "msgHash": "3a13a1d2e9bc35a64d1f2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d43",
+      "isRead": false,
+      "sentAt": "2026-08-01T09:30:00Z"
     }
   ]
 }
