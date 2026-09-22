@@ -299,18 +299,33 @@ class GeminiCounselorLLM(CounselorLLM):
             bengali_chars = len(re.findall(r"[\u0985-\u09B9\u09CE\u09DC-\u09DF]", reply_text))
             detected_lang = "bn" if bengali_chars >= 5 else "en"
 
-        # Generate suggested queries (simple heuristic since we can't use response_schema with grounding)
-        suggested_queries = [
-            "Tell me more about the visa requirements",
-            "What scholarships are available?",
-            "How much does living cost there?",
-        ]
-        if detected_lang == "bn":
+        # Generate suggested queries: first try to extract personalized follow-ups from the reply
+        extracted_queries: list[str] = []
+        followup_match = re.search(r"(?:follow-up questions|follow up|পরবর্তী প্রশ্ন|❓).*?(?:\n|$)([\s\S]*)$", reply_text, re.IGNORECASE)
+        if followup_match:
+            for line in followup_match.group(1).splitlines():
+                m = re.match(r"^\s*\d+[\.\)]\s*(?:\*\*)?(.*?)(?:\*\*)?(?:\?|\:|\(|$)", line)
+                if m:
+                    candidate = m.group(1).strip().strip("*").strip()
+                    if len(candidate) >= 12 and not candidate.startswith("http"):
+                        if not candidate.endswith("?"):
+                            candidate += "?"
+                        extracted_queries.append(candidate)
+
+        if extracted_queries:
+            suggested_queries = extracted_queries[:4]
+        else:
             suggested_queries = [
-                "ভিসার প্রয়োজনীয়তা সম্পর্কে আরও বলুন",
-                "কোন স্কলারশিপ পাওয়া যায়?",
-                "সেখানে থাকার খরচ কত?",
+                "Tell me more about the visa requirements",
+                "What scholarships are available?",
+                "How much does living cost there?",
             ]
+            if detected_lang == "bn":
+                suggested_queries = [
+                    "ভিসার প্রয়োজনীয়তা সম্পর্কে আরও বলুন",
+                    "কোন স্কলারশিপ পাওয়া যায়?",
+                    "সেখানে থাকার খরচ কত?",
+                ]
 
         return reply_text, suggested_queries, detected_lang, citations if citations else None
 

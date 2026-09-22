@@ -47,6 +47,7 @@ model User {
   chatMessages          ChatMessage[] @relation("SenderMessages")
   complaintsFiled       Complaint[]   @relation("Complainant")
   verificationReports   VerificationReport[] @relation("PurchaserReports")
+  outreaches            ProfessorOutreach[]  @relation("StudentOutreaches")
 
   @@index([role])
   @@index([email])
@@ -474,3 +475,71 @@ model Subscription {
   @@index([agencyId])
   @@index([status])
 }
+
+// -----------------------------------------------------------------------------
+// 10. ScholarFinder & RA/TA Full-Fund Scholarship Models
+// -----------------------------------------------------------------------------
+
+enum OutreachStage {
+  SHORTLISTED
+  DRAFTED
+  CONTACTED
+  INTERVIEWING
+  OFFER_RECEIVED
+  REJECTED
+  CLOSED
+}
+
+model Professor {
+  id                    String              @id @default(uuid())
+  name                  String
+  title                 String
+  university            String
+  department            String
+  country               String
+  tier                  String
+  labName               String
+  labUrl                String?
+  email                 String              @unique
+  googleScholarUrl      String?
+  primaryDomain         String
+  researchInterests     String[]
+  activeFundingIndicator Boolean            @default(true)
+  fundingSources        String[]
+  acceptingStudents     Boolean             @default(true)
+  recentPublications    Json?               // Array of { title, year, venue, link, summary }
+  hIndex                Int?
+  citationsCount        Int?
+  labLocation           String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  outreaches            ProfessorOutreach[]
+
+  @@index([university])
+  @@index([primaryDomain])
+  @@index([country])
+}
+
+model ProfessorOutreach {
+  id            String        @id @default(uuid())
+  studentId     String
+  student       User          @relation("StudentOutreaches", fields: [studentId], references: [id], onDelete: Cascade)
+  professorId   String
+  professor     Professor     @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  
+  stage         OutreachStage @default(SHORTLISTED)
+  subjectLine   String?
+  emailDraft    String?       @db.Text
+  notes         String?       @db.Text
+  sentAt        DateTime?
+  followUpDueAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([studentId, professorId])
+  @@index([studentId])
+  @@index([professorId])
+  @@index([stage])
+}
+
