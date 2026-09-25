@@ -48,6 +48,13 @@ model User {
   complaintsFiled       Complaint[]   @relation("Complainant")
   verificationReports   VerificationReport[] @relation("PurchaserReports")
   outreaches            ProfessorOutreach[]  @relation("StudentOutreaches")
+  communityMemberships  StudentCommunityMembership[]
+  communityPosts        CommunityPost[]      @relation("AuthorPosts")
+  communityComments     CommunityComment[]   @relation("AuthorComments")
+  postLikes             CommunityPostLike[]
+  blocksInitiated       UserBlock[]          @relation("Blocker")
+  blocksReceived        UserBlock[]          @relation("Blocked")
+  reportsFiled          CommunityReport[]    @relation("Reporter")
 
   @@index([role])
   @@index([email])
@@ -541,5 +548,156 @@ model ProfessorOutreach {
   @@index([studentId])
   @@index([professorId])
   @@index([stage])
+}
+
+// -----------------------------------------------------------------------------
+// 11. Student Peer Networking & Country Hubs (K-12)
+// -----------------------------------------------------------------------------
+
+enum StudentAcademicStatus {
+  INCOMING_STUDENT
+  CURRENT_STUDENT
+  ALUMNI
+}
+
+enum CommunityPostCategory {
+  HELP
+  VISA
+  UNIVERSITY
+  ACCOMMODATION
+  TRAVEL
+  JOBS
+  SCHOLARSHIP
+}
+
+model CountryCommunity {
+  id              String                       @id @default(uuid())
+  country         String                       @unique // e.g. "Germany", "Canada"
+  countryCode     String                       // e.g. "DE", "CA", "GB"
+  flagEmoji       String                       // e.g. "🇩🇪"
+  description     String?                      @db.Text
+  memberCount     Int                          @default(0)
+  postCount       Int                          @default(0)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  members         StudentCommunityMembership[]
+  posts           CommunityPost[]
+
+  @@index([country])
+}
+
+model StudentCommunityMembership {
+  id              String                @id @default(uuid())
+  userId          String
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  communityId     String
+  community       CountryCommunity      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  status          StudentAcademicStatus @default(INCOMING_STUDENT)
+  targetOrCurrentUniversity String?
+  isVerified      Boolean               @default(false)
+  isSeniorMentor  Boolean               @default(false)
+  joinedAt        DateTime              @default(now())
+
+  @@unique([userId, communityId])
+  @@index([userId])
+  @@index([communityId])
+}
+
+model CommunityPost {
+  id              String                @id @default(uuid())
+  communityId     String
+  community       CountryCommunity      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  authorId        String
+  author          User                  @relation("AuthorPosts", fields: [authorId], references: [id], onDelete: Cascade)
+
+  title           String
+  content         String                @db.Text
+  category        CommunityPostCategory @default(HELP)
+  isAnonymous     Boolean               @default(false)
+  isSeniorAsk     Boolean               @default(false)
+  authorStatus    StudentAcademicStatus @default(INCOMING_STUDENT)
+  authorUniversity String?
+  authorVerified  Boolean               @default(false)
+  likesCount      Int                   @default(0)
+  commentsCount   Int                   @default(0)
+  isPinned        Boolean               @default(false)
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  comments        CommunityComment[]
+  likes           CommunityPostLike[]
+  reports         CommunityReport[]
+
+  @@index([communityId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model CommunityComment {
+  id              String                @id @default(uuid())
+  postId          String
+  post            CommunityPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId        String
+  author          User                  @relation("AuthorComments", fields: [authorId], references: [id], onDelete: Cascade)
+
+  content         String                @db.Text
+  isAnonymous     Boolean               @default(false)
+  isSeniorAnswer  Boolean               @default(false)
+  authorStatus    StudentAcademicStatus @default(INCOMING_STUDENT)
+  authorUniversity String?
+  authorVerified  Boolean               @default(false)
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  reports         CommunityReport[]
+
+  @@index([postId])
+  @@index([authorId])
+}
+
+model CommunityPostLike {
+  id              String        @id @default(uuid())
+  postId          String
+  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model UserBlock {
+  id              String   @id @default(uuid())
+  blockerId       String
+  blocker         User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUserId   String
+  blockedUser     User     @relation("Blocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockerId])
+  @@index([blockedUserId])
+}
+
+model CommunityReport {
+  id              String            @id @default(uuid())
+  reporterId      String
+  reporter        User              @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  postId          String?
+  post            CommunityPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId       String?
+  comment         CommunityComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reason          String
+  details         String?           @db.Text
+  createdAt       DateTime          @default(now())
+
+  @@index([postId])
+  @@index([reporterId])
 }
 
