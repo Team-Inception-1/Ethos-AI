@@ -209,14 +209,27 @@
 
 .featuresGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-5);
+}
+
+@media (max-width: 900px) {
+  .featuresGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .featuresGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .featureCard {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  height: 100%;
 }
 
 .featureIcon {
@@ -251,6 +264,16 @@
 .icon-amber {
   background: var(--amber);
   color: #3D2E00;
+}
+
+.icon-cyan {
+  background: #06B6D4;
+  color: #083344;
+}
+
+.icon-pink {
+  background: #EC4899;
+  color: #500724;
 }
 
 .featureTitle { font-size: 17px; font-weight: 700; }

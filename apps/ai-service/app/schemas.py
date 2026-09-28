@@ -277,6 +277,7 @@ class UniversityRecommendation(BaseModel):
     website_url: str | None = Field(default=None, description="Direct university admissions or homepage URL")
     is_live_grounded: bool = Field(default=False, description="True if discovered or verified via live web grounding")
     grounding_citations: list[dict[str, str]] = Field(default_factory=list, description="Live web grounding sources/citations")
+    verified_agency: dict[str, Any] | None = Field(default=None, description="Bangladeshi agency verifying and providing this data")
 
 
 class VisaRiskFlag(BaseModel):

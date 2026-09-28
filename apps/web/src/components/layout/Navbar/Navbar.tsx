@@ -10,6 +10,7 @@ import styles from './Navbar.module.css';
 const navLinks = [
   { href: '/directory', label: 'Directory', labelBn: 'ডিরেক্টরি' },
   { href: '/compare', label: 'Compare', labelBn: 'তুলনা' },
+  { href: '/community', label: 'Student Network', labelBn: 'ছাত্র নেটওয়ার্ক' },
   { href: '/agency', label: 'For Agencies', labelBn: 'এজেন্সি' },
 ];
 

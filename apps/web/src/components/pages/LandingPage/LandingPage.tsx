@@ -25,6 +25,7 @@ const features = [
     desc: 'Every agency is verified against government registration, complaints history, and AI risk scoring before they appear in our directory.',
     descBn: 'প্রতিটি এজেন্সি সরকারি নিবন্ধন, অভিযোগের ইতিহাস এবং AI রিস্ক স্কোরিং এর বিরুদ্ধে যাচাই করা হয়।',
     color: 'emerald',
+    href: '/directory',
   },
   {
     icon: (
@@ -35,8 +36,9 @@ const features = [
     title: 'Escrow Payments',
     titleBn: 'এস্ক্রো পেমেন্ট',
     desc: 'Never pay upfront. Your money is held in escrow and released milestone by milestone — only when conditions are met.',
-    descBn: 'আগেভাগে পরিশোধ করবেন ঘন না। আপনার অর্থ এস্ক্রোতে রাখা হয় এবং মাইলস্টোন অনুযায়ী মুক্তি দেওয়া হয়।',
+    descBn: 'আগেভাগে পরিশোধ করবেন না। আপনার অর্থ এস্ক্রোতে রাখা হয় এবং মাইলস্টোন অনুযায়ী মুক্তি দেওয়া হয়।',
     color: 'blue',
+    href: '/compare',
   },
   {
     icon: (
@@ -50,6 +52,37 @@ const features = [
     desc: 'Upload any offer letter or agreement. Our AI detects fake documents, hidden fees, and predatory clauses instantly.',
     descBn: 'যেকোনো অফার লেটার বা চুক্তি আপলোড করুন। আমাদের AI তাৎক্ষণিকভাবে জাল নথি, লুকানো ফি সনাক্ত করে।',
     color: 'purple',
+    href: '/dashboard/ai-tools',
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    title: 'Student Peer Network & Hubs',
+    titleBn: 'ছাত্র নেটওয়ার্ক ও কান্ট্রি হাব',
+    desc: 'Join destination country groups (Germany, Canada, UK, USA), connect with fellow applicants, ask verified seniors, and discuss visas & housing.',
+    descBn: 'গন্তব্য দেশের শিক্ষার্থী গ্রুপে যোগ দিন (জার্মানি, কানাডা, যুক্তরাজ্য), সিনিয়রদের পরামর্শ নিন এবং ভিসা ও থাকার ব্যবস্থা নিয়ে আলোচনা করুন।',
+    color: 'cyan',
+    href: '/community',
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+      </svg>
+    ),
+    title: 'ScholarFinder (RA/TA Full-Fund)',
+    titleBn: 'স্কলার ফাইন্ডার ও ফুল-ফান্ড',
+    desc: 'Discover 500+ global research professors with active funding, matching labs and automated scholarship cold-email draft generator.',
+    descBn: 'সক্রিয় ফান্ডিং থাকা ৫০০+ আন্তর্জাতিক অধ্যাপক এবং স্কলারশিপ কোল্ড-ইমেইল ড্রাফট জেনারেটর খুঁজুন।',
+    color: 'pink',
+    href: '/dashboard/scholar-finder',
   },
   {
     icon: (
@@ -62,6 +95,7 @@ const features = [
     desc: 'Get plain-language explanations of your application status, agreements, and next steps — in Bangla or English.',
     descBn: 'আপনার আবেদনের অবস্থা, চুক্তি এবং পরবর্তী পদক্ষেপের সহজ ব্যাখ্যা পান — বাংলায় বা ইংরেজিতে।',
     color: 'amber',
+    href: '/dashboard',
   },
 ];
 
@@ -215,11 +249,16 @@ export default function LandingPage() {
                 className={`${featuresReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`} 
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <GlassCard hover className={styles.featureCard} padding="lg">
-                  <div className={`${styles.featureIcon} ${styles[`icon-${f.color}`]}`} aria-hidden="true">{f.icon}</div>
-                  <h3 className={styles.featureTitle}>{lang === 'en' ? f.title : f.titleBn}</h3>
-                  <p className={styles.featureDesc}>{lang === 'en' ? f.desc : f.descBn}</p>
-                </GlassCard>
+                <Link href={f.href || '#'} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+                  <GlassCard hover className={styles.featureCard} padding="lg">
+                    <div className={`${styles.featureIcon} ${styles[`icon-${f.color}`]}`} aria-hidden="true">{f.icon}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <h3 className={styles.featureTitle}>{lang === 'en' ? f.title : f.titleBn}</h3>
+                      <span style={{ fontSize: '18px', fontWeight: 800, opacity: 0.6 }}>→</span>
+                    </div>
+                    <p className={styles.featureDesc}>{lang === 'en' ? f.desc : f.descBn}</p>
+                  </GlassCard>
+                </Link>
               </div>
             ))}
           </div>
@@ -310,6 +349,8 @@ export default function LandingPage() {
               <h4>Product</h4>
               <Link href="/directory">Directory</Link>
               <Link href="/compare">Compare</Link>
+              <Link href="/community">Student Network</Link>
+              <Link href="/dashboard/scholar-finder">ScholarFinder</Link>
               <Link href="/dashboard/ai-tools">AI Tools</Link>
             </div>
             <div className={styles.footerCol}>

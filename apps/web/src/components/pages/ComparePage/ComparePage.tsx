@@ -8,6 +8,7 @@ import Link from 'next/link';
 import {
   getAgenciesByIds,
   DEFAULT_COMPARE_IDS,
+  ALL_AGENCIES,
   AgencyDetail,
 } from '@/data/agencies';
 import styles from './ComparePage.module.css';
@@ -30,7 +31,7 @@ export default function ComparePage() {
   const [lang, setLang] = useState<'en' | 'bn'>('en');
 
   // Parse `ids` parameter from URL query (e.g. ?ids=agt-003,agt-004,agt-006)
-  const idsParam = searchParams.get('ids');
+  const idsParam = searchParams.get('ids') || searchParams.get('agency');
   const selectedIds = useMemo(() => {
     if (!idsParam) return DEFAULT_COMPARE_IDS;
     const items = idsParam.split(',').map(s => s.trim()).filter(Boolean);
@@ -41,6 +42,12 @@ export default function ComparePage() {
   const agencies: AgencyDetail[] = useMemo(() => {
     return getAgenciesByIds(selectedIds);
   }, [selectedIds]);
+
+  const addAgencyToCompare = (idToAdd: string) => {
+    if (!idToAdd || selectedIds.includes(idToAdd)) return;
+    const next = [...selectedIds, idToAdd].slice(0, 4);
+    router.push(`/compare?ids=${next.join(',')}`);
+  };
 
   // Multi-tier deterministic tie-breaker sorting function:
   // 1. Rating (Overall student score)
@@ -171,9 +178,27 @@ export default function ComparePage() {
                     </th>
                   ))}
                   <th className={styles.addCol} scope="col">
-                    <Link href={`/directory?compare=${selectedIds.join(',')}`}>
-                      <div className={styles.addSlot}>+ Add Agency</div>
-                    </Link>
+                    {agencies.length < 4 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <select
+                          className={styles.addSlot}
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) addAgencyToCompare(e.target.value);
+                          }}
+                          style={{ cursor: 'pointer', padding: '10px', fontSize: '13px', border: '2px dashed var(--ink, #14120E)', borderRadius: '8px', background: 'transparent' }}
+                        >
+                          <option value="">+ Add Agency ({ALL_AGENCIES.length - agencies.length} more)...</option>
+                          {ALL_AGENCIES.filter(a => !selectedIds.includes(a.id)).map(a => (
+                            <option key={a.id} value={a.id}>
+                              {a.name} (⭐ {a.rating})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '10px' }}>Max 4 compared</div>
+                    )}
                   </th>
                 </tr>
               </thead>

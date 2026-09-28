@@ -314,6 +314,28 @@ export interface CounselorEvaluationRequest {
   enable_live_discovery?: boolean;
 }
 
+export interface VerifiedAgencyBrief {
+  id: string;
+  name: string;
+  nameBn?: string;
+  licenseNo: string;
+  licenseType: string;
+  ownerName: string;
+  rating: number;
+  successRate: number;
+  riskScore: number;
+  feeRange: string;
+  feeMinBdt: number;
+  feeMaxBdt: number;
+  refundPolicy: string;
+  refundPolicyBn?: string;
+  address: string;
+  phone: string;
+  email: string;
+  website?: string;
+  verifiedAt: string;
+}
+
 export interface UniversityRecommendation {
   id: string;
   university_name: string;
@@ -340,6 +362,7 @@ export interface UniversityRecommendation {
   website_url?: string | null;
   is_live_grounded?: boolean;
   grounding_citations?: GroundingCitation[];
+  verified_agency?: VerifiedAgencyBrief;
 }
 
 export interface VisaRiskFlag {

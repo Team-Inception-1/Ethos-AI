@@ -1,9 +1,10 @@
 /**
  * Ethos AI — System Chatbot Navigation & Human Conversational Engine
  * 
- * Provides direct, human-like answers to specific student and parent questions,
- * avoiding robotic generic dumps, with 1-click navigation actions in English and Bangla.
+ * Provides direct, human-like answers grounded in Verified Agency & Cost Data,
+ * with 1-click navigation actions in English and Bangla.
  */
+import { VerifiedKnowledgeEngine } from './verifiedKnowledgeStore';
 
 export interface NavAction {
   label: string;
@@ -189,6 +190,94 @@ export function queryNavigationAssistant(query: string, currentPath: string = '/
 
   // Normalize punctuation for matching
   const cleanQ = q.replace(/[.,?!;:_~]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 0. VERIFIED AGENCY & COUNTRY COST GROUNDED KNOWLEDGE MATCHER
+  // (Provides admin-verified Bangladeshi agency data & country cost sheets)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const matchedCountry = VerifiedKnowledgeEngine.getCountryCost(cleanQ);
+  const isAskingCostOrAgency = 
+    cleanQ.includes('cost') || cleanQ.includes('fee') || cleanQ.includes('expense') || cleanQ.includes('budget') ||
+    cleanQ.includes('khoroch') || cleanQ.includes('taka') || cleanQ.includes('খরচ') || cleanQ.includes('টাকা') ||
+    cleanQ.includes('ফি') || cleanQ.includes('বাজেট') || cleanQ.includes('agency') || cleanQ.includes('agencies') ||
+    cleanQ.includes('consultan') || cleanQ.includes('এজেন্সি') || cleanQ.includes('যাচাই') || cleanQ.includes('verified') ||
+    cleanQ.includes('process') || cleanQ.includes('requirements') || cleanQ.includes('ভিসা') || cleanQ.includes('visa');
+
+  if (matchedCountry && (isAskingCostOrAgency || cleanQ.split(' ').length <= 3)) {
+    const verifiedAgencies = VerifiedKnowledgeEngine.getVerifiedAgenciesForCountry(matchedCountry.country);
+    const agencyListEn = verifiedAgencies
+      .map(a => `• **${a.name}** (License: \`${a.licenseNo}\`, Success: ${a.successRate}%, Fee: ৳${(a.feeMinBdt / 1000).toFixed(0)}K–৳${(a.feeMaxBdt / 1000).toFixed(0)}K)`)
+      .join('\n');
+    const agencyListBn = verifiedAgencies
+      .map(a => `• **${a.nameBn || a.name}** (লাইসেন্স: \`${a.licenseNo}\`, সাফল্যের হার: ${a.successRate}%, সার্ভিস ফি: ৳${(a.feeMinBdt / 1000).toFixed(0)}K–৳${(a.feeMaxBdt / 1000).toFixed(0)}K)`)
+      .join('\n');
+
+    return {
+      category: 'country',
+      text: `📊 **Verified Study Abroad Cost & Agency Sheet for ${matchedCountry.flag} ${matchedCountry.country}**
+*(Source: Ethos AI Admin-Verified Bangladesh Database)*
+
+💰 **Estimated 1st-Year Budget:** ৳${(matchedCountry.totalFirstYearEstBdt.min / 100000).toFixed(1)}L – ৳${(matchedCountry.totalFirstYearEstBdt.max / 100000).toFixed(1)}L BDT
+
+📌 **Detailed Cost Breakdown:**
+1. **Tuition Fee:** ${matchedCountry.tuitionYearlyBdt.label}
+2. **Living / Blocked Fund:** ${matchedCountry.livingOrBlockedBdt.label}
+3. **Visa & Biometrics Fee:** ${matchedCountry.visaAndBiometricsBdt.label}
+4. **Health Insurance:** ${matchedCountry.healthInsuranceYearlyBdt.label}
+5. **Verified Escrow Agency Fee:** ৳${matchedCountry.escrowAgencyFeeBdt.min.toLocaleString()} – ৳${matchedCountry.escrowAgencyFeeBdt.max.toLocaleString()} BDT *(Released milestone-by-milestone only)*
+
+🏢 **Admin-Approved Verified Agencies for ${matchedCountry.country}:**
+${agencyListEn}
+
+🛡️ *Remember: Never pay an agency full fee upfront. Use Ethos Milestone Escrow to protect your funds.*`,
+      textBn: `📊 **${matchedCountry.flag} ${matchedCountry.countryBn}-র নির্ভরযোগ্য খরচ ও অনুমোদিত এজেন্সির তথ্য**
+*(উৎস: Ethos AI অ্যাডমিন-যাচাইকৃত বাংলাদেশ ডাটাবেজ)*
+
+💰 **১ম বছরের আনুমানিক মোট বাজেট:** ৳${(matchedCountry.totalFirstYearEstBdt.min / 100000).toFixed(1)} লাখ – ৳${(matchedCountry.totalFirstYearEstBdt.max / 100000).toFixed(1)} লাখ BDT
+
+📌 **সুনির্দিষ্ট খরচের বিভাজন:**
+১. **টিউশন ফি:** ${matchedCountry.tuitionYearlyBdt.labelBn}
+২. **লিভিং / ব্লকড ফান্ড:** ${matchedCountry.livingOrBlockedBdt.labelBn}
+৩. **ভিসা ও বায়োমেট্রিক্স ফি:** ${matchedCountry.visaAndBiometricsBdt.labelBn}
+৪. **স্বাস্থ্য বীমা:** ${matchedCountry.healthInsuranceYearlyBdt.labelBn}
+৫. **যাচাইকৃত এসক্রো এজেন্সি ফি:** ৳${matchedCountry.escrowAgencyFeeBdt.min.toLocaleString()} – ৳${matchedCountry.escrowAgencyFeeBdt.max.toLocaleString()} টাকা *(কাজের ধাপ সম্পন্ন হলে ধাপে ধাপে রিলিজ হয়)*
+
+🏢 **${matchedCountry.countryBn}-র জন্য সরকারি ট্রেড লাইসেন্সপ্রাপ্ত ও যাচাইকৃত এজেন্সি:**
+${agencyListBn}
+
+🛡️ *সতর্কতা: কোনো এজেন্সিকে কখনোই এককালীন সব টাকা আগে দেবেন না। আপনার টাকা নিরাপদ রাখতে Ethos মাইলস্টোন এসক্রো ব্যবহার করুন।*`,
+      actions: [
+        {
+          label: `Compare ${matchedCountry.country} Agencies`,
+          labelBn: `${matchedCountry.countryBn} এজেন্সি তুলনা করুন`,
+          href: `/compare`,
+          icon: '⚖️',
+          description: `Side-by-side fee and refund comparison for ${matchedCountry.country}.`,
+          descriptionBn: `${matchedCountry.countryBn}-র এজেন্সিদের ফি ও রিফান্ড পলিসি তুলনা।`,
+        },
+        {
+          label: 'Verified Agency Directory',
+          labelBn: 'যাচাইকৃত এজেন্সি ডিরেক্টরি',
+          href: '/directory',
+          icon: '🏢',
+          description: 'Browse all verified agencies in Bangladesh.',
+          descriptionBn: 'বাংলাদেশের সকল যাচাইকৃত এজেন্সির তালিকা দেখুন।',
+        },
+        {
+          label: `${matchedCountry.country} Student Network`,
+          labelBn: `${matchedCountry.countryBn} স্টুডেন্ট নেটওয়ার্ক`,
+          href: '/community',
+          icon: '🎓',
+          description: `Connect with Bangladeshi students in ${matchedCountry.country}.`,
+          descriptionBn: `${matchedCountry.countryBn}-তে অবস্থানরত শিক্ষার্থীদের সাথে যুক্ত হন।`,
+        },
+      ],
+      suggestions: [
+        { en: `What are the visa requirements for ${matchedCountry.country}?`, bn: `${matchedCountry.countryBn}-র ভিসার প্রধান শর্তগুলো কি কি?` },
+        { en: 'How does milestone escrow protect my money?', bn: 'মাইলস্টোন এসক্রো কীভাবে আমার টাকা সুরক্ষিত রাখে?' },
+      ],
+    };
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. SPECIFIC QUESTION MATCHERS (Direct answers first, no generic bot templates)

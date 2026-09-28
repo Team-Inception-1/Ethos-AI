@@ -2077,3 +2077,857 @@
   border-color: #BAE6FD;
 }
 
+/* ==========================================================================
+   Verified Agency Attribution Banner & "Verify Agency" Interactions
+   ========================================================================== */
+
+.agencySourceBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin: 10px 0 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.agencySourceBanner:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
+}
+
+:global([data-theme='light']) .agencySourceBanner {
+  background: linear-gradient(135deg, #ECFDF5 0%, #EFF6FF 100%);
+  border: 1px solid #A7F3D0;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.1);
+}
+
+.agencySourceLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.agencySourceLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.agencyGovBadge {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #10B981;
+}
+
+:global([data-theme='light']) .agencyGovBadge {
+  color: #047857;
+}
+
+.agencyLicenseBadge {
+  font-size: 10.5px;
+  font-family: monospace;
+  font-weight: 600;
+  padding: 1px 6px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  color: #6EE7B7;
+}
+
+:global([data-theme='light']) .agencyLicenseBadge {
+  background: #D1FAE5;
+  border-color: #6EE7B7;
+  color: #065F46;
+}
+
+.agencyNameContainer {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.agencySourceName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+:global([data-theme='light']) .agencySourceName {
+  color: #0F172A;
+}
+
+.agencySourceNameBn {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+:global([data-theme='light']) .agencySourceNameBn {
+  color: #64748B;
+}
+
+.agencyMetricsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #94A3B8;
+  flex-wrap: wrap;
+}
+
+:global([data-theme='light']) .agencyMetricsRow {
+  color: #475569;
+}
+
+.agencyMetric {
+  font-weight: 600;
+}
+
+.agencyMetricDot {
+  opacity: 0.5;
+}
+
+.agencyRiskPill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 9999px;
+}
+
+.riskPillLow {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+:global([data-theme='light']) .riskPillLow {
+  background: #D1FAE5;
+  color: #065F46;
+  border-color: #A7F3D0;
+}
+
+.riskPillMed {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+:global([data-theme='light']) .riskPillMed {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FDE68A;
+}
+
+.verifyAgencyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.verifyAgencyBtn:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  border-color: #6EE7B7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+:global([data-theme='light']) .verifyAgencyBtn {
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+}
+
+/* Card Action Button: Verify Agency */
+.actionBtnVerifyAgency {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34D399;
+  font-weight: 600;
+}
+
+.actionBtnVerifyAgency:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #10B981;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+:global([data-theme='light']) .actionBtnVerifyAgency {
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  color: #047857;
+}
+
+:global([data-theme='light']) .actionBtnVerifyAgency:hover {
+  background: #D1FAE5;
+  border-color: #10B981;
+  color: #065F46;
+}
+
+/* Chat Assistant Agency Provenance Bar */
+.chatAgencyBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+:global([data-theme='light']) .chatAgencyBar {
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.chatAgencyBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chatGovFlag {
+  font-size: 14px;
+}
+
+.chatGovText {
+  color: #6EE7B7;
+  font-weight: 500;
+}
+
+:global([data-theme='light']) .chatGovText {
+  color: #15803D;
+}
+
+.chatVerifyBtn {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34D399;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.chatVerifyBtn:hover {
+  background: #10B981;
+  color: #FFFFFF;
+}
+
+:global([data-theme='light']) .chatVerifyBtn {
+  background: #DCFCE7;
+  border-color: #86EFAC;
+  color: #166534;
+}
+
+:global([data-theme='light']) .chatVerifyBtn:hover {
+  background: #16A34A;
+  color: #FFFFFF;
+}
+
+/* ==========================================================================
+   Interactive Agency Verification Dossier Modal
+   ========================================================================== */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(10, 15, 29, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.agencyVerifyModal {
+  position: relative;
+  width: 100%;
+  max-width: 780px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #131A2A;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(16, 185, 129, 0.15);
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+:global([data-theme='light']) .agencyVerifyModal {
+  background: #FFFFFF;
+  border: 1px solid #86EFAC;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 0 24px rgba(16, 185, 129, 0.1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+:global([data-theme='light']) .modalHeader {
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.modalTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modalSubHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modalGovBadge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #10B981;
+}
+
+:global([data-theme='light']) .modalGovBadge {
+  color: #059669;
+}
+
+.modalLicensePill {
+  font-size: 11.5px;
+  font-family: monospace;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 6px;
+  color: #6EE7B7;
+}
+
+:global([data-theme='light']) .modalLicensePill {
+  background: #D1FAE5;
+  border-color: #6EE7B7;
+  color: #065F46;
+}
+
+.modalAgencyName {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Space Grotesk', var(--font-heading, sans-serif);
+  color: #F8FAFC;
+}
+
+:global([data-theme='light']) .modalAgencyName {
+  color: #0F172A;
+}
+
+.modalAgencyNameBn {
+  font-size: 16px;
+  font-weight: 600;
+  color: #94A3B8;
+}
+
+:global([data-theme='light']) .modalAgencyNameBn {
+  color: #64748B;
+}
+
+.modalCloseBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94A3B8;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.modalCloseBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+}
+
+:global([data-theme='light']) .modalCloseBtn {
+  background: #F1F5F9;
+  border-color: #E2E8F0;
+  color: #64748B;
+}
+
+:global([data-theme='light']) .modalCloseBtn:hover {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+  color: #DC2626;
+}
+
+/* University Context Banner */
+.modalUniContextBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #93C5FD;
+}
+
+:global([data-theme='light']) .modalUniContextBanner {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1E40AF;
+}
+
+.modalUniContextIcon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* Dossier Grid */
+.modalDossierGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 640px) {
+  .modalDossierGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dossierCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+:global([data-theme='light']) .dossierCard {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+
+.dossierCardTitle {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #F1F5F9;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+:global([data-theme='light']) .dossierCardTitle {
+  color: #1E293B;
+}
+
+.dossierFieldList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dossierField {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.dossierLabel {
+  color: #94A3B8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+:global([data-theme='light']) .dossierLabel {
+  color: #64748B;
+}
+
+.dossierValue {
+  color: #F8FAFC;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+:global([data-theme='light']) .dossierValue {
+  color: #0F172A;
+}
+
+.dossierValueHighlight {
+  color: #10B981;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+:global([data-theme='light']) .dossierValueHighlight {
+  color: #059669;
+}
+
+.dossierAuditPass {
+  color: #10B981;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+:global([data-theme='light']) .dossierAuditPass {
+  color: #047857;
+}
+
+/* AI Risk Gauge */
+.dossierRiskGaugeBox {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+:global([data-theme='light']) .dossierRiskGaugeBox {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+}
+
+.dossierRiskGaugeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #94A3B8;
+  margin-bottom: 6px;
+}
+
+:global([data-theme='light']) .dossierRiskGaugeHeader {
+  color: #475569;
+}
+
+.dossierRiskScore {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dossierProgressBar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+:global([data-theme='light']) .dossierProgressBar {
+  background: #E2E8F0;
+}
+
+.dossierProgressFill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.dossierRiskNote {
+  margin: 0;
+  font-size: 11px;
+  color: #6EE7B7;
+  line-height: 1.4;
+}
+
+:global([data-theme='light']) .dossierRiskNote {
+  color: #065F46;
+}
+
+.dossierStatRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.dossierStatBox {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+:global([data-theme='light']) .dossierStatBox {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+.dossierStatNumber {
+  font-size: 16px;
+  font-weight: 800;
+  color: #F8FAFC;
+}
+
+:global([data-theme='light']) .dossierStatNumber {
+  color: #0F172A;
+}
+
+.dossierStatLabel {
+  font-size: 10.5px;
+  color: #94A3B8;
+}
+
+:global([data-theme='light']) .dossierStatLabel {
+  color: #64748B;
+}
+
+/* Escrow Protection Grid */
+.dossierEscrowGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .dossierEscrowGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dossierEscrowItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dossierFeeValue {
+  font-size: 16px;
+  font-weight: 800;
+  color: #38BDF8;
+}
+
+:global([data-theme='light']) .dossierFeeValue {
+  color: #0284C7;
+}
+
+.dossierEscrowBadge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10B981;
+  display: inline-block;
+}
+
+:global([data-theme='light']) .dossierEscrowBadge {
+  color: #047857;
+}
+
+.dossierRefundText {
+  margin: 0;
+  font-size: 12px;
+  color: #CBD5E1;
+  line-height: 1.45;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid #10B981;
+}
+
+:global([data-theme='light']) .dossierRefundText {
+  background: #FFFFFF;
+  color: #334155;
+}
+
+/* Registered Address & Direct Contacts */
+.dossierContactRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.dossierContactItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dossierContactText {
+  font-size: 12px;
+  color: #E2E8F0;
+  line-height: 1.4;
+}
+
+:global([data-theme='light']) .dossierContactText {
+  color: #1E293B;
+}
+
+.dossierContactLink {
+  font-size: 12px;
+  color: #38BDF8;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.dossierContactLink:hover {
+  color: #60A5FA;
+  text-decoration: underline;
+}
+
+:global([data-theme='light']) .dossierContactLink {
+  color: #0284C7;
+}
+
+:global([data-theme='light']) .dossierContactLink:hover {
+  color: #0369A1;
+}
+
+/* Modal Bottom Actions */
+.modalActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+  flex-wrap: wrap;
+}
+
+:global([data-theme='light']) .modalActionsRow {
+  border-top: 1px solid #E2E8F0;
+}
+
+.modalActionPrimary {
+  padding: 9px 16px;
+  background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.modalActionPrimary:hover {
+  background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
+}
+
+.modalActionSecondary {
+  padding: 9px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.modalActionSecondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+}
+
+:global([data-theme='light']) .modalActionSecondary {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  color: #334155;
+}
+
+:global([data-theme='light']) .modalActionSecondary:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.modalActionClose {
+  padding: 9px 16px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94A3B8;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modalActionClose:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #F8FAFC;
+}
+
+:global([data-theme='light']) .modalActionClose {
+  border-color: #CBD5E1;
+  color: #64748B;
+}
+
+:global([data-theme='light']) .modalActionClose:hover {
+  background: #F8FAFC;
+  color: #0F172A;
+}
+
+

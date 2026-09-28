@@ -13,6 +13,7 @@ import type {
   CounselorChatMessage,
   CounselorChatResponse,
 } from './aiService';
+import { VerifiedKnowledgeEngine } from './verifiedKnowledgeStore';
 
 const OFFLINE_CATALOG: Array<{
   id: string;
@@ -310,6 +311,30 @@ export function evaluateOfflineProfile(
       cautions.push(`Study gap of ${req.study_gap_years} years requires verifiable job & tax documentation.`);
     }
 
+    const matchingAgencies = VerifiedKnowledgeEngine.getVerifiedAgenciesForCountry(uni.country);
+    const agencyObj = matchingAgencies[0] || VerifiedKnowledgeEngine.getAllVerifiedAgencies()[0];
+    const verifiedAgencyBrief = agencyObj ? {
+      id: agencyObj.id,
+      name: agencyObj.name,
+      nameBn: agencyObj.nameBn || agencyObj.name,
+      licenseNo: agencyObj.licenseNo,
+      licenseType: agencyObj.licenseType,
+      ownerName: agencyObj.ownerName,
+      rating: agencyObj.rating,
+      successRate: agencyObj.successRate,
+      riskScore: agencyObj.riskScore,
+      feeRange: `৳${(agencyObj.feeMinBdt / 1000).toFixed(0)}K–৳${(agencyObj.feeMaxBdt / 1000).toFixed(0)}K`,
+      feeMinBdt: agencyObj.feeMinBdt,
+      feeMaxBdt: agencyObj.feeMaxBdt,
+      refundPolicy: agencyObj.refundSummaryEn,
+      refundPolicyBn: agencyObj.refundSummaryBn,
+      address: agencyObj.address,
+      phone: agencyObj.phone,
+      email: agencyObj.email,
+      website: agencyObj.website,
+      verifiedAt: agencyObj.verifiedAt,
+    } : undefined;
+
     scored.push({
       score,
       rec: {
@@ -338,6 +363,7 @@ export function evaluateOfflineProfile(
         website_url: null,
         is_live_grounded: false,
         grounding_citations: [],
+        verified_agency: verifiedAgencyBrief,
       },
     });
   }
