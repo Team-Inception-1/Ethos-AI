@@ -124,9 +124,34 @@ export default function DirectoryPage() {
     return () => { cancelled = true; };
   }, []);
 
+  const [agenciesList, setAgenciesList] = useState(AGENCIES);
+
+  useEffect(() => {
+    fetch('/api/admin/agencies')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.agencies && Array.isArray(d.agencies)) {
+          setAgenciesList(
+            d.agencies.map((a: any) => ({
+              id: a.id,
+              name: a.name,
+              verified: a.licenseStatus === 'VERIFIED',
+              rating: a.rating,
+              reviews: a.reviewCount,
+              countries: a.countriesServed,
+              success: a.successRate,
+              feeMin: Number(a.feeMinPoisha) / 100,
+              feeMax: Number(a.feeMaxPoisha) / 100,
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const getRisk = (agencyId: string): number => riskScores?.[agencyId]?.risk_score ?? 0;
 
-  const filtered = AGENCIES
+  const filtered = agenciesList
     .filter(a => !verifiedOnly || a.verified)
     .filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
     .filter(a => {

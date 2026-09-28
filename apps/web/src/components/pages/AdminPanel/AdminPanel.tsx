@@ -1,92 +1,1570 @@
 'use client';
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import { useAuth } from '@/context/AuthContext';
 import styles from './AdminPanel.module.css';
 
-const PENDING = [
-  { name:'Skyline Consultancy', date:'Jul 28, 2026', docs:'3 docs', risk:67 },
-  { name:'EduWings BD',         date:'Jul 30, 2026', docs:'2 docs', risk:14 },
-];
+interface AdminStats {
+  agencies: { total: number; verified: number; pending: number; rejected: number };
+  disputes: { activeCount: number; disputedBDT: number; disputedFormatted: string };
+  escrow: { held: number; released: number; pending: number; totalSecuredBDT: number; totalSecuredFormatted: string };
+  scamAlerts: { pendingCount: number; totalCount: number };
+  users: { total: number; students: number; parents: number; agencies: number; admins: number };
+}
 
-const DISPUTES = [
-  { id:'DSP-001', student:'Riya Ahmed',  agency:'Skyline Consultancy', amount:'৳30,000', status:'open' },
-  { id:'DSP-002', student:'Arif Khan',   agency:'FastPath Edu',        amount:'৳15,000', status:'investigating' },
-];
+interface AgencyItem {
+  id: string;
+  name: string;
+  licenseNo: string;
+  licenseStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
+  countriesServed: string[];
+  foundedYear: number;
+  riskScore: number;
+  rating: number;
+  reviewCount: number;
+  successRate: number;
+  address: string;
+  website: string;
+  description: string;
+  owner?: { name: string; email: string; phone: string } | null;
+  submittedDocs?: { name: string; status: string; size: string }[];
+}
 
-const TABS = ['Agency Verification','Disputes','Scam Alerts','Users'];
+interface DisputeItem {
+  id: string;
+  milestoneId: string;
+  applicationId: string;
+  milestoneName: string;
+  amountPoisha: string;
+  amountBDT: number;
+  amountFormatted: string;
+  status: 'disputed' | 'refunded' | 'released' | string;
+  reason: string;
+  disputedAt: string;
+  student: { id: string; name: string; email: string; phone: string };
+  agency: { id: string; name: string; licenseNo: string };
+  application: { targetUniversity: string; targetProgram: string; targetCountry: string };
+  ledgerCount: number;
+}
+
+interface ScamAlertItem {
+  id: string;
+  type: string;
+  title: string;
+  agencyName: string;
+  agencyId: string | null;
+  studentName: string;
+  studentEmail: string;
+  riskScore: number;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  status: 'PENDING_REVIEW' | 'FLAGGED' | 'RESOLVED' | 'DISMISSED';
+  evidenceSummary: string;
+  detectedAt: string;
+  actionTaken: string | null;
+}
+
+interface UserItem {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN' | string;
+  isVerified: boolean;
+  avatarUrl?: string;
+  createdAt: string;
+  details?: any;
+  linkedAccountsCount: number;
+}
+
+interface LedgerItem {
+  id: string;
+  milestoneId: string;
+  type: string;
+  amountFormatted: string;
+  provider: string;
+  providerTxnId: string;
+  txHash: string;
+  txHashShort: string;
+  actorId: string;
+  note: string;
+  timestamp: string;
+}
+
+type TabType = 'Agency Verification' | 'Disputes' | 'Scam Alerts' | 'Users' | 'Audit Ledger';
+const TABS: TabType[] = ['Agency Verification', 'Disputes', 'Scam Alerts', 'Users', 'Audit Ledger'];
 
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState('Agency Verification');
+  const { user, quickLoginDemo } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<TabType>('Agency Verification');
+  const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Data states
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [agencies, setAgencies] = useState<AgencyItem[]>([]);
+  const [disputes, setDisputes] = useState<DisputeItem[]>([]);
+  const [scamAlerts, setScamAlerts] = useState<ScamAlertItem[]>([]);
+  const [usersList, setUsersList] = useState<UserItem[]>([]);
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerItem[]>([]);
+
+  // Search & Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [agencyFilter, setAgencyFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('ALL');
+  const [userRoleFilter, setUserRoleFilter] = useState<'ALL' | 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN'>('ALL');
+
+  // Modals
+  const [selectedAgencyDossier, setSelectedAgencyDossier] = useState<AgencyItem | null>(null);
+  const [selectedDisputeEvidence, setSelectedDisputeEvidence] = useState<DisputeItem | null>(null);
+  const [selectedScamReport, setSelectedScamReport] = useState<ScamAlertItem | null>(null);
+
+  // Toast feedback helper
+  const showToast = (msg: string) => {
+    setFeedback(msg);
+    setTimeout(() => {
+      setFeedback(null);
+    }, 4500);
+  };
+
+  // Fetch all live data
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [ovRes, agRes, dpRes, scRes, usRes, ldRes] = await Promise.all([
+        fetch('/api/admin/overview').then((r) => r.json()).catch(() => null),
+        fetch('/api/admin/agencies').then((r) => r.json()).catch(() => null),
+        fetch('/api/admin/disputes').then((r) => r.json()).catch(() => null),
+        fetch('/api/admin/scam-alerts').then((r) => r.json()).catch(() => null),
+        fetch('/api/admin/users').then((r) => r.json()).catch(() => null),
+        fetch('/api/escrow/ledger').then((r) => r.json()).catch(() => null),
+      ]);
+
+      if (ovRes?.stats) setStats(ovRes.stats);
+      if (agRes?.agencies) setAgencies(agRes.agencies);
+      if (dpRes?.disputes) setDisputes(dpRes.disputes);
+      if (scRes?.alerts) setScamAlerts(scRes.alerts);
+      if (usRes?.users) setUsersList(usRes.users);
+      if (ldRes?.entries) setLedgerEntries(ldRes.entries);
+    } catch (err) {
+      console.error('Failed to load admin dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Handler: Agency Verification action
+  const handleAgencyAction = async (agencyId: string, action: 'VERIFIED' | 'REJECTED', note?: string) => {
+    try {
+      setActionLoadingId(agencyId);
+      const res = await fetch('/api/admin/agencies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agencyId, action, note }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAgencies((prev) =>
+          prev.map((a) => (a.id === agencyId ? { ...a, licenseStatus: action } : a))
+        );
+        showToast(`✓ Agency verification updated: ${action}`);
+        if (selectedAgencyDossier?.id === agencyId) {
+          setSelectedAgencyDossier(null);
+        }
+        // Refresh overview stats
+        fetch('/api/admin/overview')
+          .then((r) => r.json())
+          .then((d) => d.stats && setStats(d.stats))
+          .catch(() => {});
+      } else {
+        showToast(`✕ Error: ${data.error || 'Failed to update agency'}`);
+      }
+    } catch {
+      showToast('✕ Network error processing agency verification');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handler: Dispute resolution
+  const handleResolveDispute = async (milestoneId: string, action: 'REFUND' | 'RELEASE', reason: string) => {
+    try {
+      setActionLoadingId(milestoneId);
+      const res = await fetch('/api/admin/disputes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestoneId, action, reason }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const nextStatus = action === 'REFUND' ? 'refunded' : 'released';
+        setDisputes((prev) =>
+          prev.map((d) => (d.milestoneId === milestoneId ? { ...d, status: nextStatus } : d))
+        );
+        showToast(`✓ Escrow dispute resolved: ${action === 'REFUND' ? 'Refunded to student' : 'Released to agency'}`);
+        setSelectedDisputeEvidence(null);
+        // Refresh stats and ledger
+        fetchData();
+      } else {
+        showToast(`✕ Error: ${data.error || 'Failed to resolve dispute'}`);
+      }
+    } catch {
+      showToast('✕ Network error resolving dispute');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handler: Scam Alert Action
+  const handleScamAlertAction = async (alertId: string, action: 'FLAG_AGENCY' | 'BAN_AGENCY' | 'DISMISS') => {
+    try {
+      setActionLoadingId(alertId);
+      const res = await fetch('/api/admin/scam-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alertId, action }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setScamAlerts((prev) =>
+          prev.map((s) => (s.id === alertId ? { ...s, status: action === 'DISMISS' ? 'DISMISSED' : 'FLAGGED' } : s))
+        );
+        showToast(`✓ Scam enforcement action executed: ${action}`);
+        setSelectedScamReport(null);
+        fetchData();
+      } else {
+        showToast(`✕ Error: ${data.error || 'Failed to apply action'}`);
+      }
+    } catch {
+      showToast('✕ Network error executing scam alert action');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handler: User verification toggle
+  const handleToggleUserVerify = async (userId: string, currentStatus: boolean) => {
+    try {
+      setActionLoadingId(userId);
+      const nextStatus = !currentStatus;
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, isVerified: nextStatus }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUsersList((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, isVerified: nextStatus } : u))
+        );
+        showToast(`✓ User verification status changed: ${nextStatus ? 'Verified' : 'Pending'}`);
+      } else {
+        showToast(`✕ Error: ${data.error || 'Failed to update user'}`);
+      }
+    } catch {
+      showToast('✕ Network error toggling user status');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Filtered agencies
+  const filteredAgencies = useMemo(() => {
+    return agencies.filter((a) => {
+      const matchesFilter =
+        agencyFilter === 'ALL' ||
+        (agencyFilter === 'PENDING' && a.licenseStatus === 'PENDING') ||
+        (agencyFilter === 'VERIFIED' && a.licenseStatus === 'VERIFIED') ||
+        (agencyFilter === 'REJECTED' && a.licenseStatus === 'REJECTED');
+      const matchesSearch =
+        !searchQuery ||
+        a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.licenseNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.countriesServed.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesFilter && matchesSearch;
+    });
+  }, [agencies, agencyFilter, searchQuery]);
+
+  // Filtered users
+  const filteredUsers = useMemo(() => {
+    return usersList.filter((u) => {
+      const matchesRole = userRoleFilter === 'ALL' || u.role.toUpperCase() === userRoleFilter;
+      const matchesSearch =
+        !searchQuery ||
+        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.phone.includes(searchQuery);
+      return matchesRole && matchesSearch;
+    });
+  }, [usersList, userRoleFilter, searchQuery]);
+
+  const pendingAgenciesCount = agencies.filter((a) => a.licenseStatus === 'PENDING').length;
+  const activeDisputesCount = disputes.filter((d) => d.status === 'disputed').length;
+  const pendingScamCount = scamAlerts.filter((s) => s.status === 'PENDING_REVIEW' || s.status === 'FLAGGED').length;
 
   return (
     <div className={styles.page}>
+      {/* Header */}
       <div className={styles.header}>
-        <h1>Admin Panel</h1>
-        <Badge variant="danger">Admin Access</Badge>
+        <div className={styles.headerLeft}>
+          <h1>Admin Governance Dashboard</h1>
+          <p className={styles.subtitle}>
+            Platform oversight, consultancy license audits, escrow dispute adjudication & AI fraud enforcement
+          </p>
+        </div>
+        <div className={styles.headerRight}>
+          <Badge variant="danger" size="md">
+            🛡️ SUPERADMIN ACTIVE
+          </Badge>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={fetchData}
+            loading={loading}
+          >
+            ↻ Refresh Data
+          </Button>
+        </div>
       </div>
 
-      <div className={styles.tabs} role="tablist">
-        {TABS.map(t => (
-          <button key={t} role="tab" aria-selected={activeTab === t} className={`${styles.tab} ${activeTab === t ? styles.tabActive : ''}`} onClick={() => setActiveTab(t)}>{t}</button>
-        ))}
+      {/* Toast Feedback */}
+      {feedback && <div className={styles.feedbackToast}>{feedback}</div>}
+
+      {/* Top Stat Cards as Interactive Buttons */}
+      <div className={styles.statGrid} role="region" aria-label="Quick Navigation Cards">
+        {/* Box 1: Agencies */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${activeTab === 'Agency Verification' ? styles.statCardActive : ''}`}
+          onClick={() => {
+            setActiveTab('Agency Verification');
+            setSearchQuery('');
+          }}
+          aria-label="View Agencies Verification details"
+        >
+          {activeTab === 'Agency Verification' && (
+            <span className={styles.activeIndicator}>● Viewing</span>
+          )}
+          <div className={styles.statIcon} style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--blue-primary)' }}>
+            🏢
+          </div>
+          <div>
+            <div className={styles.statValue}>
+              {stats?.agencies.verified ?? 0}
+              <span style={{ fontSize: '15px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {' '}/ {stats?.agencies.total ?? 0}
+              </span>
+            </div>
+            <div className={styles.statLabel}>Agencies Verified</div>
+            <div className={styles.statSubtext}>{pendingAgenciesCount} pending audit</div>
+            <div className={styles.clickHint}>
+              {activeTab === 'Agency Verification' ? 'Viewing details below ↓' : 'Click to view details →'}
+            </div>
+          </div>
+        </button>
+
+        {/* Box 2: Disputes */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${activeTab === 'Disputes' ? styles.statCardActive : ''}`}
+          onClick={() => {
+            setActiveTab('Disputes');
+            setSearchQuery('');
+          }}
+          aria-label="View Escrow Disputes details"
+        >
+          {activeTab === 'Disputes' && (
+            <span className={styles.activeIndicator}>● Viewing</span>
+          )}
+          <div className={styles.statIcon} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+            ⚖️
+          </div>
+          <div>
+            <div className={styles.statValue}>{stats?.disputes.disputedFormatted ?? '৳0'}</div>
+            <div className={styles.statLabel}>Escrow in Dispute</div>
+            <div className={styles.statSubtext}>{activeDisputesCount} active disputes</div>
+            <div className={styles.clickHint}>
+              {activeTab === 'Disputes' ? 'Viewing details below ↓' : 'Click to view details →'}
+            </div>
+          </div>
+        </button>
+
+        {/* Box 3: Protected in Escrow */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${activeTab === 'Audit Ledger' ? styles.statCardActive : ''}`}
+          onClick={() => {
+            setActiveTab('Audit Ledger');
+            setSearchQuery('');
+          }}
+          aria-label="View Protected Escrow Ledger details"
+        >
+          {activeTab === 'Audit Ledger' && (
+            <span className={styles.activeIndicator}>● Viewing</span>
+          )}
+          <div className={styles.statIcon} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+            🔒
+          </div>
+          <div>
+            <div className={styles.statValue}>{stats?.escrow.totalSecuredFormatted ?? '৳0'}</div>
+            <div className={styles.statLabel}>Protected in Escrow</div>
+            <div className={styles.statSubtext}>৳{((stats?.escrow.held ?? 0)).toLocaleString('en-IN')} currently held</div>
+            <div className={styles.clickHint}>
+              {activeTab === 'Audit Ledger' ? 'Viewing details below ↓' : 'Click to view details →'}
+            </div>
+          </div>
+        </button>
+
+        {/* Box 4: AI Fraud Flags */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${activeTab === 'Scam Alerts' ? styles.statCardActive : ''}`}
+          onClick={() => {
+            setActiveTab('Scam Alerts');
+            setSearchQuery('');
+          }}
+          aria-label="View AI Fraud Flags and Scam Alerts details"
+        >
+          {activeTab === 'Scam Alerts' && (
+            <span className={styles.activeIndicator}>● Viewing</span>
+          )}
+          <div className={styles.statIcon} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+            🚨
+          </div>
+          <div>
+            <div className={styles.statValue}>{pendingScamCount}</div>
+            <div className={styles.statLabel}>AI Fraud Flags</div>
+            <div className={styles.statSubtext}>{stats?.scamAlerts.totalCount ?? 0} total logged</div>
+            <div className={styles.clickHint}>
+              {activeTab === 'Scam Alerts' ? 'Viewing details below ↓' : 'Click to view details →'}
+            </div>
+          </div>
+        </button>
+
+        {/* Box 5: Platform Members */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${activeTab === 'Users' ? styles.statCardActive : ''}`}
+          onClick={() => {
+            setActiveTab('Users');
+            setSearchQuery('');
+          }}
+          aria-label="View Platform Members directory details"
+        >
+          {activeTab === 'Users' && (
+            <span className={styles.activeIndicator}>● Viewing</span>
+          )}
+          <div className={styles.statIcon} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+            👥
+          </div>
+          <div>
+            <div className={styles.statValue}>{stats?.users.total ?? 0}</div>
+            <div className={styles.statLabel}>Platform Members</div>
+            <div className={styles.statSubtext}>
+              {stats?.users.students ?? 0} stu · {stats?.users.parents ?? 0} par · {stats?.users.agencies ?? 0} agc
+            </div>
+            <div className={styles.clickHint}>
+              {activeTab === 'Users' ? 'Viewing details below ↓' : 'Click to view details →'}
+            </div>
+          </div>
+        </button>
       </div>
 
+      {/* Dynamic Active View Banner */}
+      <div className={styles.activeViewBanner}>
+        <div className={styles.activeViewTitle}>
+          <span>Current Active Section:</span>
+          <strong>{activeTab === 'Audit Ledger' ? 'Protected in Escrow (Vault & Ledger)' : activeTab}</strong>
+        </div>
+        <div className={styles.activeViewSub}>
+          {activeTab === 'Agency Verification' && '🔍 Inspecting agency trade licenses, visa success rates & accreditation'}
+          {activeTab === 'Disputes' && '⚖️ Adjudicating student disputes with direct escrow refund & release controls'}
+          {activeTab === 'Audit Ledger' && '🔒 Cryptographic SHA-256 escrow chain & real-time fund allocations'}
+          {activeTab === 'Scam Alerts' && '🤖 Reviewing OCR-flagged fraudulent offer letters & predatory contract clauses'}
+          {activeTab === 'Users' && '👥 Managing student, parent, agency, and administrator credentials'}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className={styles.tabsBar}>
+        <div className={styles.tabs} role="tablist">
+          {TABS.map((t) => {
+            const count =
+              t === 'Agency Verification'
+                ? pendingAgenciesCount
+                : t === 'Disputes'
+                ? activeDisputesCount
+                : t === 'Scam Alerts'
+                ? pendingScamCount
+                : null;
+
+            return (
+              <button
+                key={t}
+                role="tab"
+                aria-selected={activeTab === t}
+                className={`${styles.tab} ${activeTab === t ? styles.tabActive : ''}`}
+                onClick={() => {
+                  setActiveTab(t);
+                  setSearchQuery('');
+                }}
+              >
+                <span>{t}</span>
+                {count !== null && count > 0 && <span className={styles.tabCount}>{count}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* TAB 1: AGENCY VERIFICATION */}
       {activeTab === 'Agency Verification' && (
-        <GlassCard padding="none">
-          <div className={styles.sectionHeader}><h2 className={styles.sectionTitle}>Pending Agency Verifications ({PENDING.length})</h2></div>
-          <table className={styles.table} aria-label="Agency verification queue">
-            <thead><tr><th>Agency</th><th>Applied</th><th>Documents</th><th>AI Risk</th><th>Actions</th></tr></thead>
+        <div className={styles.tableContainer}>
+          <div className={styles.controlsBar}>
+            <div className={styles.searchWrap}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search agency by name, license, country..."
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className={styles.filterPills}>
+              {(['ALL', 'PENDING', 'VERIFIED', 'REJECTED'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  className={`${styles.pillBtn} ${agencyFilter === filter ? styles.pillBtnActive : ''}`}
+                  onClick={() => setAgencyFilter(filter)}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <table className={styles.table} aria-label="Agency verification directory">
+            <thead>
+              <tr>
+                <th>Agency Name</th>
+                <th>License & Reg</th>
+                <th>Countries</th>
+                <th>Success / Rating</th>
+                <th>AI Risk Score</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
             <tbody>
-              {PENDING.map((a, i) => (
-                <tr key={i}>
-                  <td className={styles.agencyName}>{a.name}</td>
-                  <td className={styles.cell}>{a.date}</td>
-                  <td className={styles.cell}>{a.docs}</td>
-                  <td><Badge variant={a.risk < 30 ? 'success' : 'danger'} size="sm">{a.risk}/100</Badge></td>
-                  <td className={styles.actions}>
-                    <Button size="sm" variant="emerald">Approve</Button>
-                    <Button size="sm" variant="danger">Reject</Button>
-                    <Button size="sm" variant="ghost">Review</Button>
+              {filteredAgencies.map((agency) => {
+                const isActionLoading = actionLoadingId === agency.id;
+                const riskClass =
+                  agency.riskScore < 30
+                    ? styles.riskLow
+                    : agency.riskScore < 60
+                    ? styles.riskMedium
+                    : styles.riskHigh;
+
+                return (
+                  <tr key={agency.id}>
+                    <td>
+                      <div className={styles.primaryCell}>{agency.name}</div>
+                      <div className={styles.subInfo}>{agency.address}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontFamily: 'monospace', fontWeight: 700 }}>{agency.licenseNo}</div>
+                      <div className={styles.subInfo}>Est. {agency.foundedYear}</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {agency.countriesServed.map((c) => (
+                          <span
+                            key={c}
+                            style={{
+                              fontSize: '11px',
+                              background: 'var(--bg-elevated)',
+                              border: '1px solid var(--border)',
+                              padding: '2px 5px',
+                              borderRadius: '3px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 800 }}>★ {agency.rating} / 5.0</div>
+                      <div className={styles.subInfo}>{agency.successRate}% visa success</div>
+                    </td>
+                    <td>
+                      <span className={`${styles.riskBadge} ${riskClass}`}>
+                        {agency.riskScore}/100
+                      </span>
+                    </td>
+                    <td>
+                      <Badge
+                        variant={
+                          agency.licenseStatus === 'VERIFIED'
+                            ? 'verified'
+                            : agency.licenseStatus === 'PENDING'
+                            ? 'pending'
+                            : 'rejected'
+                        }
+                        size="sm"
+                      >
+                        {agency.licenseStatus}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div className={styles.actions}>
+                        {agency.licenseStatus !== 'VERIFIED' && (
+                          <Button
+                            size="sm"
+                            variant="emerald"
+                            disabled={isActionLoading}
+                            loading={isActionLoading}
+                            onClick={() => handleAgencyAction(agency.id, 'VERIFIED')}
+                          >
+                            Approve
+                          </Button>
+                        )}
+                        {agency.licenseStatus !== 'REJECTED' && (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            disabled={isActionLoading}
+                            onClick={() => handleAgencyAction(agency.id, 'REJECTED', 'Failed verification audit')}
+                          >
+                            Reject
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedAgencyDossier(agency)}
+                        >
+                          Dossier
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredAgencies.length === 0 && (
+                <tr>
+                  <td colSpan={7}>
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>📂</div>
+                      <div>No consultancies match the selected search or filter criteria.</div>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
-        </GlassCard>
+        </div>
       )}
 
+      {/* TAB 2: ESCROW DISPUTES */}
       {activeTab === 'Disputes' && (
-        <GlassCard padding="none">
-          <div className={styles.sectionHeader}><h2 className={styles.sectionTitle}>Active Disputes ({DISPUTES.length})</h2></div>
-          <table className={styles.table} aria-label="Disputes list">
-            <thead><tr><th>ID</th><th>Student</th><th>Agency</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+        <div className={styles.tableContainer}>
+          <div className={styles.controlsBar}>
+            <div className={styles.searchWrap}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search dispute by student, agency, or ID..."
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              🛡️ All decisions append SHA-256 chained transaction records to the escrow ledger.
+            </div>
+          </div>
+
+          <table className={styles.table} aria-label="Escrow disputes list">
+            <thead>
+              <tr>
+                <th>Dispute ID</th>
+                <th>Student</th>
+                <th>Agency</th>
+                <th>Target University</th>
+                <th>Disputed Milestone</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Adjudication</th>
+              </tr>
+            </thead>
             <tbody>
-              {DISPUTES.map((d, i) => (
-                <tr key={i}>
-                  <td className={styles.id}>{d.id}</td>
-                  <td>{d.student}</td>
-                  <td className={styles.cell}>{d.agency}</td>
-                  <td className={styles.amount}>{d.amount}</td>
-                  <td><Badge variant={d.status === 'open' ? 'danger' : 'warning'} size="sm">{d.status}</Badge></td>
-                  <td><Button size="sm" variant="ghost">Resolve</Button></td>
+              {disputes
+                .filter((d) => {
+                  if (!searchQuery) return true;
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    d.id.toLowerCase().includes(q) ||
+                    d.student.name.toLowerCase().includes(q) ||
+                    d.agency.name.toLowerCase().includes(q)
+                  );
+                })
+                .map((d) => {
+                  const isActionLoading = actionLoadingId === d.milestoneId;
+                  const isPending = d.status === 'disputed';
+
+                  return (
+                    <tr key={d.id}>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 800 }}>{d.id}</td>
+                      <td>
+                        <div className={styles.primaryCell}>{d.student.name}</div>
+                        <div className={styles.subInfo}>{d.student.email}</div>
+                      </td>
+                      <td>
+                        <div className={styles.primaryCell}>{d.agency.name}</div>
+                        <div className={styles.subInfo}>{d.agency.licenseNo}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700 }}>{d.application.targetUniversity}</div>
+                        <div className={styles.subInfo}>{d.application.targetProgram}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700 }}>{d.milestoneName}</div>
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--text-muted)',
+                            maxWidth: '220px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={d.reason}
+                        >
+                          &quot;{d.reason}&quot;
+                        </div>
+                      </td>
+                      <td className={styles.amount}>{d.amountFormatted}</td>
+                      <td>
+                        <Badge
+                          variant={
+                            d.status === 'disputed'
+                              ? 'danger'
+                              : d.status === 'refunded'
+                              ? 'verified'
+                              : 'info'
+                          }
+                          size="sm"
+                        >
+                          {d.status.toUpperCase()}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className={styles.actions}>
+                          {isPending ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="emerald"
+                                loading={isActionLoading}
+                                disabled={isActionLoading}
+                                onClick={() =>
+                                  handleResolveDispute(
+                                    d.milestoneId,
+                                    'REFUND',
+                                    'Admin verified student dispute: 100% refund returned to student account.'
+                                  )
+                                }
+                                title="Refund held funds back to the student"
+                              >
+                                Refund Student
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isActionLoading}
+                                onClick={() =>
+                                  handleResolveDispute(
+                                    d.milestoneId,
+                                    'RELEASE',
+                                    'Admin verified agency delivered milestone requirement: Funds released.'
+                                  )
+                                }
+                                title="Release held funds to the agency"
+                              >
+                                Release
+                              </Button>
+                            </>
+                          ) : (
+                            <Badge variant="neutral" size="sm">
+                              Resolved
+                            </Badge>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSelectedDisputeEvidence(d)}
+                          >
+                            Evidence
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              {disputes.length === 0 && (
+                <tr>
+                  <td colSpan={8}>
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>🕊️</div>
+                      <div>No active disputes recorded in the escrow system.</div>
+                    </div>
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
-        </GlassCard>
+        </div>
       )}
 
-      {(activeTab === 'Scam Alerts' || activeTab === 'Users') && (
-        <GlassCard padding="lg" className={styles.placeholder}>
-          <div className={styles.icon} aria-hidden="true">{activeTab === 'Scam Alerts' ? '🚨' : '👥'}</div>
-          <h3>{activeTab}</h3>
-          <p>🔧 <strong>@backend</strong>: Wire to admin API endpoints for {activeTab.toLowerCase()}.</p>
-        </GlassCard>
+      {/* TAB 3: SCAM ALERTS & FRAUD */}
+      {activeTab === 'Scam Alerts' && (
+        <div className={styles.tableContainer}>
+          <div className={styles.controlsBar}>
+            <div className={styles.searchWrap}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search fraud alerts by title, target, or student..."
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              🤖 Real-time heuristics & OCR document anomaly classifier
+            </div>
+          </div>
+
+          <table className={styles.table} aria-label="Scam alerts table">
+            <thead>
+              <tr>
+                <th>Alert ID & Type</th>
+                <th>Incident Details</th>
+                <th>Target Agency / Entity</th>
+                <th>Affected Student</th>
+                <th>AI Risk Score</th>
+                <th>Enforcement Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scamAlerts
+                .filter((s) => {
+                  if (!searchQuery) return true;
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    s.title.toLowerCase().includes(q) ||
+                    s.agencyName.toLowerCase().includes(q) ||
+                    s.studentName.toLowerCase().includes(q)
+                  );
+                })
+                .map((alert) => {
+                  const isActionLoading = actionLoadingId === alert.id;
+                  const isPending = alert.status === 'PENDING_REVIEW' || alert.status === 'FLAGGED';
+
+                  return (
+                    <tr key={alert.id}>
+                      <td>
+                        <div style={{ fontFamily: 'monospace', fontWeight: 800 }}>{alert.id}</div>
+                        <Badge
+                          variant={alert.severity === 'CRITICAL' ? 'danger' : 'warning'}
+                          size="sm"
+                        >
+                          {alert.type}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className={styles.primaryCell}>{alert.title}</div>
+                        <div className={styles.subInfo} style={{ maxWidth: '280px' }}>
+                          {alert.evidenceSummary}
+                        </div>
+                      </td>
+                      <td>
+                        <div className={styles.primaryCell}>{alert.agencyName}</div>
+                        <div className={styles.subInfo}>
+                          {alert.agencyId ? `ID: ${alert.agencyId}` : 'Unregistered / Entity'}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700 }}>{alert.studentName}</div>
+                        <div className={styles.subInfo}>{alert.studentEmail}</div>
+                      </td>
+                      <td>
+                        <span
+                          className={`${styles.riskBadge} ${
+                            alert.riskScore > 80
+                              ? styles.riskHigh
+                              : alert.riskScore > 50
+                              ? styles.riskMedium
+                              : styles.riskLow
+                          }`}
+                        >
+                          {alert.riskScore}/100
+                        </span>
+                      </td>
+                      <td>
+                        <Badge
+                          variant={
+                            alert.status === 'RESOLVED'
+                              ? 'verified'
+                              : alert.status === 'FLAGGED'
+                              ? 'danger'
+                              : alert.status === 'DISMISSED'
+                              ? 'neutral'
+                              : 'warning'
+                          }
+                          size="sm"
+                        >
+                          {alert.status}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className={styles.actions}>
+                          {isPending && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                loading={isActionLoading}
+                                disabled={isActionLoading}
+                                onClick={() => handleScamAlertAction(alert.id, 'BAN_AGENCY')}
+                                title="Ban agency and revoke verification across platform"
+                              >
+                                Ban Agency
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isActionLoading}
+                                onClick={() => handleScamAlertAction(alert.id, 'FLAG_AGENCY')}
+                                title="Issue public warning on agency profile"
+                              >
+                                Flag
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={isActionLoading}
+                                onClick={() => handleScamAlertAction(alert.id, 'DISMISS')}
+                                title="Dismiss as false positive"
+                              >
+                                Dismiss
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSelectedScamReport(alert)}
+                          >
+                            Report
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              {scamAlerts.length === 0 && (
+                <tr>
+                  <td colSpan={7}>
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>🛡️</div>
+                      <div>No fraud incidents or scam alerts recorded.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <p className={styles.devHint}>🔧 <strong>@backend</strong>: Wire to admin-only endpoints with <code>@Roles(&apos;admin&apos;)</code> guard</p>
+      {/* TAB 4: USERS & RBAC */}
+      {activeTab === 'Users' && (
+        <div className={styles.tableContainer}>
+          <div className={styles.controlsBar}>
+            <div className={styles.searchWrap}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search user by name, email, phone..."
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className={styles.filterPills}>
+              {(['ALL', 'STUDENT', 'PARENT', 'AGENCY', 'ADMIN'] as const).map((role) => (
+                <button
+                  key={role}
+                  className={`${styles.pillBtn} ${userRoleFilter === role ? styles.pillBtnActive : ''}`}
+                  onClick={() => setUserRoleFilter(role)}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <table className={styles.table} aria-label="Users governance directory">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Phone Number</th>
+                <th>Role</th>
+                <th>Verification</th>
+                <th>Metadata / Linked Code</th>
+                <th>Member Since</th>
+                <th>Governance Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map((u) => {
+                const isActionLoading = actionLoadingId === u.id;
+                const roleLower = u.role.toLowerCase();
+
+                return (
+                  <tr key={u.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {u.avatarUrl ? (
+                          <img
+                            src={u.avatarUrl}
+                            alt={u.name}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '4px',
+                              border: '1.5px solid var(--border)',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '4px',
+                              border: '1.5px solid var(--border)',
+                              background: 'var(--bg-elevated)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 800,
+                            }}
+                          >
+                            {u.name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <div className={styles.primaryCell}>{u.name}</div>
+                          <div className={styles.subInfo}>{u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{u.phone}</td>
+                    <td>
+                      <Badge
+                        variant={
+                          u.role === 'ADMIN'
+                            ? 'danger'
+                            : u.role === 'AGENCY'
+                            ? 'info'
+                            : u.role === 'PARENT'
+                            ? 'warning'
+                            : 'ai'
+                        }
+                        size="sm"
+                      >
+                        {u.role}
+                      </Badge>
+                    </td>
+                    <td>
+                      <Badge variant={u.isVerified ? 'verified' : 'pending'} size="sm">
+                        {u.isVerified ? 'Verified' : 'Pending'}
+                      </Badge>
+                    </td>
+                    <td>
+                      {u.details?.linkCode && (
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '12px' }}>
+                          Code: {u.details.linkCode}
+                        </span>
+                      )}
+                      {u.details?.licenseNo && (
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '12px' }}>
+                          Lic: {u.details.licenseNo}
+                        </span>
+                      )}
+                      {!u.details?.linkCode && !u.details?.licenseNo && (
+                        <span className={styles.subInfo}>Platform Governance</span>
+                      )}
+                    </td>
+                    <td className={styles.subInfo}>{u.createdAt}</td>
+                    <td>
+                      <div className={styles.actions}>
+                        <Button
+                          size="sm"
+                          variant={u.isVerified ? 'ghost' : 'emerald'}
+                          disabled={isActionLoading}
+                          loading={isActionLoading}
+                          onClick={() => handleToggleUserVerify(u.id, u.isVerified)}
+                        >
+                          {u.isVerified ? 'Revoke Verify' : 'Verify User'}
+                        </Button>
+                        {['student', 'parent', 'agency', 'admin'].includes(roleLower) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              quickLoginDemo(roleLower as any);
+                              showToast(`Switched active session to demo role: ${u.role}`);
+                            }}
+                            title="Switch active user session to test role experience"
+                          >
+                            Impersonate
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan={7}>
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>👤</div>
+                      <div>No users found matching your filters.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* TAB 5: AUDIT LEDGER & ESCROW VAULT */}
+      {activeTab === 'Audit Ledger' && (
+        <div className={styles.tableContainer}>
+          {/* Live Escrow Vault Capital Breakdown */}
+          <div className={styles.vaultGrid}>
+            <div className={styles.vaultCard}>
+              <div className={styles.vaultLabel}>🔒 Currently Held in Vault</div>
+              <div className={styles.vaultValue} style={{ color: 'var(--blue-primary)' }}>
+                ৳{(stats?.escrow.held ?? 25000).toLocaleString('en-IN')}
+              </div>
+              <div className={styles.vaultSub}>Locked safely for active student applications</div>
+            </div>
+            <div className={styles.vaultCard}>
+              <div className={styles.vaultLabel}>⚖️ Frozen in Dispute</div>
+              <div className={styles.vaultValue} style={{ color: '#ef4444' }}>
+                {stats?.disputes.disputedFormatted ?? '৳45,000'}
+              </div>
+              <div className={styles.vaultSub}>{activeDisputesCount} contested milestones under audit</div>
+            </div>
+            <div className={styles.vaultCard}>
+              <div className={styles.vaultLabel}>✅ Successfully Released</div>
+              <div className={styles.vaultValue} style={{ color: '#10b981' }}>
+                ৳{(stats?.escrow.released ?? 15000).toLocaleString('en-IN')}
+              </div>
+              <div className={styles.vaultSub}>Transferred on verified milestone completion</div>
+            </div>
+            <div className={styles.vaultCard}>
+              <div className={styles.vaultLabel}>⏳ Pending Student Deposits</div>
+              <div className={styles.vaultValue} style={{ color: '#f59e0b' }}>
+                ৳{(stats?.escrow.pending ?? 30000).toLocaleString('en-IN')}
+              </div>
+              <div className={styles.vaultSub}>Awaiting gateway confirmation</div>
+            </div>
+          </div>
+
+          <div className={styles.controlsBar}>
+            <div className={styles.searchWrap}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search ledger entries by ID, milestone, or provider..."
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              ⛓️ SHA-256 cryptographic chain validated across all state transactions
+            </div>
+          </div>
+
+          <table className={styles.table} aria-label="Immutable audit ledger">
+            <thead>
+              <tr>
+                <th>Entry ID</th>
+                <th>Type</th>
+                <th>Milestone</th>
+                <th>Amount</th>
+                <th>Provider & TXN</th>
+                <th>Cryptographic SHA-256 Hash</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ledgerEntries
+                .filter((e) => {
+                  if (!searchQuery) return true;
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    e.id.toLowerCase().includes(q) ||
+                    e.milestoneId.toLowerCase().includes(q) ||
+                    e.provider.toLowerCase().includes(q)
+                  );
+                })
+                .map((entry) => (
+                  <tr key={entry.id}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 800 }}>{entry.id}</td>
+                    <td>
+                      <Badge
+                        variant={
+                          entry.type === 'HOLD'
+                            ? 'info'
+                            : entry.type === 'RELEASE'
+                            ? 'verified'
+                            : entry.type === 'REFUND'
+                            ? 'warning'
+                            : 'danger'
+                        }
+                        size="sm"
+                      >
+                        {entry.type}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div style={{ fontFamily: 'monospace', fontWeight: 700 }}>{entry.milestoneId}</div>
+                      <div className={styles.subInfo}>{entry.note}</div>
+                    </td>
+                    <td className={styles.amount}>{entry.amountFormatted}</td>
+                    <td>
+                      <div style={{ fontWeight: 800 }}>{entry.provider}</div>
+                      <div className={styles.subInfo} style={{ fontFamily: 'monospace' }}>
+                        {entry.providerTxnId}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={styles.hashBadge} title={entry.txHash}>
+                        {entry.txHashShort || entry.txHash}
+                      </span>
+                    </td>
+                    <td className={styles.subInfo}>{new Date(entry.timestamp).toLocaleString()}</td>
+                  </tr>
+                ))}
+              {ledgerEntries.length === 0 && (
+                <tr>
+                  <td colSpan={7}>
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>⛓️</div>
+                      <div>No ledger transactions recorded yet.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* MODAL 1: AGENCY AUDIT DOSSIER */}
+      {selectedAgencyDossier && (
+        <div className={styles.modalBackdrop} onClick={() => setSelectedAgencyDossier(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>🏢 Agency Audit Dossier: {selectedAgencyDossier.name}</h2>
+              <button
+                className={styles.closeBtn}
+                onClick={() => setSelectedAgencyDossier(null)}
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>License Number</span>
+                <span className={styles.dossierValue} style={{ fontFamily: 'monospace' }}>
+                  {selectedAgencyDossier.licenseNo}
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Office Address</span>
+                <span className={styles.dossierValue}>{selectedAgencyDossier.address}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Website</span>
+                <span className={styles.dossierValue}>
+                  <a
+                    href={selectedAgencyDossier.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'var(--blue-primary)', textDecoration: 'underline' }}
+                  >
+                    {selectedAgencyDossier.website}
+                  </a>
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Official Contact</span>
+                <span className={styles.dossierValue}>
+                  {selectedAgencyDossier.owner?.name} ({selectedAgencyDossier.owner?.phone})
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Placement Track Record</span>
+                <span className={styles.dossierValue}>
+                  {selectedAgencyDossier.successRate}% visa success · {selectedAgencyDossier.reviewCount} reviews
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>AI Risk Assessment</span>
+                <span
+                  className={`${styles.riskBadge} ${
+                    selectedAgencyDossier.riskScore < 30
+                      ? styles.riskLow
+                      : selectedAgencyDossier.riskScore < 60
+                      ? styles.riskMedium
+                      : styles.riskHigh
+                  }`}
+                >
+                  {selectedAgencyDossier.riskScore}/100 Risk Score
+                </span>
+              </div>
+
+              <div>
+                <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                  Submitted Regulatory Documents
+                </strong>
+                <div className={styles.docList}>
+                  {selectedAgencyDossier.submittedDocs?.map((doc, idx) => (
+                    <div key={idx} className={styles.docItem}>
+                      <span>📄 {doc.name}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{doc.size} · Verified</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() =>
+                  handleAgencyAction(
+                    selectedAgencyDossier.id,
+                    'REJECT',
+                    'Rejected during administrative dossier inspection'
+                  )
+                }
+              >
+                Reject License
+              </Button>
+              <Button
+                variant="emerald"
+                size="sm"
+                onClick={() => handleAgencyAction(selectedAgencyDossier.id, 'VERIFIED')}
+              >
+                Approve & Grant Badge
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: DISPUTE EVIDENCE TRAIL */}
+      {selectedDisputeEvidence && (
+        <div className={styles.modalBackdrop} onClick={() => setSelectedDisputeEvidence(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>⚖️ Dispute Evidence Trail: {selectedDisputeEvidence.id}</h2>
+              <button
+                className={styles.closeBtn}
+                onClick={() => setSelectedDisputeEvidence(null)}
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Milestone Disputed</span>
+                <span className={styles.dossierValue}>{selectedDisputeEvidence.milestoneName}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Amount in Escrow</span>
+                <span className={styles.amount}>{selectedDisputeEvidence.amountFormatted}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Student Claimant</span>
+                <span className={styles.dossierValue}>
+                  {selectedDisputeEvidence.student.name} ({selectedDisputeEvidence.student.email})
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Respondent Agency</span>
+                <span className={styles.dossierValue}>{selectedDisputeEvidence.agency.name}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Target University</span>
+                <span className={styles.dossierValue}>
+                  {selectedDisputeEvidence.application.targetUniversity} (
+                  {selectedDisputeEvidence.application.targetProgram})
+                </span>
+              </div>
+
+              <div style={{ background: 'var(--bg-elevated)', padding: '12px', border: '1.5px solid var(--border)', borderRadius: '4px' }}>
+                <strong style={{ color: '#ef4444', display: 'block', marginBottom: '4px' }}>
+                  Student&apos;s Sworn Statement:
+                </strong>
+                <p style={{ margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
+                  &quot;{selectedDisputeEvidence.reason}&quot;
+                </p>
+              </div>
+
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                ℹ️ Resolution policy: Adjudication takes immediate effect. Funds are returned via Bangladesh
+                National Payment Switch or released to the agency escrow bank account.
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              {selectedDisputeEvidence.status === 'disputed' && (
+                <>
+                  <Button
+                    variant="emerald"
+                    size="sm"
+                    onClick={() =>
+                      handleResolveDispute(
+                        selectedDisputeEvidence.milestoneId,
+                        'REFUND',
+                        'Dispute resolved in favor of student claim'
+                      )
+                    }
+                  >
+                    Authorize 100% Refund
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      handleResolveDispute(
+                        selectedDisputeEvidence.milestoneId,
+                        'RELEASE',
+                        'Dispute dismissed; agency verified valid completion'
+                      )
+                    }
+                  >
+                    Release to Agency
+                  </Button>
+                </>
+              )}
+              <Button variant="ghost" size="sm" onClick={() => setSelectedDisputeEvidence(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: SCAM AI FORENSICS REPORT */}
+      {selectedScamReport && (
+        <div className={styles.modalBackdrop} onClick={() => setSelectedScamReport(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>🚨 AI Forensic Analysis: {selectedScamReport.id}</h2>
+              <button
+                className={styles.closeBtn}
+                onClick={() => setSelectedScamReport(null)}
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Incident Title</span>
+                <span className={styles.dossierValue}>{selectedScamReport.title}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Violation Type</span>
+                <span className={styles.dossierValue}>{selectedScamReport.type}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Target Entity</span>
+                <span className={styles.dossierValue}>{selectedScamReport.agencyName}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Reported By</span>
+                <span className={styles.dossierValue}>
+                  {selectedScamReport.studentName} ({selectedScamReport.studentEmail})
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>OCR Anomaly Score</span>
+                <span className={`${styles.riskBadge} ${styles.riskHigh}`}>
+                  {selectedScamReport.riskScore}/100 Risk Score
+                </span>
+              </div>
+
+              <div style={{ background: 'var(--bg-elevated)', padding: '12px', border: '1.5px solid var(--border)', borderRadius: '4px' }}>
+                <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--text-primary)' }}>
+                  Detailed Forensic Evidence:
+                </strong>
+                <p style={{ margin: 0, lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                  {selectedScamReport.evidenceSummary}
+                </p>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              {selectedScamReport.status === 'PENDING_REVIEW' && (
+                <>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleScamAlertAction(selectedScamReport.id, 'BAN_AGENCY')}
+                  >
+                    Permanently Ban Agency
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleScamAlertAction(selectedScamReport.id, 'FLAG_AGENCY')}
+                  >
+                    Post Scam Warning
+                  </Button>
+                </>
+              )}
+              <Button variant="ghost" size="sm" onClick={() => setSelectedScamReport(null)}>
+                Dismiss Dialog
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

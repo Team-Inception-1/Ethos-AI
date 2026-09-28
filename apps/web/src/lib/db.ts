@@ -36,6 +36,22 @@ export interface DocumentRecord {
   uploadedAt: string;
 }
 
+export interface ScamAlertRecord {
+  id: string;
+  type: 'FAKE_OFFER_LETTER' | 'PREDATORY_CLAUSE' | 'DOMAIN_SPOOFING' | 'UNLICENSED_OPERATION';
+  title: string;
+  agencyName: string;
+  agencyId: string | null;
+  studentName: string;
+  studentEmail: string;
+  riskScore: number;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  status: 'PENDING_REVIEW' | 'FLAGGED' | 'RESOLVED' | 'DISMISSED';
+  evidenceSummary: string;
+  detectedAt: string;
+  actionTaken: string | null;
+}
+
 // In-Memory Database Store (initialized with seedData)
 class InMemoryDatabase {
   users = [...seedData.users];
@@ -45,11 +61,98 @@ class InMemoryDatabase {
   agencyPricings = [...seedData.agencyPricings];
   applications = [...seedData.applications];
   stageEvents = [...seedData.stageEvents];
-  milestones = [...seedData.milestones];
+  milestones = [
+    ...seedData.milestones,
+    {
+      id: 'mls-004',
+      applicationId: 'app-002',
+      name: 'German Blocked Account Deposit',
+      orderIndex: 2,
+      amountPoisha: '3000000',
+      releaseCondition: 'Blocked account opened at Coracle or Expatrio and verified by embassy',
+      status: 'DISPUTED',
+      disputeReason: 'Student submitted funds 3 weeks ago; agency failed to forward documents to German blocked account provider before semester deadline.',
+      disputedAt: '2026-08-01T14:20:00Z',
+    },
+    {
+      id: 'mls-005',
+      applicationId: 'app-003',
+      name: 'Visa Filing Assistance & Slot Booking',
+      orderIndex: 2,
+      amountPoisha: '1500000',
+      releaseCondition: 'VFS Global appointment booked and checklist certified',
+      status: 'DISPUTED',
+      disputeReason: 'Agency unilaterally charged secondary hidden booking fee not stated in comparison ledger, violating Ethos escrow terms.',
+      disputedAt: '2026-08-02T09:10:00Z',
+    },
+  ];
   ledgerEntries = [...seedData.ledgerEntries];
   receipts = [...seedData.receipts];
   chatThreads = [...seedData.chatThreads];
   chatMessages = [...seedData.chatMessages];
+
+  scamAlerts: ScamAlertRecord[] = [
+    {
+      id: 'scm-001',
+      type: 'FAKE_OFFER_LETTER',
+      title: 'Forged Offer Letter — Univ. of Bedfordshire',
+      agencyName: 'Skyline Consultancy',
+      agencyId: 'agt-004',
+      studentName: 'Tanvir Hasan',
+      studentEmail: 'tanvir.hasan@example.com',
+      riskScore: 94,
+      severity: 'CRITICAL',
+      status: 'PENDING_REVIEW',
+      evidenceSummary: 'OCR detected altered student ID and non-standard registrar signature font. Admissions email traced to free ProtonMail account instead of beds.ac.uk.',
+      detectedAt: '2026-08-02T10:15:00Z',
+      actionTaken: null,
+    },
+    {
+      id: 'scm-002',
+      type: 'PREDATORY_CLAUSE',
+      title: 'Predatory 100% Advance Non-Refund Clause',
+      agencyName: 'Apex Study BD (Unregistered)',
+      agencyId: null,
+      studentName: 'Sadia Islam',
+      studentEmail: 'sadia.islam@example.com',
+      riskScore: 78,
+      severity: 'HIGH',
+      status: 'FLAGGED',
+      evidenceSummary: 'Agreement Section 4.2 mandates ৳200,000 non-refundable cash deposit prior to university document dispatch, violating BFIU & MoE consultancy guidelines.',
+      detectedAt: '2026-08-01T16:30:00Z',
+      actionTaken: 'PUBLIC_WARNING_ISSUED',
+    },
+    {
+      id: 'scm-003',
+      type: 'DOMAIN_SPOOFING',
+      title: 'Phishing Admissions Domain (.cc domain)',
+      agencyName: 'FastPath Overseas Education',
+      agencyId: null,
+      studentName: 'Abrar Fahim',
+      studentEmail: 'abrar.fahim@example.com',
+      riskScore: 88,
+      severity: 'CRITICAL',
+      status: 'PENDING_REVIEW',
+      evidenceSummary: 'Website redirects payment gateway to unverified third-party personal bKash account with zero Ministry of Education registration.',
+      detectedAt: '2026-07-29T11:45:00Z',
+      actionTaken: null,
+    },
+    {
+      id: 'scm-004',
+      type: 'UNLICENSED_OPERATION',
+      title: 'Unlicensed 100% Visa Guarantee Ads',
+      agencyName: 'Global Visa King BD',
+      agencyId: null,
+      studentName: 'Mehzabien Chowdhury',
+      studentEmail: 'mehzabien.c@example.com',
+      riskScore: 65,
+      severity: 'MEDIUM',
+      status: 'RESOLVED',
+      evidenceSummary: 'Illegal 100% Visa Guarantee advertising detected. Official Cease & Desist issued requesting trade license and MoE accreditation.',
+      detectedAt: '2026-07-20T08:20:00Z',
+      actionTaken: 'CEASE_AND_DESIST',
+    },
+  ];
 
   documents: DocumentRecord[] = [
     {
@@ -573,6 +676,7 @@ class InMemoryDatabase {
       .filter((t) => {
         const app = this.applications.find((a) => a.id === t.applicationId);
         if (!app) return false;
+        if (role?.toUpperCase() === 'ADMIN') return true;
         if (role?.toUpperCase() === 'AGENCY') {
           const agency = this.agencies.find((ag) => ag.id === t.agencyId);
           return agency?.ownerUserId === userId || t.agencyId === userId || agency?.id === userId;
@@ -687,6 +791,200 @@ class InMemoryDatabase {
     this.chatThreads.push(newThread);
     return newThread;
   }
+
+  // ---------------------------------------------------------------------------
+  // Admin Governance, Audits & Scam Enforcement (Module 5.1 & Platform Governance)
+  // ---------------------------------------------------------------------------
+
+  updateAgencyStatus(agencyId: string, status: 'VERIFIED' | 'PENDING' | 'REJECTED', note?: string) {
+    const agency = this.agencies.find((a) => a.id === agencyId);
+    if (!agency) throw new Error(`Agency ${agencyId} not found`);
+    (agency as any).licenseStatus = status;
+    if (note) {
+      (agency as any).adminReviewNote = note;
+    }
+    const owner = this.users.find((u) => u.id === agency.ownerUserId);
+    if (owner) {
+      owner.isVerified = status === 'VERIFIED';
+    }
+    return agency;
+  }
+
+  getAdminDisputes() {
+    const disputedMilestones = this.milestones.filter(
+      (m) => m.status.toUpperCase() === 'DISPUTED' || (m as any).disputeReason
+    );
+    return disputedMilestones.map((m) => {
+      const app = this.applications.find((a) => a.id === m.applicationId);
+      const agency = this.agencies.find((ag) => ag.id === app?.agencyId);
+      const student = this.users.find((u) => u.id === app?.studentId);
+      const ledger = this.ledgerEntries.filter((l) => l.milestoneId === m.id);
+      const bdtAmount = Number(m.amountPoisha) / 100;
+      return {
+        id: `DSP-${m.id.replace('mls-', '')}`,
+        milestoneId: m.id,
+        applicationId: m.applicationId,
+        milestoneName: m.name,
+        amountPoisha: m.amountPoisha,
+        amountBDT: bdtAmount,
+        amountFormatted: `৳${bdtAmount.toLocaleString('en-IN')}`,
+        status: m.status.toLowerCase(),
+        reason: (m as any).disputeReason || 'Service non-compliance dispute raised by student.',
+        disputedAt: (m as any).disputedAt || '2026-08-01T12:00:00Z',
+        student: {
+          id: student?.id || 'usr-student-01',
+          name: student?.name || 'Riya Ahmed',
+          email: student?.email || 'riya@example.com',
+          phone: student?.phone || '+8801712345678',
+        },
+        agency: {
+          id: agency?.id || 'agt-001',
+          name: agency?.name || 'Consultancy Agency',
+          licenseNo: agency?.licenseNo || 'MOE-BD-2024-001',
+        },
+        application: {
+          targetUniversity: app?.targetUniversity || 'University',
+          targetProgram: app?.targetProgram || 'Degree Program',
+          targetCountry: app?.targetCountry || 'Abroad',
+        },
+        ledgerCount: ledger.length,
+      };
+    });
+  }
+
+  resolveDispute(params: {
+    milestoneId: string;
+    action: 'REFUND' | 'RELEASE';
+    reason: string;
+    actorId?: string;
+  }) {
+    const targetStatus = params.action === 'REFUND' ? 'REFUNDED' : 'RELEASED';
+    const note = params.reason || `Dispute resolved by Admin: ${params.action} approved.`;
+    return this.updateMilestoneStatus({
+      milestoneId: params.milestoneId,
+      targetStatus,
+      actorId: params.actorId || 'usr-admin-01',
+      actorRole: 'ADMIN',
+      note,
+      provider: params.action === 'REFUND' ? 'SSLCOMMERZ_ESCROW_REFUND' : 'ETHOS_ESCROW_SETTLEMENT',
+    });
+  }
+
+  getScamAlerts() {
+    return this.scamAlerts;
+  }
+
+  resolveScamAlert(params: {
+    alertId: string;
+    action: 'FLAG_AGENCY' | 'BAN_AGENCY' | 'DISMISS' | 'RESOLVE';
+    adminNote?: string;
+  }) {
+    const alert = this.scamAlerts.find((a) => a.id === params.alertId);
+    if (!alert) throw new Error(`Alert ${params.alertId} not found`);
+
+    if (params.action === 'DISMISS') {
+      alert.status = 'DISMISSED';
+      alert.actionTaken = 'FALSE_POSITIVE_DISMISSED';
+    } else if (params.action === 'BAN_AGENCY') {
+      alert.status = 'RESOLVED';
+      alert.actionTaken = 'AGENCY_PERMANENTLY_BANNED';
+      if (alert.agencyId) {
+        this.updateAgencyStatus(alert.agencyId, 'REJECTED', 'Banned for confirmed fraudulent scam practices');
+      }
+    } else if (params.action === 'FLAG_AGENCY') {
+      alert.status = 'FLAGGED';
+      alert.actionTaken = 'PUBLIC_WARNING_ISSUED';
+    } else {
+      alert.status = 'RESOLVED';
+      alert.actionTaken = 'OFFICIAL_COMPLIANCE_RESOLVED';
+    }
+    return alert;
+  }
+
+  getAdminStats() {
+    const verifiedAgencies = this.agencies.filter((a) => (a as any).licenseStatus === 'VERIFIED').length;
+    const pendingAgencies = this.agencies.filter((a) => (a as any).licenseStatus === 'PENDING').length;
+    const rejectedAgencies = this.agencies.filter((a) => (a as any).licenseStatus === 'REJECTED').length;
+
+    const activeDisputes = this.milestones.filter((m) => m.status.toUpperCase() === 'DISPUTED');
+    let disputedBDT = 0;
+    for (const d of activeDisputes) {
+      disputedBDT += Number(d.amountPoisha) / 100;
+    }
+
+    const escrow = this.getEscrowSummary();
+    const pendingScams = this.scamAlerts.filter((s) => s.status === 'PENDING_REVIEW' || s.status === 'FLAGGED').length;
+
+    return {
+      agencies: {
+        total: this.agencies.length,
+        verified: verifiedAgencies,
+        pending: pendingAgencies,
+        rejected: rejectedAgencies,
+      },
+      disputes: {
+        activeCount: activeDisputes.length,
+        disputedBDT,
+        disputedFormatted: `৳${disputedBDT.toLocaleString('en-IN')}`,
+      },
+      escrow: {
+        held: escrow.held,
+        released: escrow.released,
+        pending: escrow.pending,
+        totalSecuredBDT: escrow.held + escrow.released + disputedBDT,
+        totalSecuredFormatted: `৳${(escrow.held + escrow.released + disputedBDT).toLocaleString('en-IN')}`,
+      },
+      scamAlerts: {
+        pendingCount: pendingScams,
+        totalCount: this.scamAlerts.length,
+      },
+      users: {
+        total: this.users.length,
+        students: this.users.filter((u) => u.role === 'STUDENT').length,
+        parents: this.users.filter((u) => u.role === 'PARENT').length,
+        agencies: this.users.filter((u) => u.role === 'AGENCY').length,
+        admins: this.users.filter((u) => u.role === 'ADMIN').length,
+      },
+    };
+  }
+
+  getAdminUsers() {
+    return this.users.map((u) => {
+      const studentProfile = this.studentProfiles.find((sp) => sp.userId === u.id);
+      const agencyProfile = this.agencies.find((ag) => ag.ownerUserId === u.id);
+      const parentLinks = this.parentLinks.filter((pl) => pl.parentId === u.id || pl.studentId === u.id);
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        isVerified: u.isVerified,
+        avatarUrl: u.avatarUrl,
+        createdAt: (u as any).createdAt || '2025-01-15',
+        details: studentProfile ? {
+          targetCountries: studentProfile.targetCountries,
+          targetField: studentProfile.targetField,
+          budgetRange: studentProfile.budgetRange,
+          linkCode: studentProfile.linkCode,
+        } : agencyProfile ? {
+          agencyName: agencyProfile.name,
+          licenseNo: agencyProfile.licenseNo,
+          licenseStatus: agencyProfile.licenseStatus,
+          riskScore: agencyProfile.riskScore,
+        } : null,
+        linkedAccountsCount: parentLinks.length,
+      };
+    });
+  }
+
+  updateUserAdmin(userId: string, updates: { isVerified?: boolean; role?: any }) {
+    const user = this.users.find((u) => u.id === userId);
+    if (!user) throw new Error(`User ${userId} not found`);
+    if (updates.isVerified !== undefined) user.isVerified = updates.isVerified;
+    if (updates.role !== undefined) user.role = updates.role;
+    return user;
+  }
 }
 
 // Global singleton instance for in-memory persistence during development / demo
@@ -695,6 +993,14 @@ if (globalForDb.ethosDb) {
   Object.setPrototypeOf(globalForDb.ethosDb, InMemoryDatabase.prototype);
   if (!globalForDb.ethosDb.documents) {
     globalForDb.ethosDb.documents = new InMemoryDatabase().documents;
+  }
+  if (!globalForDb.ethosDb.scamAlerts) {
+    globalForDb.ethosDb.scamAlerts = new InMemoryDatabase().scamAlerts;
+  }
+  for (const m of new InMemoryDatabase().milestones) {
+    if (!globalForDb.ethosDb.milestones.some((em) => em.id === m.id)) {
+      globalForDb.ethosDb.milestones.push(m);
+    }
   }
   for (const t of seedData.chatThreads) {
     if (!globalForDb.ethosDb.chatThreads.some((et) => et.id === t.id)) {
