@@ -447,8 +447,8 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
 
       {/* Profile snippet */}
       {!collapsed && (
-        <div className={styles.profile}>
-          <div className={styles.avatar} aria-hidden="true">
+        <div className={styles.profile} suppressHydrationWarning>
+          <div className={styles.avatar} aria-hidden="true" suppressHydrationWarning>
             {user?.avatarUrl ? (
               <img
                 src={user.avatarUrl}
@@ -459,9 +459,9 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
               initial
             )}
           </div>
-          <div className={styles.profileInfo}>
-            <div className={styles.profileName}>{userName}</div>
-            <div className={styles.profileRole}>{userRoleDisplay}</div>
+          <div className={styles.profileInfo} suppressHydrationWarning>
+            <div className={styles.profileName} suppressHydrationWarning>{userName}</div>
+            <div className={styles.profileRole} suppressHydrationWarning>{userRoleDisplay}</div>
           </div>
         </div>
       )}

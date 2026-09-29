@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -27,6 +27,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 export default function CampusLivingPage() {
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [selectedVarsityId, setSelectedVarsityId] = useState('mit');
@@ -35,6 +36,10 @@ export default function CampusLivingPage() {
   const [aptType, setAptType] = useState<ApartmentType>('oneBedroom');
   const [budgetMode, setBudgetMode] = useState<BudgetMode>('balanced');
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('local');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Filtered universities based on search & region
   const filteredUniversities = useMemo(() => {
@@ -153,8 +158,18 @@ export default function CampusLivingPage() {
     return `${activeVarsity.currencySymbol}${val.toLocaleString()}`;
   };
 
+  if (!mounted) {
+    return (
+      <div className={styles.page} style={{ minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} suppressHydrationWarning>
+        <div style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
+          Loading off-campus living calculator...
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.page}>
+    <div className={styles.page} suppressHydrationWarning>
       {/* Header */}
       <div className={styles.header}>
         <div>
