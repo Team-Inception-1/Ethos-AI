@@ -369,7 +369,7 @@ export default function CampusLivingPage() {
           {/* Active Area Detail Card */}
           <GlassCard padding="lg">
             <div className={styles.areaBanner}>
-              <div>
+              <div className={styles.areaInfoCol}>
                 <div className={styles.badgesRow}>
                   <Badge variant="info" size="sm">{activeArea.distance} from campus</Badge>
                   <Badge variant="warning" size="sm">{activeArea.walkTime}</Badge>
@@ -377,6 +377,9 @@ export default function CampusLivingPage() {
                 </div>
                 <h2 className={styles.areaName}>{activeArea.name}</h2>
                 <p className={styles.areaDesc}>{activeArea.description}</p>
+                <div className={styles.areaSubPills}>
+                  <span className={styles.areaSubPill}>🚇 Commute: {activeArea.commuteType}</span>
+                </div>
               </div>
 
               {/* Grand Total */}

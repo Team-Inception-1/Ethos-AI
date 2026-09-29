@@ -397,14 +397,25 @@
 
 /* Active Area Banner */
 .areaBanner {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: 1fr 310px;
+  align-items: center;
+  gap: 24px;
   border-bottom: 2px solid var(--border-subtle, #e2e8f0);
   padding-bottom: 20px;
   margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .areaBanner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.areaInfoCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .badgesRow {
@@ -416,7 +427,7 @@
 
 .areaName {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   margin-bottom: 4px;
 }
@@ -424,8 +435,25 @@
 .areaDesc {
   font-size: 13px;
   color: var(--text-muted, #64748b);
-  max-width: 500px;
   line-height: 1.45;
+  margin: 0;
+}
+
+.areaSubPills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.areaSubPill {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-elevated, #f8fafc);
+  border: 1px solid var(--border, #0f172a);
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: var(--text-main, #0f172a);
 }
 
 .grandTotalBox {
@@ -434,7 +462,7 @@
   border-radius: 10px;
   padding: 14px 18px;
   text-align: right;
-  min-width: 240px;
+  width: 100%;
   box-shadow: 3px 3px 0 var(--border, #0f172a);
 }
 
