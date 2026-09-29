@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Navbar from '@/components/layout/Navbar';
-import AIBubble from '@/components/ui/AIBubble';
 import CommunityPage from '@/components/pages/CommunityPage';
 
 export const metadata: Metadata = {
@@ -19,7 +18,6 @@ export default function Community() {
           <CommunityPage />
         </Suspense>
       </div>
-      <AIBubble />
     </>
   );
 }

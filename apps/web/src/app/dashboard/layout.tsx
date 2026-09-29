@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
-import AIBubble from '@/components/ui/AIBubble';
 import styles from './DashboardLayout.module.css';
 
-export const metadata: Metadata = { title: 'Dashboard' };
+export const metadata: Metadata = { title: 'Dashboard | Ethos AI' };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,7 +15,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <AIBubble />
     </div>
   );
 }

@@ -313,7 +313,7 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} suppressHydrationWarning>
       {/* ── Page Header ── */}
       <div className={styles.header}>
         <div>
