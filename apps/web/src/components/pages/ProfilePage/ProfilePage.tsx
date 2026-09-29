@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './ProfilePage.module.css';
 
 export default function ProfilePage() {
-  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, logout } = useAuth();
+  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, switchActiveRole, logout } = useAuth();
 
   const [copied, setCopied] = useState(false);
   const [linkInput, setLinkInput] = useState('');
@@ -93,7 +93,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className={`${styles.page} container`} style={{ paddingTop: 'var(--topbar-height)' }}>
+      <div className={`${styles.page} container`}>
         <GlassCard padding="lg">
           <h2>You are not signed in.</h2>
           <p style={{ margin: '12px 0 20px', color: 'var(--text-secondary)' }}>
@@ -165,18 +165,68 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className={styles.page} style={{ paddingTop: 'calc(var(--topbar-height) + 2rem)' }}>
+    <main className={styles.page}>
       <div className="container">
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.titleRow}>
             <div>
-              <h1 className={styles.title}>Account Profile & Settings</h1>
-              <p className={styles.subtitle}>Manage your role preferences, guardian linkages, and student credentials.</p>
+              <div className={styles.titleWithBadge}>
+                <h1 className={styles.title}>Account Profile & Settings</h1>
+                <Badge variant="verified" size="sm">Neon DB Secured</Badge>
+                <Badge variant="ai" size="sm">Ethos ID v2.4</Badge>
+              </div>
+              <p className={styles.subtitle}>
+                Manage your role preferences, guardian linkages, biometric credentials, and academic profile.
+              </p>
             </div>
-            <Button variant="outline" size="sm" onClick={logout}>
-              Sign Out
-            </Button>
+            <div className={styles.headerActions}>
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  ← Back to Dashboard
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={logout}>
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Executive Trust & Security KPI Dock */}
+        <div className={styles.statsGrid}>
+          <div className={styles.statCard}>
+            <div className={styles.statIconBox}>👤</div>
+            <div className={styles.statInfo}>
+              <div className={styles.statVal}>{user.role.toUpperCase()}</div>
+              <div className={styles.statLabel}>Active Account Role</div>
+            </div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statIconBox}>🛡️</div>
+            <div className={styles.statInfo}>
+              <div className={styles.statVal}>{user.isVerified ? 'VERIFIED' : 'PENDING'}</div>
+              <div className={styles.statLabel}>Phone & Email Status</div>
+            </div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statIconBox}>🔐</div>
+            <div className={styles.statInfo}>
+              <div className={styles.statVal}>SHA-256</div>
+              <div className={styles.statLabel}>Cloud Vault Encryption</div>
+            </div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statIconBox}>👨‍👧</div>
+            <div className={styles.statInfo}>
+              <div className={styles.statVal}>
+                {user.role === 'student' ? `${linkedParents.length} Linked` : user.role === 'parent' ? `${linkedStudents.length} Linked` : 'Enterprise'}
+              </div>
+              <div className={styles.statLabel}>Guardian Link Network</div>
+            </div>
           </div>
         </div>
 
@@ -265,50 +315,82 @@ export default function ProfilePage() {
             </div>
 
             {/* Editable Contact Info Form */}
-            <form onSubmit={handleSaveAccountDetails} style={{ marginTop: 'var(--space-4)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Personal Information</span>
+            <form onSubmit={handleSaveAccountDetails} className={styles.personalInfoForm}>
+              <div className={styles.personalInfoTitleRow}>
+                <span className={styles.personalInfoTitle}>Personal Credentials</span>
                 {savedSuccess && <span style={{ fontSize: '11px', color: 'var(--emerald)', fontWeight: 700 }}>✓ Saved!</span>}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className={styles.personalInfoFields}>
                 <div>
-                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Full Name</label>
+                  <label className={styles.inputFieldLabel}>Full Name</label>
                   <input
                     type="text"
-                    className={styles.input}
+                    className={styles.inputSmall}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    style={{ padding: '6px 10px', fontSize: '12px' }}
                     required
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Phone Number</label>
+                  <label className={styles.inputFieldLabel}>Phone Number</label>
                   <input
                     type="text"
-                    className={styles.input}
+                    className={styles.inputSmall}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    style={{ padding: '6px 10px', fontSize: '12px' }}
                     required
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Email Address</label>
+                  <label className={styles.inputFieldLabel}>Email Address</label>
                   <input
                     type="email"
-                    className={styles.input}
+                    className={styles.inputSmall}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    style={{ padding: '6px 10px', fontSize: '12px' }}
                     required
                   />
                 </div>
-                <Button type="submit" size="sm" variant="outline" style={{ marginTop: '4px' }}>
+                <Button type="submit" size="sm" variant="outline" style={{ marginTop: '4px', width: '100%' }}>
                   Save Personal Info
                 </Button>
               </div>
             </form>
+
+            {/* Quick Demo Role Switcher */}
+            <div className={styles.roleSwitcherCard}>
+              <span className={styles.roleSwitcherTitle}>Switch Active Role (Demo)</span>
+              <div className={styles.roleBtnGroup}>
+                <button
+                  type="button"
+                  className={`${styles.roleBtn} ${user.role === 'student' ? styles.roleBtnActive : ''}`}
+                  onClick={() => switchActiveRole('student')}
+                >
+                  🎓 Student
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.roleBtn} ${user.role === 'parent' ? styles.roleBtnActive : ''}`}
+                  onClick={() => switchActiveRole('parent')}
+                >
+                  👨‍👧 Parent
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.roleBtn} ${user.role === 'agency' ? styles.roleBtnActive : ''}`}
+                  onClick={() => switchActiveRole('agency')}
+                >
+                  🏢 Agency
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.roleBtn} ${user.role === 'admin' ? styles.roleBtnActive : ''}`}
+                  onClick={() => switchActiveRole('admin')}
+                >
+                  🛡️ Admin
+                </button>
+              </div>
+            </div>
           </GlassCard>
 
           {/* Right Column: Dynamic Role Content */}
@@ -548,9 +630,16 @@ export default function ProfilePage() {
                   <h2 className={styles.sectionTitle}>🛡️ System Administrator Controls</h2>
                   <Badge variant="danger">SUPERADMIN ACCESS</Badge>
                 </div>
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                   You have full governance access to audit agencies, review flagged agreements, resolve student-agency escrow disputes, and issue verification badges.
                 </p>
+                <div style={{ marginTop: 'var(--space-4)' }}>
+                  <Link href="/admin">
+                    <Button variant="primary" size="md">
+                      Go to Admin Governance Console ➔
+                    </Button>
+                  </Link>
+                </div>
               </>
             )}
           </GlassCard>
