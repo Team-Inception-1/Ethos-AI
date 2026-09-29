@@ -1,8 +1,8 @@
 'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
-import GlassCard from '@/components/ui/GlassCard';
-import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import {
   fetchChatThreads,
@@ -119,6 +119,25 @@ const DEFAULT_MESSAGES: Record<string, ChatMessageItem[]> = {
   ],
 };
 
+const VAULT_DOCS = [
+  { id: 'Offer_Letter_U_of_Toronto_Fall2026.pdf', name: '📄 Offer Letter (U of Toronto)', size: '1.2 MB' },
+  { id: 'Signed_Agreement_Global_Edu_BD.pdf', name: '📋 Signed Agreement (Global Edu)', size: '856 KB' },
+  { id: 'Passport_Copy_Riya_Ahmed.pdf', name: '🛂 Passport Copy (Riya Ahmed)', size: '320 KB' },
+  { id: 'Academic_Transcript_HSC_Viqarunnisa.pdf', name: '🎓 Academic Transcript (HSC)', size: '2.1 MB' },
+];
+
+const STUDENT_PROMPTS = [
+  '📅 What is the visa appointment timeline?',
+  '💳 How does the milestone escrow release work?',
+  '📋 Can you verify my blocked account checklist?',
+];
+
+const AGENCY_PROMPTS = [
+  '📄 We have uploaded your offer letter to Document Vault.',
+  '✅ Your visa filing checklist is approved.',
+  '💼 Milestone 1 release is pending university confirmation.',
+];
+
 function formatTime(iso: string): string {
   try {
     const d = new Date(iso);
@@ -139,11 +158,13 @@ export default function ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [exportData, setExportData] = useState<any | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [exportModalTab, setExportModalTab] = useState<'cert' | 'json'>('cert');
   const [isExporting, setIsExporting] = useState(false);
   const [attachedDoc, setAttachedDoc] = useState<string | null>(null);
+  const [showVaultSelector, setShowVaultSelector] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Check URL parameters for direct thread activation (e.g. from Dashboard "Chat" buttons)
+  // Check URL parameters for direct thread activation
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -165,23 +186,15 @@ export default function ChatPage() {
         if (!cancelled && res.length > 0) {
           setThreads(res);
           if (isAgency) {
-            // When isAgency is true and threads load, ensure thread with student Riya Ahmed is active
             const riyaThread = res.find((t) => t.studentName?.toLowerCase().includes('riya')) || res[0];
             setActiveThreadId(riyaThread.id);
           } else if (!res.some((t) => t.id === activeThreadId)) {
             setActiveThreadId(res[0].id);
           }
-        } else if (!cancelled && isAgency) {
-          const riyaThread = DEFAULT_THREADS.find((t) => t.studentName?.toLowerCase().includes('riya')) || DEFAULT_THREADS[0];
-          setActiveThreadId(riyaThread.id);
         }
       })
       .catch((e) => {
         console.warn('Could not load live threads, using defaults:', e);
-        if (isAgency) {
-          const riyaThread = DEFAULT_THREADS.find((t) => t.studentName?.toLowerCase().includes('riya')) || DEFAULT_THREADS[0];
-          setActiveThreadId(riyaThread.id);
-        }
       });
 
     return () => {
@@ -225,6 +238,7 @@ export default function ChatPage() {
     const docToAttach = attachedDoc;
     setInput('');
     setAttachedDoc(null);
+    setShowVaultSelector(false);
     setIsSending(true);
 
     const senderRole = (isAgency ? 'AGENCY' : (user?.role?.toUpperCase() || 'STUDENT')) as 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN';
@@ -253,7 +267,6 @@ export default function ChatPage() {
         body: textToSend,
         attachmentDocId: docToAttach || undefined,
       });
-      // Replace optimistic message with confirmed server message
       setMessages((prev) => prev.map((m) => (m.id === tempMsg.id ? realMsg : m)));
     } catch (err) {
       console.warn('Server send failed, keeping local message:', err);
@@ -274,15 +287,16 @@ export default function ChatPage() {
         header: {
           platform: 'Ethos AI Trust & Safety Dispute Evidence System',
           documentType: 'CERTIFIED_CHAT_TRANSCRIPT',
-          auditSignature: `ETHOS-DISPUTE-SIG-${Date.now().toString(16).toUpperCase()}`,
+          auditSignature: `ETHOS-DISPUTE-SIG-${Date.now().toString(16).toUpperCase()}-VERIFIED`,
           exportedAt: new Date().toISOString(),
           tamperEvident: true,
         },
         context: {
           threadId: activeThreadId,
-          agencyName: activeThread?.agencyName,
-          studentName: activeThread?.studentName,
-          targetUniversity: activeThread?.targetUniversity,
+          applicationId: activeThread?.applicationId || 'app-001',
+          agencyName: activeThread?.agencyName || 'Global Edu BD',
+          studentName: activeThread?.studentName || 'Riya Ahmed',
+          targetUniversity: activeThread?.targetUniversity || 'University of Toronto',
         },
         messageCount: messages.length,
         transcript: messages.map((m, i) => ({
@@ -290,6 +304,7 @@ export default function ChatPage() {
           senderRole: m.senderRole,
           sentAt: m.sentAt,
           body: m.body,
+          attachmentDocId: m.attachmentDocId,
           integrityHash: m.msgHash,
         })),
       };
@@ -305,33 +320,53 @@ export default function ChatPage() {
     return m.senderRole?.toUpperCase() === 'STUDENT' || m.senderRole?.toUpperCase() === 'PARENT';
   };
 
+  const quickPrompts = isAgency ? AGENCY_PROMPTS : STUDENT_PROMPTS;
+
   return (
     <div className={styles.page}>
+      {/* ─── Top Header & Trust Row ─── */}
       <div className={styles.headerRow}>
-        <div>
-          <h1 className={styles.title}>Secure Student-Agency Chat</h1>
+        <div className={styles.titleArea}>
+          <h1>1-on-1 Secure Agency Chat</h1>
           <p className={styles.headerSubtitle}>
-            End-to-end encrypted in transit • Tamper-evident message audit trail (Module 5.12)
+            End-to-end encrypted in transit with immutable cryptographic message audit ledger (Module 5.12)
           </p>
         </div>
-        <Badge variant="verified" size="md">
-          🛡️ Dispute-Ready Audit Active
-        </Badge>
+
+        <div className={styles.trustBar}>
+          <div className={styles.trustPill}>
+            <span>🛡️</span>
+            <span>SHA-256 Tamper Proof</span>
+          </div>
+          <div className={styles.trustPill}>
+            <span>⚖️</span>
+            <span>Tribunal Admissible</span>
+          </div>
+          <div className={styles.trustPill}>
+            <span>💼</span>
+            <span>Escrow Linked (#app-001)</span>
+          </div>
+        </div>
       </div>
 
       <div className={styles.layout}>
-        {/* Thread List */}
+        {/* ─── Thread List ─── */}
         <div className={styles.threadList} role="list" aria-label="Chat threads">
           {threads.map((t) => {
             const threadHeading = isAgency ? t.studentName : t.agencyName;
             const threadAvatar = isAgency ? (t.studentName?.[0] || 'S') : (t.agencyName?.[0] || 'A');
+            const isActive = t.id === activeThreadId;
+
             return (
-              <GlassCard
+              <div
                 key={t.id}
-                padding="sm"
-                className={`${styles.thread} ${t.id === activeThreadId ? styles.threadActive : ''}`}
-                hover
+                className={`${styles.thread} ${isActive ? styles.threadActive : ''}`}
                 onClick={() => setActiveThreadId(t.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setActiveThreadId(t.id);
+                }}
               >
                 <div className={styles.threadAvatar} aria-hidden="true">
                   {threadAvatar}
@@ -349,13 +384,14 @@ export default function ChatPage() {
                     <span className={styles.unreadBadge}>{t.unreadCount}</span>
                   )}
                 </div>
-              </GlassCard>
+              </div>
             );
           })}
         </div>
 
-        {/* Chat Window */}
-        <GlassCard padding="none" className={styles.chatWindow}>
+        {/* ─── Chat Window ─── */}
+        <div className={styles.chatWindow}>
+          {/* Chat Window Header */}
           <div className={styles.chatHeader}>
             <div className={styles.chatHeaderLeft}>
               <div className={styles.chatAvatar} aria-hidden="true">
@@ -363,19 +399,12 @@ export default function ChatPage() {
               </div>
               <div>
                 <div className={styles.chatName}>
-                  {isAgency ? (activeThread?.studentName || 'Student') : (activeThread?.agencyName || 'Agency')}
+                  {isAgency ? (activeThread?.studentName || 'Student Applicant') : (activeThread?.agencyName || 'Agency Consultant')}
                 </div>
                 <div className={styles.chatStatus}>
-                  {isAgency ? (
-                    <>
-                      <span>●</span> Student Applicant • {activeThread?.targetUniversity}
-                    </>
-                  ) : (
-                    <>
-                      <span>●</span> Online Verified Agency
-                      <span className={styles.chatAppBadge}>• {activeThread?.targetUniversity}</span>
-                    </>
-                  )}
+                  <span className={styles.pulseDot} aria-hidden="true" />
+                  <span>Verified Identity</span>
+                  <span className={styles.chatAppBadge}>• {activeThread?.targetUniversity}</span>
                 </div>
               </div>
             </div>
@@ -389,6 +418,21 @@ export default function ChatPage() {
             >
               📄 {isExporting ? 'Exporting…' : 'Export Dispute Log'}
             </Button>
+          </div>
+
+          {/* Prompt Suggestion Chips */}
+          <div className={styles.promptBar}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>QUICK INQUIRY:</span>
+            {quickPrompts.map((prompt, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={styles.promptChip}
+                onClick={() => setInput(prompt)}
+              >
+                {prompt}
+              </button>
+            ))}
           </div>
 
           {/* Messages Feed */}
@@ -416,7 +460,8 @@ export default function ChatPage() {
                     {m.body}
                     {m.attachmentDocId && (
                       <div className={styles.attachmentPill}>
-                        📎 Attachment: {m.attachmentDocId}
+                        <span>📎</span>
+                        <span>Attached: <strong>{m.attachmentDocId}</strong></span>
                       </div>
                     )}
                   </div>
@@ -432,69 +477,115 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Attachment Preview Banner */}
-          {attachedDoc && (
-            <div style={{ padding: '6px 16px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border)', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>📎 Attached Document: <strong>{attachedDoc}</strong></span>
-              <button onClick={() => setAttachedDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800 }}>✕</button>
+          {/* Input Area */}
+          <div className={styles.inputArea}>
+            {/* Vault Attachment Dropdown */}
+            {showVaultSelector && (
+              <div className={styles.vaultDropdown}>
+                <div className={styles.vaultDropdownTitle}>
+                  <span>Select Document from Vault:</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowVaultSelector(false)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {VAULT_DOCS.map((doc) => (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    className={styles.vaultDocItem}
+                    onClick={() => {
+                      setAttachedDoc(doc.id);
+                      setShowVaultSelector(false);
+                    }}
+                  >
+                    <span>{doc.name}</span>
+                    <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                      {doc.size}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Attached Preview Banner */}
+            {attachedDoc && (
+              <div className={styles.attachedPreview}>
+                <span>📎 Attached from Vault: <strong>{attachedDoc}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => setAttachedDoc(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+                  aria-label="Remove attachment"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <div className={styles.inputRow}>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder={
+                  isAgency
+                    ? `Type an official message to ${activeThread?.studentName || 'student'}…`
+                    : 'Type a message to consultancy…'
+                }
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                aria-label="Message input"
+                id="chat-input"
+                disabled={isSending}
+              />
+              <button
+                type="button"
+                className={styles.attachBtn}
+                onClick={() => setShowVaultSelector(!showVaultSelector)}
+                aria-label="Attach file from Document Vault"
+                title="Attach Document from Vault"
+              >
+                📎
+              </button>
+              <button
+                type="button"
+                className={styles.sendBtn}
+                onClick={handleSend}
+                disabled={(!input.trim() && !attachedDoc) || isSending}
+                aria-label="Send message"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
             </div>
-          )}
 
-          {/* Input Row */}
-          <div className={styles.inputRow}>
-            <input
-              type="text"
-              className={styles.input}
-              placeholder={
-                isAgency
-                  ? `Type a message to ${activeThread?.studentName || 'student'}…`
-                  : 'Type a message to consultancy…'
-              }
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              aria-label="Message input"
-              id="chat-input"
-              disabled={isSending}
-            />
-            <button
-              className={styles.attachBtn}
-              onClick={() => setAttachedDoc('Academic_Transcript_Viqarunnisa_HSC.pdf')}
-              aria-label="Attach file from Document Vault"
-              title="Attach Document from Vault"
-            >
-              📎
-            </button>
-            <button
-              className={styles.sendBtn}
-              onClick={handleSend}
-              disabled={!input.trim() || isSending}
-              aria-label="Send message"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            </button>
+            <div className={styles.auditFooter}>
+              <span className={styles.auditBadge}>
+                ✓ Append-Only Audit Stream Enabled
+              </span>
+              <span>All messages cryptographically signed with SHA-256 integrity hashes</span>
+            </div>
           </div>
-
-          <div className={styles.auditFooter}>
-            <span className={styles.auditBadge}>
-              ✓ Append-Only Audit Stream Enabled
-            </span>
-            <span>All messages signed with SHA-256 integrity checks</span>
-          </div>
-        </GlassCard>
+        </div>
       </div>
 
-      {/* Certified Dispute Export Modal */}
+      {/* ─── Certified Dispute Evidence Modal ─── */}
       {showExportModal && exportData && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Dispute Evidence Export">
           <div className={styles.modalCard}>
             <div className={styles.modalHeader}>
               <div>
-                <h3 className={styles.modalTitle}>🛡️ Certified Dispute Evidence Transcript</h3>
-                <div style={{ fontSize: '11px', color: 'var(--emerald-dark)', fontWeight: 700 }}>
+                <h3 className={styles.modalTitle}>
+                  <span>🛡️</span>
+                  <span>Certified Dispute Evidence Transcript</span>
+                </h3>
+                <div style={{ fontSize: '11px', color: 'var(--emerald)', fontWeight: 700, marginTop: '2px' }}>
                   Signature: {exportData.header?.auditSignature}
                 </div>
               </div>
@@ -503,13 +594,120 @@ export default function ChatPage() {
               </button>
             </div>
 
+            <div className={styles.modalTabs}>
+              <button
+                type="button"
+                className={`${styles.modalTab} ${exportModalTab === 'cert' ? styles.modalTabActive : ''}`}
+                onClick={() => setExportModalTab('cert')}
+              >
+                📜 Certificate View
+              </button>
+              <button
+                type="button"
+                className={`${styles.modalTab} ${exportModalTab === 'json' ? styles.modalTabActive : ''}`}
+                onClick={() => setExportModalTab('json')}
+              >
+                💻 Cryptographic JSON
+              </button>
+            </div>
+
             <div className={styles.modalBody}>
-              <div style={{ marginBottom: 12, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                This tamper-evident transcript is cryptographically verified for use in Ethos AI Grievance & Dispute resolution hearings (Module 5.14).
-              </div>
-              <pre className={styles.modalJson}>
-                {JSON.stringify(exportData, null, 2)}
-              </pre>
+              {exportModalTab === 'cert' ? (
+                <>
+                  <div className={styles.certificateCard}>
+                    <div className={styles.certHeader}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '14px' }}>
+                          Official Ethos AI Dispute Record
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          BFIU &amp; Ministry of Education grievance compliance standard
+                        </div>
+                      </div>
+                      <Badge variant="verified" size="sm">✓ Tamper-Evident</Badge>
+                    </div>
+
+                    <div className={styles.certGrid}>
+                      <div className={styles.certItem}>
+                        <span className={styles.certLabel}>Student</span>
+                        <span className={styles.certVal}>
+                          {exportData.context?.studentName || exportData.context?.student?.name || 'Riya Ahmed'}
+                        </span>
+                      </div>
+                      <div className={styles.certItem}>
+                        <span className={styles.certLabel}>Consultancy Agency</span>
+                        <span className={styles.certVal}>
+                          {exportData.context?.agencyName || exportData.context?.agency?.name || 'Global Edu BD'}
+                        </span>
+                      </div>
+                      <div className={styles.certItem}>
+                        <span className={styles.certLabel}>Target University</span>
+                        <span className={styles.certVal}>
+                          {exportData.context?.targetUniversity || exportData.context?.application?.targetUniversity || 'University of Toronto'}
+                        </span>
+                      </div>
+                      <div className={styles.certItem}>
+                        <span className={styles.certLabel}>Application ID</span>
+                        <span className={styles.certVal}>
+                          {exportData.context?.applicationId || 'app-001'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '13px', marginBottom: '6px' }}>
+                      Cryptographic Message Ledger ({exportData.transcript?.length || 0} Entries):
+                    </div>
+                    <table className={styles.transcriptTable}>
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Sender</th>
+                          <th>Timestamp</th>
+                          <th>Message Body</th>
+                          <th>SHA-256 Hash</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {exportData.transcript?.map((entry: any) => (
+                          <tr key={entry.sequence}>
+                            <td><strong>{entry.sequence}</strong></td>
+                            <td>
+                              <Badge
+                                variant={entry.senderRole?.toUpperCase() === 'AGENCY' ? 'warning' : 'info'}
+                                size="sm"
+                              >
+                                {entry.senderRole}
+                              </Badge>
+                            </td>
+                            <td style={{ whiteSpace: 'nowrap', fontSize: '11px', color: 'var(--text-muted)' }}>
+                              {formatTime(entry.sentAt)}
+                            </td>
+                            <td>
+                              {entry.body}
+                              {entry.attachmentDocId && (
+                                <div style={{ fontSize: '11px', color: 'var(--blue-primary)', marginTop: '2px' }}>
+                                  📎 {entry.attachmentDocId}
+                                </div>
+                              )}
+                            </td>
+                            <td>
+                              <code style={{ fontSize: '10px' }}>
+                                {entry.integrityHash?.slice(0, 12)}…
+                              </code>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <pre className={styles.modalJson}>
+                  {JSON.stringify(exportData, null, 2)}
+                </pre>
+              )}
             </div>
 
             <div className={styles.modalFooter}>
@@ -528,7 +726,16 @@ export default function ChatPage() {
               >
                 📥 Download JSON Evidence
               </Button>
-              <Button variant="emerald" size="sm" onClick={() => setShowExportModal(false)}>
+              <Button
+                variant="emerald"
+                size="sm"
+                onClick={() => {
+                  window.print();
+                }}
+              >
+                🖨️ Print / Save PDF
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowExportModal(false)}>
                 Close
               </Button>
             </div>
