@@ -231,6 +231,7 @@ export default function ScholarFinderPage() {
   const [advisorInputText, setAdvisorInputText] = useState<string>('');
   const [advisorLoading, setAdvisorLoading] = useState<boolean>(false);
   const [advisorSpeakingMsgId, setAdvisorSpeakingMsgId] = useState<string | null>(null);
+  const advisorChatWindowRef = useRef<HTMLDivElement>(null);
   const advisorChatEndRef = useRef<HTMLDivElement>(null);
 
   const showToast = (msg: string) => {
@@ -247,10 +248,10 @@ export default function ScholarFinderPage() {
     };
   }, []);
 
-  // Auto-scroll advisor chat when new message arrives or loading state changes
+  // Safe local auto-scroll advisor chat when new message arrives or loading state changes
   useEffect(() => {
-    if (guideSubTab === 'advisor' && advisorChatEndRef.current) {
-      advisorChatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (guideSubTab === 'advisor' && advisorChatWindowRef.current) {
+      advisorChatWindowRef.current.scrollTop = advisorChatWindowRef.current.scrollHeight;
     }
   }, [advisorChatMessages, advisorLoading, guideSubTab]);
 
@@ -879,12 +880,80 @@ export default function ScholarFinderPage() {
       {toastMessage && <div className={styles.toast}>{toastMessage}</div>}
 
       {/* Header Section */}
-      <header className={styles.hero}>
-        <h1 className={styles.heroTagline}>
-          <span>🎓</span>
-          <span>{lang === 'en' ? 'Ethos ScholarFinder' : 'ইথোস স্কলার-ফাইন্ডার'}</span>
-        </h1>
-      </header>
+      <div className={styles.pageHeader}>
+        <div className={styles.titleArea}>
+          <div className={styles.titleRow}>
+            <h1 className={styles.pageTitle}>
+              <span>🎓</span> {lang === 'en' ? 'Scholar Finder & RA/TA Suite' : 'স্কলার-ফাইন্ডার ও ফুল-ফান্ড অ্যাসিস্ট্যান্টশিপ'}
+            </h1>
+            <Badge variant="verified" size="sm">
+              {lang === 'en' ? 'Verified R1/U15 Labs' : 'ভেরিফায়েড আর১/ইউ১৫ ল্যাব'}
+            </Badge>
+            <Badge variant="ai" size="sm">
+              {lang === 'en' ? 'OpenAlex Global Deep Search' : 'ওপেনঅ্যালেক্স গ্লোবাল লাইভ'}
+            </Badge>
+          </div>
+          <p className={styles.pageSubtitle}>
+            {lang === 'en'
+              ? 'Connect directly with principal investigators holding active NSF, NIH, and ERC grants. Auto-match CVs, deconstruct publications into high-conversion email hooks, and calculate real graduate funding.'
+              : 'সক্রিয় রিসার্চ গ্রান্ট থাকা প্রফেসরদের খুঁজুন, পেপারের সামারি থেকে ইমেইল হুক তৈরি করুন, সিভি ম্যাচিং স্কোর দেখুন এবং মাস্টার্স ও পিএইচডি ফুল-ফান্ডিং ক্যালকুলেট করুন।'}
+          </p>
+        </div>
+
+        <div className={styles.headerActions}>
+          <button
+            type="button"
+            onClick={() => setLang((l) => (l === 'en' ? 'bn' : 'en'))}
+            className={styles.langBtn}
+            title={lang === 'en' ? 'Switch to Bangla' : 'Switch to English'}
+          >
+            🌐 {lang === 'en' ? 'বাংলা সংস্করণ' : 'English View'}
+          </button>
+        </div>
+      </div>
+
+      {/* Executive KPI Stat Cards Dock */}
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <div className={styles.statIconBox}>🏛️</div>
+          <div className={styles.statInfo}>
+            <div className={styles.statVal}>240+ Labs</div>
+            <div className={styles.statLabel}>
+              {lang === 'en' ? 'Curated R1 & U15 Faculty' : 'নির্বাচিত আর১ ও ইউ১৫ ল্যাব'}
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.statCard}>
+          <div className={styles.statIconBox}>💰</div>
+          <div className={styles.statInfo}>
+            <div className={styles.statVal}>NSF / NIH / ERC</div>
+            <div className={styles.statLabel}>
+              {lang === 'en' ? 'Verified Active Grants' : 'সক্রিয় রিসার্চ ফান্ডিং'}
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.statCard}>
+          <div className={styles.statIconBox}>📊</div>
+          <div className={styles.statInfo}>
+            <div className={styles.statVal}>{pipeline.length} PIs</div>
+            <div className={styles.statLabel}>
+              {lang === 'en' ? 'In Outreach Pipeline' : 'আউটরিচ পাইপলাইনে ট্র্যাকিং'}
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.statCard}>
+          <div className={styles.statIconBox}>🌐</div>
+          <div className={styles.statInfo}>
+            <div className={styles.statVal}>OpenAlex Live</div>
+            <div className={styles.statLabel}>
+              {lang === 'en' ? 'Global Deep Search Ready' : 'গ্লোবাল পেপার ও ফ্যাকাল্টি সার্চ'}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main Tabs Navigation */}
       <div className={styles.tabsBar}>
@@ -1567,7 +1636,11 @@ export default function ScholarFinderPage() {
                   href={getGmailLink(
                     selectedProf.email,
                     selectedSubjectLine,
-                    generatedEmailRes.initial_email.body
+                    emailSubTab === 'initial'
+                      ? generatedEmailRes.initial_email.body
+                      : emailSubTab === 'followup1'
+                      ? generatedEmailRes.follow_up_1.body
+                      : generatedEmailRes.follow_up_2.body
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1623,6 +1696,11 @@ export default function ScholarFinderPage() {
                   {pipeline.filter((i) => i.stage === 'shortlisted').length}
                 </span>
               </div>
+              {pipeline.filter((i) => i.stage === 'shortlisted').length === 0 && (
+                <div className={styles.emptyKanbanState}>
+                  {lang === 'en' ? 'No professors shortlisted yet' : 'এই ধাপে কোনো প্রফেসর শর্টলিস্ট করা নেই'}
+                </div>
+              )}
               {pipeline
                 .filter((i) => i.stage === 'shortlisted')
                 .map((item) => (
@@ -1655,6 +1733,11 @@ export default function ScholarFinderPage() {
                   {pipeline.filter((i) => i.stage === 'drafted').length}
                 </span>
               </div>
+              {pipeline.filter((i) => i.stage === 'drafted').length === 0 && (
+                <div className={styles.emptyKanbanState}>
+                  {lang === 'en' ? 'No drafts waiting to be sent' : 'কোনো ড্রাফট পাঠানো বাকি নেই'}
+                </div>
+              )}
               {pipeline
                 .filter((i) => i.stage === 'drafted')
                 .map((item) => (
@@ -1687,6 +1770,11 @@ export default function ScholarFinderPage() {
                   {pipeline.filter((i) => i.stage === 'contacted').length}
                 </span>
               </div>
+              {pipeline.filter((i) => i.stage === 'contacted').length === 0 && (
+                <div className={styles.emptyKanbanState}>
+                  {lang === 'en' ? 'No active inquiries awaiting reply' : 'উত্তরের অপেক্ষায় কোনো ইমেইল নেই'}
+                </div>
+              )}
               {pipeline
                 .filter((i) => i.stage === 'contacted')
                 .map((item) => (
@@ -1717,6 +1805,11 @@ export default function ScholarFinderPage() {
                   {pipeline.filter((i) => i.stage === 'interviewing').length}
                 </span>
               </div>
+              {pipeline.filter((i) => i.stage === 'interviewing').length === 0 && (
+                <div className={styles.emptyKanbanState}>
+                  {lang === 'en' ? 'Interviews and offers will show here' : 'ইন্টারভিউ ও অফার এখানে দেখাবে'}
+                </div>
+              )}
               {pipeline
                 .filter((i) => i.stage === 'interviewing')
                 .map((item) => (
@@ -2354,7 +2447,7 @@ export default function ScholarFinderPage() {
               </div>
 
               {/* Chat Thread Window */}
-              <div className={styles.advisorChatWindow}>
+              <div className={styles.advisorChatWindow} ref={advisorChatWindowRef}>
                 {advisorChatMessages.map((msg) => (
                   <div
                     key={msg.id}
