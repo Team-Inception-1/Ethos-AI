@@ -88,6 +88,7 @@ export default function DirectoryPage() {
   const [compare, setCompare]           = useState<string[]>([]);
   const [search, setSearch]             = useState('');
   const [countryFilter, setCountryFilter] = useState<string | null>(null);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
   // Live risk scores from the AI microservice (Module 5.10 / Issue #23),
   // keyed by agency id. `null` = still loading (initial fetch in flight);
@@ -155,9 +156,18 @@ export default function DirectoryPage() {
     .filter(a => !verifiedOnly || a.verified)
     .filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
     .filter(a => {
-      if (!countryFilter) return true;
-      const targetCodes = COUNTRY_MAP[countryFilter.toLowerCase()] || [countryFilter.toUpperCase().slice(0, 3)];
-      return a.countries.some(c => targetCodes.includes(c));
+      if (countryFilter) {
+        const targetCodes = COUNTRY_MAP[countryFilter.toLowerCase()] || [countryFilter.toUpperCase().slice(0, 3)];
+        if (!a.countries.some(c => targetCodes.includes(c))) return false;
+      }
+      if (selectedCountries.length > 0) {
+        const anyMatch = selectedCountries.some(name => {
+          const codes = COUNTRY_MAP[name.toLowerCase()] || [name.toUpperCase().slice(0, 3)];
+          return a.countries.some(c => codes.includes(c));
+        });
+        if (!anyMatch) return false;
+      }
+      return true;
     })
     .sort((a, b) => sortBy === 'rating' ? b.rating - a.rating : b.success - a.success);
 
@@ -166,7 +176,7 @@ export default function DirectoryPage() {
   };
 
   return (
-    <main className={styles.page} style={{ paddingTop: 'var(--topbar-height)' }}>
+    <main className={styles.page} style={{ paddingTop: 'var(--topbar-height)' }} suppressHydrationWarning>
       <div className={`${styles.inner} container`}>
         {/* Header */}
         <div className={styles.pageHeader}>
@@ -262,14 +272,38 @@ export default function DirectoryPage() {
               </select>
             </div>
 
-            {/* Country Filter (skeleton) */}
+            {/* Country Filter */}
             <div className={styles.filterGroup}>
-              <p className={styles.filterLabel}>Country</p>
-              {['Canada', 'UK', 'Australia', 'USA', 'Germany'].map(c => (
-                <label key={c} className={styles.checkLabel}>
-                  <input type="checkbox" className={styles.check} /> {c}
-                </label>
-              ))}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p className={styles.filterLabel}>Country</p>
+                {selectedCountries.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCountries([])}
+                    style={{ background: 'none', border: 'none', color: 'var(--blue-primary)', fontSize: '11px', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+              {['Canada', 'UK', 'Australia', 'USA', 'Germany'].map(c => {
+                const isChecked = selectedCountries.includes(c);
+                return (
+                  <label key={c} className={styles.checkLabel}>
+                    <input
+                      type="checkbox"
+                      className={styles.check}
+                      checked={isChecked}
+                      onChange={() => {
+                        setSelectedCountries(prev =>
+                          prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]
+                        );
+                      }}
+                    />
+                    {c}
+                  </label>
+                );
+              })}
             </div>
           </aside>
 
