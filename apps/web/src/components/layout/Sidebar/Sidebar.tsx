@@ -147,26 +147,26 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <DashboardIcon />,
         },
         {
-          href: '/agency/dashboard#applications',
+          href: '/agency/dashboard?tab=applications',
           label: 'Student Queue',
           labelBn: 'আবেদন সারি',
           icon: <ApplicationsIcon />,
         },
         {
-          href: '/agency/dashboard#services',
+          href: '/agency/dashboard?tab=services',
           label: 'Service Packages',
           labelBn: 'প্যাকেজ ও ফি',
           icon: <PaymentsIcon />,
         },
         {
-          href: '/agency/dashboard#benchmarks',
+          href: '/agency/dashboard?tab=benchmarks',
           label: 'Cost Benchmarks',
           labelBn: 'কস্ট বেঞ্চমার্ক',
           icon: <BenchmarkIcon />,
           badge: 'Data',
         },
         {
-          href: '/agency/dashboard#license',
+          href: '/agency/dashboard?tab=license',
           label: 'License & Compliance',
           labelBn: 'লাইসেন্স ও প্রমাণ',
           icon: <VerificationQueueIcon />,
@@ -448,19 +448,28 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
         <ul role="list">
           {navItems.map((item) => {
             let isActive = false;
-            if (item.href === '/agency/dashboard' && item.label === 'Applications') {
-              isActive = false;
-            } else if (item.href === '/admin' && item.label === 'Disputes') {
-              isActive = false;
-            } else if (pathname === item.href) {
-              isActive = true;
-            } else if (
-              item.href !== '/dashboard' &&
-              item.href !== '/agency/dashboard' &&
-              item.href !== '/admin' &&
-              pathname?.startsWith(item.href)
-            ) {
-              isActive = true;
+            const hrefBase = item.href.split('?')[0];
+            const hrefQuery = item.href.includes('?') ? item.href.split('?')[1] : '';
+            const pathnameMatches = pathname === hrefBase || (
+              hrefBase !== '/dashboard' &&
+              hrefBase !== '/agency/dashboard' &&
+              hrefBase !== '/admin' &&
+              pathname?.startsWith(hrefBase) &&
+              !item.href.includes('?')
+            );
+
+            if (hrefQuery) {
+              // For query-param based items (e.g. ?tab=applications),
+              // check if both path and query match the current URL
+              if (typeof window !== 'undefined') {
+                const currentSearch = window.location.search;
+                isActive = pathname === hrefBase && currentSearch.includes(hrefQuery);
+              }
+            } else if (item.href === '/agency/dashboard' && effectiveRole === 'agency') {
+              // Dashboard root: only active when no tab query present
+              isActive = pathname === '/agency/dashboard' && (typeof window === 'undefined' || !window.location.search.includes('tab='));
+            } else {
+              isActive = pathnameMatches;
             }
 
             return (

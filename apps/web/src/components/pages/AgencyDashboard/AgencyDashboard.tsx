@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -180,9 +181,20 @@ const complianceColor = (s: ComplianceDoc['status']) => {
 /* ─── Component ──────────────────────────────────────────────────────────── */
 
 export default function AgencyDashboard() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [agency, setAgency] = useState<VerifiedAgencyRecord | null>(null);
   const [apps, setApps] = useState<ApplicationItem[]>(INITIAL_APPS);
-  const [activeTab, setActiveTab] = useState<'applications' | 'services' | 'license' | 'benchmarks'>('applications');
+
+  // Derive activeTab from URL query param ?tab= — fallback to 'applications'
+  const tabParam = searchParams.get('tab');
+  const validTabs = ['applications', 'services', 'license', 'benchmarks'];
+  const activeTab = (validTabs.includes(tabParam || '') ? tabParam : 'applications') as 'applications' | 'services' | 'license' | 'benchmarks';
+
+  const setActiveTab = (tab: 'applications' | 'services' | 'license' | 'benchmarks') => {
+    router.push(`/agency/dashboard?tab=${tab}`, { scroll: false } as any);
+  };
 
   // Student Queue state
   const [queueSearch, setQueueSearch] = useState('');
@@ -238,17 +250,6 @@ export default function AgencyDashboard() {
     const current = VerifiedKnowledgeEngine.getAgencyById('agt-001') || VerifiedKnowledgeEngine.getAllVerifiedAgencies()[0];
     if (current) setAgency(current);
 
-    const handleHash = () => {
-      if (typeof window !== 'undefined') {
-        const hash = window.location.hash.replace('#', '').toLowerCase();
-        if (['applications', 'services', 'license', 'benchmarks'].includes(hash)) {
-          setActiveTab(hash as any);
-        }
-      }
-    };
-    handleHash();
-    window.addEventListener('hashchange', handleHash);
-
     fetch('/api/provenance/benchmarks')
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.benchmarks) setBenchmarks(d.benchmarks); })
@@ -258,8 +259,6 @@ export default function AgencyDashboard() {
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.submissions) setFeeSubmissions(d.submissions); })
       .catch(() => {});
-
-    return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
   /* ─── Student Queue ──────────────────────────────────────────────────── */
