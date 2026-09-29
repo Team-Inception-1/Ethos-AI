@@ -74,10 +74,11 @@ const roles: { id: UserRole; label: string; labelBn: string; icon: React.ReactNo
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
-  const { user, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail, quickLoginDemo } = useAuth();
+  const { user, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail, quickLoginDemo, updateProfile } = useAuth();
 
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [role, setRole] = useState<UserRole>('student');
+  const [loginRole, setLoginRole] = useState<UserRole>('student');
   const [step, setStep] = useState<'form' | 'otp'>('form');
 
   const [fullName, setFullName] = useState('');
@@ -88,6 +89,32 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [errorMsg, setErrorMsg] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  // Initialize login credentials for selected character
+  React.useEffect(() => {
+    if (mode === 'login') {
+      setEmail('riya@example.com');
+      setPassword('student123');
+    }
+  }, [mode]);
+
+  const handleSelectLoginRole = (selectedRole: UserRole) => {
+    setLoginRole(selectedRole);
+    setErrorMsg('');
+    if (selectedRole === 'admin') {
+      setEmail('admin@ethosai.bd');
+      setPassword('admin123');
+    } else if (selectedRole === 'agency') {
+      setEmail('contact@globaledu.bd');
+      setPassword('agency123');
+    } else if (selectedRole === 'parent') {
+      setEmail('farhana@example.com');
+      setPassword('parent123');
+    } else {
+      setEmail('riya@example.com');
+      setPassword('student123');
+    }
+  };
 
   const handleQuickDemo = (demoRole: UserRole) => {
     quickLoginDemo(demoRole);
@@ -132,9 +159,28 @@ export default function AuthPage({ mode }: AuthPageProps) {
         setErrorMsg('Please enter your email or phone.');
         return;
       }
-      await login(email, password);
-      setStep('otp');
+      // Log in as selected character
+      quickLoginDemo(loginRole);
+      if (email.trim() && user) {
+        updateProfile({ email: email.trim() });
+      }
+      if (loginRole === 'agency') {
+        router.push('/agency/dashboard');
+      } else if (loginRole === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
     }
+  };
+
+  const handleLoginViaOtp = async () => {
+    if (!email.trim()) {
+      setErrorMsg('Please enter your email to receive an OTP.');
+      return;
+    }
+    await login(email, password);
+    setStep('otp');
   };
 
   const handleOtpChange = (i: number, val: string) => {
@@ -320,6 +366,90 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 </div>
               )}
 
+              {/* Character Selector for Login */}
+              {mode === 'login' && (
+                <div className={styles.loginRoleSelector}>
+                  <div className={styles.roleSelectorHeader}>
+                    <span className={styles.roleSelectorTitle}>
+                      🎭 {lang === 'en' ? 'Select Login Character' : 'লগইন চরিত্র নির্বাচন করুন'}
+                    </span>
+                    <span className={styles.roleSelectorBadge}>
+                      {loginRole.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className={styles.demoGrid}>
+                    <button
+                      type="button"
+                      className={`${styles.demoBtn} ${loginRole === 'student' ? styles.demoBtnActive : ''}`}
+                      data-role="student"
+                      onClick={() => handleSelectLoginRole('student')}
+                      title="Log in as Student (Riya Ahmed)"
+                    >
+                      <span className={styles.demoIcon}><StudentIcon /></span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <strong>{lang === 'en' ? 'Student' : 'শিক্ষার্থী'}</strong>
+                          {loginRole === 'student' && <span className={styles.selectedPill}>Active</span>}
+                        </div>
+                        <span className={styles.demoRoleLabel}>Riya Ahmed (Canada)</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`${styles.demoBtn} ${loginRole === 'parent' ? styles.demoBtnActive : ''}`}
+                      data-role="parent"
+                      onClick={() => handleSelectLoginRole('parent')}
+                      title="Log in as Parent (Farhana Ahmed)"
+                    >
+                      <span className={styles.demoIcon}><ParentIcon /></span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <strong>{lang === 'en' ? 'Parent' : 'অভিভাবক'}</strong>
+                          {loginRole === 'parent' && <span className={styles.selectedPill}>Active</span>}
+                        </div>
+                        <span className={styles.demoRoleLabel}>Farhana Ahmed</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`${styles.demoBtn} ${loginRole === 'agency' ? styles.demoBtnActive : ''}`}
+                      data-role="agency"
+                      onClick={() => handleSelectLoginRole('agency')}
+                      title="Log in as Agency (Global Edu BD)"
+                    >
+                      <span className={styles.demoIcon}><AgencyIcon /></span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <strong>{lang === 'en' ? 'Agency' : 'এজেন্সি'}</strong>
+                          {loginRole === 'agency' && <span className={styles.selectedPill}>Active</span>}
+                        </div>
+                        <span className={styles.demoRoleLabel}>Global Edu BD</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`${styles.demoBtn} ${loginRole === 'admin' ? styles.demoBtnActive : ''}`}
+                      data-role="admin"
+                      onClick={() => handleSelectLoginRole('admin')}
+                      title="Log in as Platform Administrator"
+                    >
+                      <span className={styles.demoIcon}><AdminIcon /></span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <strong>{lang === 'en' ? 'Admin' : 'অ্যাডমিন'}</strong>
+                          {loginRole === 'admin' && <span className={styles.selectedPill}>Active</span>}
+                        </div>
+                        <span className={styles.demoRoleLabel}>Platform Governance</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
 
               <form className={styles.form} onSubmit={handleFormSubmit}>
@@ -410,12 +540,21 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 <Button type="submit" size="lg" fullWidth glow>
                   {mode === 'login'
                     ? lang === 'en'
-                      ? 'Send OTP & Login'
-                      : 'OTP পাঠান ও লগইন করুন'
+                      ? `Sign In as ${loginRole === 'admin' ? 'Administrator' : loginRole === 'agency' ? 'Agency' : loginRole === 'parent' ? 'Parent' : 'Student'} →`
+                      : `${loginRole === 'admin' ? 'অ্যাডমিন' : loginRole === 'agency' ? 'এজেন্সি' : loginRole === 'parent' ? 'অভিভাবক' : 'শিক্ষার্থী'} হিসেবে সাইন ইন →`
                     : lang === 'en'
                       ? 'Create Account →'
                       : 'অ্যাকাউন্ট তৈরি করুন →'}
                 </Button>
+                {mode === 'login' && (
+                  <button
+                    type="button"
+                    className={styles.otpSwitchLink}
+                    onClick={handleLoginViaOtp}
+                  >
+                    🔒 {lang === 'en' ? 'Or verify with 6-digit OTP code' : 'অথবা ৬-সংখ্যার OTP কোড দিয়ে সাইন ইন করুন'}
+                  </button>
+                )}
               </form>
 
               <p className={styles.switchMode}>
@@ -435,73 +574,6 @@ export default function AuthPage({ mode }: AuthPageProps) {
                   </>
                 )}
               </p>
-
-              {/* 1-Click Demo Login Dock */}
-              {mode === 'login' && (
-                <div className={styles.demoPanel}>
-                  <div className={styles.demoTitle}>
-                    <span>🧪 {lang === 'en' ? 'Staging — Quick Login' : 'স্টেজিং — দ্রুত লগইন'}</span>
-                    <span className={styles.demoBadge}>DEMO ENV</span>
-                  </div>
-                  <div className={styles.demoGrid}>
-                    <button
-                      type="button"
-                      className={styles.demoBtn}
-                      data-role="student"
-                      onClick={() => handleQuickDemo('student')}
-                      title="Login instantly as student Riya Ahmed"
-                    >
-                      <span className={styles.demoIcon}><StudentIcon /></span>
-                      <div>
-                        <strong>{lang === 'en' ? 'Student' : 'শিক্ষার্থী'}</strong>
-                        <span className={styles.demoRoleLabel}>Riya Ahmed (Canada)</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={styles.demoBtn}
-                      data-role="parent"
-                      onClick={() => handleQuickDemo('parent')}
-                      title="Login instantly as parent Farhana Ahmed"
-                    >
-                      <span className={styles.demoIcon}><ParentIcon /></span>
-                      <div>
-                        <strong>{lang === 'en' ? 'Parent' : 'অভিভাবক'}</strong>
-                        <span className={styles.demoRoleLabel}>Farhana Ahmed</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={styles.demoBtn}
-                      data-role="agency"
-                      onClick={() => handleQuickDemo('agency')}
-                      title="Login instantly as Global Edu BD consultancy"
-                    >
-                      <span className={styles.demoIcon}><AgencyIcon /></span>
-                      <div>
-                        <strong>{lang === 'en' ? 'Agency' : 'এজেন্সি'}</strong>
-                        <span className={styles.demoRoleLabel}>Global Edu BD</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={styles.demoBtn}
-                      data-role="admin"
-                      onClick={() => handleQuickDemo('admin')}
-                      title="Login instantly as Platform Administrator"
-                    >
-                      <span className={styles.demoIcon}><AdminIcon /></span>
-                      <div>
-                        <strong>{lang === 'en' ? 'Admin' : 'অ্যাডমিন'}</strong>
-                        <span className={styles.demoRoleLabel}>Platform Governance</span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
             </>
           ) : (
             /* OTP Step */

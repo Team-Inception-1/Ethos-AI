@@ -425,63 +425,45 @@
   color: var(--text-muted);
 }
 
-/* ── Demo Panel ── */
-.demoPanel {
-  margin-top: var(--space-4);
-  padding: var(--space-4) var(--space-5);
+/* ── Login Role / Character Selector ── */
+.loginRoleSelector {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
   background: var(--bg-elevated);
   border: 2px solid var(--ink);
   border-radius: var(--radius-lg);
-  box-shadow: 4px 4px 0 0 var(--ink);
+  box-shadow: 3.5px 3.5px 0 0 var(--ink);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-.demoTitle {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.roleSelectorHeader {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding-bottom: var(--space-3);
+  justify-content: space-between;
+  padding-bottom: var(--space-2);
   border-bottom: 1.5px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.demoBadge {
-  background: #dc2626;
-  color: #ffffff;
-  font-size: 9px;
+.roleSelectorTitle {
+  font-size: 11px;
   font-weight: 800;
-  padding: 2px 7px;
-  border-radius: var(--radius-full);
-  letter-spacing: 0.06em;
-  margin-left: auto;
-  text-transform: uppercase;
-}
-
-.demoOtpHint {
-  background: rgba(79, 142, 247, 0.12);
-  border: 1.5px solid var(--blue-primary);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
-  font-size: 12px;
   color: var(--text-primary);
-  margin: 10px 0 14px 0;
-  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.demoOtpHint code {
-  background: var(--glass-bg-elevated);
-  border: 1px solid var(--ink);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: monospace;
-  font-weight: 700;
-  color: var(--blue-light);
+.roleSelectorBadge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--blue-primary);
+  color: #ffffff;
+  letter-spacing: 0.04em;
 }
 
 .demoGrid {
@@ -504,14 +486,14 @@
   font-weight: 700;
   cursor: pointer;
   box-shadow: 2.5px 2.5px 0 0 var(--ink);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
   text-align: left;
   font-family: inherit;
 }
 
 .demoBtn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 4.5px 4.5px 0 0 var(--ink);
+  transform: translate(-1px, -1px);
+  box-shadow: 3.5px 3.5px 0 0 var(--ink);
 }
 
 .demoBtn:active {
@@ -519,8 +501,43 @@
   box-shadow: 1px 1px 0 0 var(--ink);
 }
 
-.demoBtn:hover .demoIcon {
-  transform: scale(1.15);
+.demoBtn[data-role="student"] {
+  border-left-color: #2563eb;
+}
+
+.demoBtn[data-role="parent"] {
+  border-left-color: #16a34a;
+}
+
+.demoBtn[data-role="agency"] {
+  border-left-color: #d97706;
+}
+
+.demoBtn[data-role="admin"] {
+  border-left-color: #dc2626;
+}
+
+.demoBtnActive {
+  border-width: 2.5px !important;
+  border-left-width: 5px !important;
+  box-shadow: 3.5px 3.5px 0 0 var(--ink) !important;
+  transform: translate(-1px, -1px);
+}
+
+.demoBtnActive[data-role="student"] {
+  background: rgba(37, 99, 235, 0.12) !important;
+}
+
+.demoBtnActive[data-role="parent"] {
+  background: rgba(22, 163, 74, 0.12) !important;
+}
+
+.demoBtnActive[data-role="agency"] {
+  background: rgba(217, 119, 6, 0.12) !important;
+}
+
+.demoBtnActive[data-role="admin"] {
+  background: rgba(220, 38, 38, 0.12) !important;
 }
 
 .demoIcon {
@@ -535,6 +552,36 @@
   color: var(--text-muted);
   display: block;
   margin-top: 1px;
+}
+
+.selectedPill {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--bg-base);
+  text-transform: uppercase;
+}
+
+.otpSwitchLink {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.otpSwitchLink:hover {
+  color: var(--blue-primary);
 }
 
 /* ── Responsive ── */
