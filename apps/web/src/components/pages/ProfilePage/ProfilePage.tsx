@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './ProfilePage.module.css';
 
 export default function ProfilePage() {
-  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, switchActiveRole, logout } = useAuth();
+  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, logout } = useAuth();
 
   const [copied, setCopied] = useState(false);
   const [linkInput, setLinkInput] = useState('');
@@ -356,41 +356,6 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </form>
-
-            {/* Quick Demo Role Switcher */}
-            <div className={styles.roleSwitcherCard}>
-              <span className={styles.roleSwitcherTitle}>Switch Active Role (Demo)</span>
-              <div className={styles.roleBtnGroup}>
-                <button
-                  type="button"
-                  className={`${styles.roleBtn} ${user.role === 'student' ? styles.roleBtnActive : ''}`}
-                  onClick={() => switchActiveRole('student')}
-                >
-                  🎓 Student
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.roleBtn} ${user.role === 'parent' ? styles.roleBtnActive : ''}`}
-                  onClick={() => switchActiveRole('parent')}
-                >
-                  👨‍👧 Parent
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.roleBtn} ${user.role === 'agency' ? styles.roleBtnActive : ''}`}
-                  onClick={() => switchActiveRole('agency')}
-                >
-                  🏢 Agency
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.roleBtn} ${user.role === 'admin' ? styles.roleBtnActive : ''}`}
-                  onClick={() => switchActiveRole('admin')}
-                >
-                  🛡️ Admin
-                </button>
-              </div>
-            </div>
           </GlassCard>
 
           {/* Right Column: Dynamic Role Content */}
