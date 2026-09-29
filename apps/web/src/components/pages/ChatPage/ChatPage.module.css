@@ -6,9 +6,10 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  height: calc(100vh - 120px);
-  min-height: 640px;
+  gap: var(--space-5);
+  height: calc(100vh - var(--topbar-height) - var(--space-12));
+  min-height: 580px;
+  padding-top: var(--space-4);
 }
 
 .headerRow {
@@ -17,6 +18,7 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 12px;
+  margin-top: 4px;
 }
 
 .titleArea h1 {

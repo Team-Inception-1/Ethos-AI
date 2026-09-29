@@ -162,7 +162,7 @@ export default function ChatPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [attachedDoc, setAttachedDoc] = useState<string | null>(null);
   const [showVaultSelector, setShowVaultSelector] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Check URL parameters for direct thread activation
   useEffect(() => {
@@ -225,9 +225,11 @@ export default function ChatPage() {
     };
   }, [activeThreadId]);
 
-  // Auto-scroll to bottom of messages
+  // Auto-scroll to bottom of messages inside chat window only (never scrolls page or TopBar)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
@@ -436,7 +438,7 @@ export default function ChatPage() {
           </div>
 
           {/* Messages Feed */}
-          <div className={styles.messages} aria-live="polite" aria-label="Chat messages">
+          <div ref={messagesContainerRef} className={styles.messages} aria-live="polite" aria-label="Chat messages">
             {messages.map((m) => {
               const self = isSelf(m);
               const senderRoleUpper = m.senderRole?.toUpperCase();
@@ -474,7 +476,6 @@ export default function ChatPage() {
                 </div>
               );
             })}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}
