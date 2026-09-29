@@ -1,18 +1,558 @@
-.page { display: flex; flex-direction: column; gap: var(--space-6); }
-.header { display: flex; justify-content: space-between; align-items: center; }
-.uploadZone { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); border: var(--border-width) dashed var(--border); border-radius: var(--radius-lg); padding: var(--space-8); cursor: pointer; transition: var(--transition-base); }
-.uploadZone:hover { border-color: var(--blue-primary); background: var(--bg-hover); transform: translate(-1px, -1px); }
-.uploadIcon { font-size: 36px; }
-.uploadLabel { font-size: 15px; font-weight: 700; }
-.uploadLink { color: var(--blue-primary); font-weight: 700; text-decoration: underline; cursor: pointer; }
-.uploadHint { font-size: 12px; color: var(--text-muted); }
-.devHint { font-size: 12px; color: var(--text-muted); font-style: italic; }
-.devHint code { background: var(--bg-elevated); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
-.docGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
-.docCard { display: flex; flex-direction: column; gap: var(--space-3); }
-.docIcon { font-size: 28px; }
-.docMeta { flex: 1; }
-.docName { font-size: 14px; font-weight: 800; }
-.docInfo { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-.docActions { display: flex; gap: var(--space-2); }
-@media (max-width: 640px) { .docGrid { grid-template-columns: 1fr; } }
+/* ============================================================
+   ETHOS AI — Document Vault & AI Verification Styles
+   NEUBRUTALISM · High Contrast · Responsive
+   ============================================================ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-bottom: var(--space-12);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.titleArea h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.titleArea p {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.quickUploadBar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.typeSelect {
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--ink);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 0 var(--ink);
+  transition: all var(--transition-fast);
+}
+
+.typeSelect:focus {
+  border-color: var(--blue-primary);
+  outline: none;
+}
+
+/* ─── Executive KPI Stat Cards ─── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.statCard {
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: 3px 3px 0 0 var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: transform var(--transition-fast);
+}
+
+.statCard:hover {
+  transform: translate(-1px, -1px);
+}
+
+.statIconBox {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--ink);
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: 1.5px 1.5px 0 0 var(--ink);
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.statVal {
+  font-size: 20px;
+  font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Drag & Drop Upload Zone ─── */
+.uploadZone {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  border: 3px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  cursor: pointer;
+  background: var(--bg-surface);
+  box-shadow: 3px 3px 0 0 var(--ink);
+  transition: all var(--transition-base);
+}
+
+.uploadZone:hover {
+  border-color: var(--blue-primary);
+  background: var(--bg-hover);
+  transform: translate(-1px, -1px);
+}
+
+.uploadZoneDragActive {
+  border-color: var(--blue-primary) !important;
+  background: var(--bg-active) !important;
+  box-shadow: 4px 4px 0 0 var(--blue-primary) !important;
+  transform: scale(1.01);
+}
+
+.uploadIcon {
+  font-size: 38px;
+}
+
+.uploadLabel {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.uploadHint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.badgeRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ─── Filter & Search Dock ─── */
+.controlBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.tabBar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.modeTab {
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.modeTab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.modeTabActive {
+  background: var(--blue-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--ink) !important;
+  box-shadow: 2px 2px 0 0 var(--ink) !important;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  box-shadow: 2px 2px 0 0 var(--ink);
+}
+
+.searchInput {
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  width: 220px;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── Document Grid & Cards ─── */
+.docGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.docCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: 3px 3px 0 0 var(--ink);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.docCard:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--ink);
+}
+
+.docCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.docLeft {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.docIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--ink);
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: 1.5px 1.5px 0 0 var(--ink);
+}
+
+.docMeta {
+  min-width: 0;
+  flex: 1;
+}
+
+.docName {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.docInfo {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.docTag {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 10.5px;
+}
+
+.flagBanner {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.docActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+/* ─── Empty State ─── */
+.emptyState {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--bg-surface);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 3px 3px 0 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyIcon {
+  font-size: 40px;
+}
+
+.emptyTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.emptyText {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 380px;
+}
+
+/* ─── Modals ─── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(2px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modalBox {
+  background: var(--bg-surface);
+  border: 3px solid var(--ink);
+  box-shadow: 8px 8px 0 0 var(--ink);
+  border-radius: var(--radius-xl);
+  max-width: 560px;
+  width: 100%;
+  padding: 24px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
+.modalTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.closeBtn {
+  background: none;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--text-primary);
+  box-shadow: 1.5px 1.5px 0 0 var(--ink);
+  transition: transform var(--transition-fast);
+}
+
+.closeBtn:hover {
+  transform: translate(-1px, -1px);
+  background: var(--bg-hover);
+}
+
+.infoGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.infoLabel {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.infoVal {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ─── Risk Gauge Bar ─── */
+.riskGaugeBox {
+  background: var(--bg-elevated);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: 2px 2px 0 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.riskGaugeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.riskMeterTrack {
+  height: 10px;
+  background: var(--border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  border: 1px solid var(--ink);
+}
+
+.riskMeterFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease-out;
+}
+
+.forensicChecklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.forensicItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ─── Responsive Media Queries ─── */
+@media (max-width: 960px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  .docGrid {
+    grid-template-columns: 1fr;
+  }
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .quickUploadBar {
+    width: 100%;
+  }
+  .quickUploadBar button,
+  .typeSelect {
+    flex: 1;
+  }
+  .controlBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .searchBox {
+    width: 100%;
+  }
+  .searchInput {
+    width: 100%;
+  }
+}
