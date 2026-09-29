@@ -8,6 +8,44 @@
 .target { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
 .date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .appRight { display: flex; align-items: center; gap: var(--space-4); }
-.emptyHint { padding: var(--space-4); }
-.hint { font-size: 13px; color: var(--text-muted); font-style: italic; }
-.hint code { background: var(--bg-elevated); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.escrowBanner {
+  background: var(--bg-surface, #ffffff);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-xl, 14px);
+  padding: 18px 22px;
+  box-shadow: 3px 3px 0 0 var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+}
+
+.escrowBannerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.escrowShieldIcon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.escrowBannerTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.escrowBannerDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}

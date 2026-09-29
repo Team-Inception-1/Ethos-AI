@@ -202,6 +202,9 @@ export default function ApplicationDetailPage({ id }: { id: string }) {
 
   return (
     <div className={styles.page}>
+      <Link href="/dashboard/applications" className={styles.backLink}>
+        ← Back to Applications
+      </Link>
       <div className={styles.header}>
         <div>
           <h1>Application #{id}</h1>

@@ -116,9 +116,20 @@ export default function ApplicationsPage() {
         </div>
       </div>
 
-      {/* Empty State Placeholder for members */}
-      <div className={styles.emptyHint}>
-        <p className={styles.hint}>🔧 <strong>@backend</strong>: Wire to <code>GET /applications</code> and replace mock data.</p>
+      {/* Escrow Milestone Security Banner */}
+      <div className={styles.escrowBanner}>
+        <div className={styles.escrowBannerLeft}>
+          <div className={styles.escrowShieldIcon}>🛡️</div>
+          <div>
+            <h3 className={styles.escrowBannerTitle}>Milestone Escrow Protection Active</h3>
+            <p className={styles.escrowBannerDesc}>
+              Every application service payment is locked inside smart escrow. Funds are never disbursed to the agency until you confirm the verified milestone has been met.
+            </p>
+          </div>
+        </div>
+        <Link href="/dashboard/payments">
+          <Button size="sm" variant="emerald">Manage Escrow →</Button>
+        </Link>
       </div>
     </div>
   );

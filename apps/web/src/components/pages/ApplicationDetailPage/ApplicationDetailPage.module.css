@@ -1,4 +1,18 @@
 .page { display: flex; flex-direction: column; gap: var(--space-6); }
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-primary);
+  width: fit-content;
+  transition: opacity 0.15s ease;
+}
+.backLink:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
 .header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-4); }
 .subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
 .cardTitle { font-size: 16px; font-weight: 800; margin-bottom: var(--space-5); font-family: 'Space Grotesk', sans-serif; }
