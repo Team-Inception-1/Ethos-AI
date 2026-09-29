@@ -14,6 +14,7 @@ interface GlassCardProps {
   accent?: Accent;
   padding?: 'none' | 'sm' | 'md' | 'lg';
   onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
 export default function GlassCard({
@@ -25,6 +26,7 @@ export default function GlassCard({
   accent = 'none',
   padding = 'md',
   onClick,
+  style,
 }: GlassCardProps) {
   return (
     <div
@@ -38,6 +40,7 @@ export default function GlassCard({
         className,
       ].filter(Boolean).join(' ')}
       onClick={onClick}
+      style={style}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}

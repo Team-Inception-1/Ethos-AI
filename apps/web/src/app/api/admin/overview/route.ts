@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireRole } from '@/lib/auth/authorization';
 
 export async function GET() {
   try {
+    const authorization = await requireRole(['ADMIN']);
+    if (authorization.response) return authorization.response;
     const stats = db.getAdminStats();
     return NextResponse.json({
       success: true,

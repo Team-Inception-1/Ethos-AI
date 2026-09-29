@@ -32,6 +32,11 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarSuccess, setAvatarSuccess] = useState<string | null>(null);
+  const [imgError, setImgError] = useState(false);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [user?.avatarUrl]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,15 +178,14 @@ export default function ProfilePage() {
             <div>
               <div className={styles.titleWithBadge}>
                 <h1 className={styles.title}>Account Profile & Settings</h1>
-                <Badge variant="verified" size="sm">Neon DB Secured</Badge>
-                <Badge variant="ai" size="sm">Ethos ID v2.4</Badge>
+                <Badge variant="verified" size="sm">Verified Account</Badge>
               </div>
               <p className={styles.subtitle}>
                 Manage your role preferences, guardian linkages, biometric credentials, and academic profile.
               </p>
             </div>
             <div className={styles.headerActions}>
-              <Link href="/dashboard">
+              <Link href={user?.role === 'agency' ? '/agency/dashboard' : user?.role === 'admin' ? '/admin' : '/dashboard'}>
                 <Button variant="outline" size="sm">
                   ← Back to Dashboard
                 </Button>
@@ -235,14 +239,15 @@ export default function ProfilePage() {
           <GlassCard padding="lg" className={styles.userCard}>
             <div className={styles.avatarWrapper}>
               <div className={styles.avatar}>
-                {user.avatarUrl ? (
+                {user.avatarUrl && !imgError ? (
                   <img
                     src={user.avatarUrl}
                     alt={user.name}
+                    onError={() => setImgError(true)}
                     className={styles.avatarImg}
                   />
                 ) : (
-                  user.name.charAt(0)
+                  (user.name?.charAt(0) || 'U').toUpperCase()
                 )}
                 {uploadingAvatar && (
                   <div className={styles.avatarLoadingOverlay} aria-label="Uploading...">
@@ -593,7 +598,7 @@ export default function ProfilePage() {
               <>
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>🛡️ System Administrator Controls</h2>
-                  <Badge variant="danger">SUPERADMIN ACCESS</Badge>
+                  <Badge variant="outline">Administrator</Badge>
                 </div>
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                   You have full governance access to audit agencies, review flagged agreements, resolve student-agency escrow disputes, and issue verification badges.

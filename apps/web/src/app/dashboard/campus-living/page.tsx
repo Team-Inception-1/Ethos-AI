@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import CampusLivingPage from '@/components/pages/CampusLivingPage/CampusLivingPage';
+import RoleRestricted from '@/components/auth/RoleRestricted';
 
 export const metadata: Metadata = {
   title: 'Off-Campus Housing & Living Costs | Ethos AI',
@@ -8,5 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardCampusLiving() {
-  return <CampusLivingPage />;
+  return (
+    <RoleRestricted
+      allowedRoles={['student', 'parent']}
+      featureName="Off-Campus Housing & Living Cost Estimator"
+    >
+      <CampusLivingPage />
+    </RoleRestricted>
+  );
 }

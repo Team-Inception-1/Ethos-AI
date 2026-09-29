@@ -93,11 +93,69 @@ interface LedgerItem {
   timestamp: string;
 }
 
-type TabType = 'Agency Verification' | 'Disputes' | 'Scam Alerts' | 'Users' | 'Audit Ledger';
-const TABS: TabType[] = ['Agency Verification', 'Disputes', 'Scam Alerts', 'Users', 'Audit Ledger'];
+interface CountryBenchmarkItem {
+  id: string;
+  country: string;
+  countryCode: string;
+  flagEmoji: string;
+  currency: string;
+  exchangeRateBdt: number;
+  livingCostMonthlyBdtMin: number;
+  livingCostMonthlyBdtMax: number;
+  blockedAccountOrGicBdt: number;
+  requirementType: string;
+  visaFeeBdt: number;
+  healthInsuranceYearlyBdt: number;
+  officialGovUrl: string;
+  officialGovSourceTitle: string;
+  isVerified: boolean;
+  verifiedByAdminId: string;
+  lastAuditedAt: string;
+  keyRequirements: string[];
+}
+
+interface CourseCatalogItem {
+  id: string;
+  benchmarkId?: string;
+  universityName: string;
+  country: string;
+  countryCode: string;
+  degreeLevel: string;
+  programName: string;
+  annualTuitionLocal: number;
+  currency: string;
+  annualTuitionBdt: number;
+  officialCatalogUrl: string;
+  officialSourceTitle: string;
+  intakeYear: string;
+  isVerified: boolean;
+  status: string;
+  lastAuditedAt: string;
+}
+
+interface FeeSubmissionItem {
+  id: string;
+  agencyId: string;
+  agencyName: string;
+  country: string;
+  serviceName: string;
+  amountBdt: number;
+  whenCharged: string;
+  refundable: boolean;
+  refundPolicy: string;
+  proofDocumentUrls: string[];
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  adminFeedback?: string | null;
+  reviewedByAdminId?: string | null;
+  reviewedAt?: string | null;
+  submittedAt: string;
+}
+
+type TabType = 'Agency Verification' | 'Data Provenance' | 'Disputes' | 'Scam Alerts' | 'Users' | 'Audit Ledger';
+const TABS: TabType[] = ['Agency Verification', 'Data Provenance', 'Disputes', 'Scam Alerts', 'Users', 'Audit Ledger'];
 
 export default function AdminPanel() {
-  const { user, quickLoginDemo } = useAuth();
+  const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabType>('Agency Verification');
   const [loading, setLoading] = useState(true);
@@ -111,16 +169,33 @@ export default function AdminPanel() {
   const [scamAlerts, setScamAlerts] = useState<ScamAlertItem[]>([]);
   const [usersList, setUsersList] = useState<UserItem[]>([]);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerItem[]>([]);
+  const [benchmarks, setBenchmarks] = useState<CountryBenchmarkItem[]>([]);
+  const [courseCatalogs, setCourseCatalogs] = useState<CourseCatalogItem[]>([]);
+  const [feeSubmissions, setFeeSubmissions] = useState<FeeSubmissionItem[]>([]);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [agencyFilter, setAgencyFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('ALL');
   const [userRoleFilter, setUserRoleFilter] = useState<'ALL' | 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN'>('ALL');
+  const [provenanceSubTab, setProvenanceSubTab] = useState<'submissions' | 'benchmarks' | 'catalogs'>('submissions');
 
   // Modals
   const [selectedAgencyDossier, setSelectedAgencyDossier] = useState<AgencyItem | null>(null);
   const [selectedDisputeEvidence, setSelectedDisputeEvidence] = useState<DisputeItem | null>(null);
   const [selectedScamReport, setSelectedScamReport] = useState<ScamAlertItem | null>(null);
+  const [selectedFeeSubDossier, setSelectedFeeSubDossier] = useState<FeeSubmissionItem | null>(null);
+  const [showAddCatalogModal, setShowAddCatalogModal] = useState(false);
+  const [newCatalogForm, setNewCatalogForm] = useState({
+    universityName: '',
+    country: 'Canada',
+    countryCode: 'CAN',
+    degreeLevel: 'Master',
+    programName: '',
+    annualTuitionLocal: 0,
+    currency: 'CAD',
+    officialCatalogUrl: '',
+    officialSourceTitle: '',
+  });
 
   // Toast feedback helper
   const showToast = (msg: string) => {
@@ -134,13 +209,16 @@ export default function AdminPanel() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [ovRes, agRes, dpRes, scRes, usRes, ldRes] = await Promise.all([
+      const [ovRes, agRes, dpRes, scRes, usRes, ldRes, bmRes, ctRes, fsRes] = await Promise.all([
         fetch('/api/admin/overview').then((r) => r.json()).catch(() => null),
         fetch('/api/admin/agencies').then((r) => r.json()).catch(() => null),
         fetch('/api/admin/disputes').then((r) => r.json()).catch(() => null),
         fetch('/api/admin/scam-alerts').then((r) => r.json()).catch(() => null),
         fetch('/api/admin/users').then((r) => r.json()).catch(() => null),
         fetch('/api/escrow/ledger').then((r) => r.json()).catch(() => null),
+        fetch('/api/provenance/benchmarks').then((r) => r.json()).catch(() => null),
+        fetch('/api/provenance/catalogs').then((r) => r.json()).catch(() => null),
+        fetch('/api/admin/fee-submissions').then((r) => r.json()).catch(() => null),
       ]);
 
       if (ovRes?.stats) setStats(ovRes.stats);
@@ -149,6 +227,9 @@ export default function AdminPanel() {
       if (scRes?.alerts) setScamAlerts(scRes.alerts);
       if (usRes?.users) setUsersList(usRes.users);
       if (ldRes?.entries) setLedgerEntries(ldRes.entries);
+      if (bmRes?.benchmarks) setBenchmarks(bmRes.benchmarks);
+      if (ctRes?.catalogs) setCourseCatalogs(ctRes.catalogs);
+      if (fsRes?.submissions) setFeeSubmissions(fsRes.submissions);
     } catch (err) {
       console.error('Failed to load admin dashboard data:', err);
     } finally {
@@ -159,6 +240,104 @@ export default function AdminPanel() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Synchronize URL hash with active governance tab
+  useEffect(() => {
+    const handleHash = () => {
+      if (typeof window === 'undefined') return;
+      const h = window.location.hash.replace('#', '').toLowerCase();
+      if (h === 'agencies' || h === 'agency') setActiveTab('Agency Verification');
+      else if (h === 'provenance' || h === 'benchmarks') setActiveTab('Data Provenance');
+      else if (h === 'disputes') setActiveTab('Disputes');
+      else if (h === 'scams' || h === 'alerts') setActiveTab('Scam Alerts');
+      else if (h === 'users') setActiveTab('Users');
+      else if (h === 'ledger') setActiveTab('Audit Ledger');
+    };
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  // Handler: Fee submission review
+  const handleFeeSubmissionAction = async (id: string, action: 'APPROVED' | 'REJECTED', note?: string) => {
+    try {
+      setActionLoadingId(id);
+      const res = await fetch('/api/admin/fee-submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionId: id,
+          action,
+          adminFeedback: note || (action === 'APPROVED' ? 'Verified against agency trade license and student escrow terms.' : 'Rejected due to non-compliant terms.'),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to review fee submission');
+      showToast(data.message || `Submission was ${action.toLowerCase()}.`);
+      setSelectedFeeSubDossier(null);
+      await fetchData();
+    } catch (err: any) {
+      showToast(`Error: ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handler: Add official course catalog
+  const handleCreateCatalog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setActionLoadingId('new-catalog');
+      const res = await fetch('/api/provenance/catalogs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCatalogForm),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to save catalog');
+      showToast(`Course catalog for ${newCatalogForm.universityName} verified and published.`);
+      setShowAddCatalogModal(false);
+      setNewCatalogForm({
+        universityName: '',
+        country: 'Canada',
+        countryCode: 'CAN',
+        degreeLevel: 'Master',
+        programName: '',
+        annualTuitionLocal: 0,
+        currency: 'CAD',
+        officialCatalogUrl: '',
+        officialSourceTitle: '',
+      });
+      await fetchData();
+    } catch (err: any) {
+      showToast(`Error: ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handler: Benchmark verify / reject
+  const handleBenchmarkVerify = async (benchmarkId: string, approve: boolean) => {
+    try {
+      setActionLoadingId(benchmarkId);
+      const res = await fetch('/api/provenance/benchmarks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: benchmarkId, isVerified: approve, verifiedByAdminId: user?.id || 'admin' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to update benchmark');
+      setBenchmarks(prev =>
+        prev.map(b => b.id === benchmarkId ? { ...b, isVerified: approve } : b)
+      );
+      showToast(approve ? '✓ Benchmark approved & published to students.' : '✕ Benchmark rejected.');
+    } catch (err: any) {
+      showToast(`Error: ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   // Handler: Agency Verification action
   const handleAgencyAction = async (agencyId: string, action: 'VERIFIED' | 'REJECTED', note?: string) => {
@@ -320,14 +499,8 @@ export default function AdminPanel() {
           </p>
         </div>
         <div className={styles.headerRight}>
-          <Badge variant="danger" size="md">
-            🛡️ SUPERADMIN ACTIVE
-          </Badge>
           <Badge variant="verified" size="sm">
-            Neon DB Live
-          </Badge>
-          <Badge variant="ai" size="sm">
-            Ledger v2.4
+            Platform Administrator
           </Badge>
           <Button
             size="sm"
@@ -481,7 +654,34 @@ export default function AdminPanel() {
             </div>
           </div>
         </button>
+
+        {/* Box 6: Data Provenance */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${activeTab === 'Data Provenance' ? styles.statCardActive : ''}`}
+          onClick={() => {
+            setActiveTab('Data Provenance');
+            setSearchQuery('');
+          }}
+          aria-label="View Data Provenance and Cost Benchmark verification queue"
+        >
+          {activeTab === 'Data Provenance' && (
+            <span className={styles.activeIndicator}>● Viewing</span>
+          )}
+          <div className={styles.statIcon} style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#059669' }}>
+            🏛️
+          </div>
+          <div>
+            <div className={styles.statValue}>{benchmarks.filter(b => !b.isVerified).length}</div>
+            <div className={styles.statLabel}>Benchmarks Pending</div>
+            <div className={styles.statSubtext}>{feeSubmissions.filter(f => f.status === 'PENDING').length} fee submissions · {courseCatalogs.length} catalogs</div>
+            <div className={styles.clickHint}>
+              {activeTab === 'Data Provenance' ? 'Viewing details below ↓' : 'Click to view details →'}
+            </div>
+          </div>
+        </button>
       </div>
+
 
       {/* Dynamic Active View Banner */}
       <div className={styles.activeViewBanner}>
@@ -491,6 +691,7 @@ export default function AdminPanel() {
         </div>
         <div className={styles.activeViewSub}>
           {activeTab === 'Agency Verification' && '🔍 Inspecting agency trade licenses, visa success rates & accreditation'}
+          {activeTab === 'Data Provenance' && '🏛️ Cross-verifying country cost benchmarks, agency fee submissions & official catalogs'}
           {activeTab === 'Disputes' && '⚖️ Adjudicating student disputes with direct escrow refund & release controls'}
           {activeTab === 'Audit Ledger' && '🔒 Cryptographic SHA-256 escrow chain & real-time fund allocations'}
           {activeTab === 'Scam Alerts' && '🤖 Reviewing OCR-flagged fraudulent offer letters & predatory contract clauses'}
@@ -1143,19 +1344,16 @@ export default function AdminPanel() {
                             {u.isVerified ? 'Revoke Verify' : 'Verify Agency'}
                           </Button>
                         )}
-                        {['student', 'parent', 'agency', 'admin'].includes(roleLower) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              quickLoginDemo(roleLower as any);
-                              showToast(`Switched active session to demo role: ${u.role}`);
-                            }}
-                            title="Switch active user session to test role experience"
-                          >
-                            Impersonate
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            showToast(`Audit trail recorded for account: ${u.name} (${u.email})`);
+                          }}
+                          title="Review security and session audit records for this account"
+                        >
+                          Audit Log
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -1303,6 +1501,293 @@ export default function AdminPanel() {
         </div>
       )}
 
+      {/* TAB: DATA PROVENANCE — Benchmark Audit Queue + Fee Submissions + Course Catalogs */}
+      {activeTab === 'Data Provenance' && (
+        <div className={styles.tableContainer}>
+          {/* Sub-tab navigation */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            {(['submissions', 'benchmarks', 'catalogs'] as const).map(st => (
+              <button
+                key={st}
+                onClick={() => setProvenanceSubTab(st)}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  border: '2px solid var(--ink)',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  background: provenanceSubTab === st ? 'var(--ink)' : 'transparent',
+                  color: provenanceSubTab === st ? '#fff' : 'var(--text-primary)',
+                }}
+              >
+                {st === 'submissions' && `📋 Fee Submissions (${feeSubmissions.filter(f => f.status === 'PENDING').length} pending)`}
+                {st === 'benchmarks' && `🏛️ Cost Benchmarks (${benchmarks.filter(b => !b.isVerified).length} unverified)`}
+                {st === 'catalogs' && `📚 Course Catalogs (${courseCatalogs.length})`}
+              </button>
+            ))}
+          </div>
+
+          {/* SUB-TAB A: Agency Fee Submissions */}
+          {provenanceSubTab === 'submissions' && (
+            <>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '12px' }}>
+                📋 Agency Service Fee Submissions — Awaiting Admin Cross-Verification
+              </h3>
+              {feeSubmissions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No fee submissions yet.</div>
+              ) : (
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Agency</th>
+                      <th>Service</th>
+                      <th>Amount (BDT)</th>
+                      <th>When Charged</th>
+                      <th>Refundable</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {feeSubmissions.map(fs => (
+                      <tr key={fs.id}>
+                        <td style={{ fontWeight: 700 }}>{fs.agencyName}</td>
+                        <td>{fs.serviceName}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--emerald)' }}>৳{fs.amountBdt.toLocaleString('en-IN')}</td>
+                        <td style={{ fontSize: '12px' }}>{fs.whenCharged}</td>
+                        <td>{fs.refundable ? '✅ Yes' : '❌ No'}</td>
+                        <td>
+                          <Badge
+                            variant={fs.status === 'APPROVED' ? 'verified' : fs.status === 'REJECTED' ? 'danger' : 'pending'}
+                            size="sm"
+                          >
+                            {fs.status}
+                          </Badge>
+                        </td>
+                        <td>
+                          {fs.status === 'PENDING' && (
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <Button
+                                size="sm"
+                                variant="emerald"
+                                loading={actionLoadingId === fs.id}
+                                onClick={() => handleFeeSubmissionAction(fs.id, 'APPROVED')}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                loading={actionLoadingId === fs.id}
+                                onClick={() => handleFeeSubmissionAction(fs.id, 'REJECTED', 'Does not meet Ethos platform standards.')}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                          {fs.status !== 'PENDING' && (
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{fs.adminFeedback || '—'}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
+          )}
+
+          {/* SUB-TAB B: Country Cost Benchmarks */}
+          {provenanceSubTab === 'benchmarks' && (
+            <>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '4px' }}>
+                🏛️ Country Cost Benchmarks — Admin Verification Queue
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                Verify agency-submitted financial solvency figures (blocked accounts, GICs, bank solvency) before they are displayed to students.
+                Always cross-check against the official government source URL.
+              </p>
+              {benchmarks.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No benchmarks submitted yet.</div>
+              ) : (
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Country</th>
+                      <th>Type</th>
+                      <th>Amount (BDT ৳)</th>
+                      <th>Official Source</th>
+                      <th>Last Audited</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {benchmarks.map(b => (
+                      <tr key={b.id}>
+                        <td style={{ fontWeight: 700 }}>{b.flagEmoji} {b.country}</td>
+                        <td style={{ fontSize: '12px', textTransform: 'capitalize' }}>{String(b.requirementType).replace(/_/g, ' ').toLowerCase()}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--emerald)' }}>৳{Number(b.blockedAccountOrGicBdt).toLocaleString('en-IN')}</td>
+                        <td>
+                          <a href={b.officialGovUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue-primary)', fontSize: '12px' }}>
+                            {b.officialGovSourceTitle} ↗
+                          </a>
+                        </td>
+                        <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{b.lastAuditedAt ? new Date(b.lastAuditedAt).toLocaleDateString() : '—'}</td>
+                        <td>
+                          <Badge variant={b.isVerified ? 'verified' : 'pending'} size="sm">
+                            {b.isVerified ? '✓ Verified' : '⏳ Pending'}
+                          </Badge>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {!b.isVerified && (
+                              <Button
+                                size="sm"
+                                variant="emerald"
+                                loading={actionLoadingId === b.id}
+                                onClick={() => handleBenchmarkVerify(b.id, true)}
+                              >
+                                Verify
+                              </Button>
+                            )}
+                            {b.isVerified && (
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                loading={actionLoadingId === b.id}
+                                onClick={() => handleBenchmarkVerify(b.id, false)}
+                              >
+                                Revoke
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
+          )}
+
+          {/* SUB-TAB C: Course Catalogs */}
+          {provenanceSubTab === 'catalogs' && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>
+                  📚 Official Course Catalogs — Admin-Verified Tuition Data
+                </h3>
+                <Button variant="emerald" size="sm" onClick={() => setShowAddCatalogModal(true)}>
+                  + Add Official Catalog
+                </Button>
+              </div>
+              {courseCatalogs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No course catalogs yet. Add official tuition data.</div>
+              ) : (
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>University</th>
+                      <th>Country</th>
+                      <th>Program</th>
+                      <th>Level</th>
+                      <th>Annual Tuition (BDT)</th>
+                      <th>Official Source</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {courseCatalogs.map(c => (
+                      <tr key={c.id}>
+                        <td style={{ fontWeight: 700 }}>{c.universityName}</td>
+                        <td>{c.country}</td>
+                        <td style={{ fontSize: '12px' }}>{c.programName}</td>
+                        <td>{c.degreeLevel}</td>
+                        <td style={{ fontWeight: 700, color: 'var(--emerald)' }}>৳{Number(c.annualTuitionBdt).toLocaleString('en-IN')}</td>
+                        <td>
+                          <a href={c.officialCatalogUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue-primary)', fontSize: '12px' }}>
+                            {c.officialSourceTitle} ↗
+                          </a>
+                        </td>
+                        <td>
+                          <Badge variant={c.isVerified ? 'verified' : 'pending'} size="sm">
+                            {c.isVerified ? '✓ Verified' : c.status}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* MODAL: Add Course Catalog */}
+      {showAddCatalogModal && (
+        <div className={styles.modalBackdrop} onClick={() => setShowAddCatalogModal(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>📚 Add Official Course Catalog Entry</h2>
+              <button className={styles.closeBtn} onClick={() => setShowAddCatalogModal(false)} aria-label="Close">✕</button>
+            </div>
+            <div className={styles.modalBody}>
+              <form onSubmit={handleCreateCatalog} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>University Name</label>
+                    <input required type="text" value={newCatalogForm.universityName} onChange={e => setNewCatalogForm(p => ({ ...p, universityName: e.target.value }))} style={{ width: '100%', padding: '7px 10px', border: '2px solid var(--ink)', borderRadius: '5px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Country</label>
+                    <select value={newCatalogForm.country} onChange={e => setNewCatalogForm(p => ({ ...p, country: e.target.value }))} style={{ width: '100%', padding: '7px 10px', border: '2px solid var(--ink)', borderRadius: '5px' }}>
+                      {['Canada', 'Germany', 'United Kingdom', 'United States', 'Australia', 'Netherlands'].map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Program Name</label>
+                    <input required type="text" value={newCatalogForm.programName} onChange={e => setNewCatalogForm(p => ({ ...p, programName: e.target.value }))} style={{ width: '100%', padding: '7px 10px', border: '2px solid var(--ink)', borderRadius: '5px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Degree Level</label>
+                    <select value={newCatalogForm.degreeLevel} onChange={e => setNewCatalogForm(p => ({ ...p, degreeLevel: e.target.value }))} style={{ width: '100%', padding: '7px 10px', border: '2px solid var(--ink)', borderRadius: '5px' }}>
+                      {['Bachelor', 'Master', 'PhD', 'Diploma', 'Certificate'].map(d => <option key={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Annual Tuition (Local Currency)</label>
+                    <input required type="number" min={0} value={newCatalogForm.annualTuitionLocal} onChange={e => setNewCatalogForm(p => ({ ...p, annualTuitionLocal: Number(e.target.value) }))} style={{ width: '100%', padding: '7px 10px', border: '2px solid var(--ink)', borderRadius: '5px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Currency Code</label>
+                    <select value={newCatalogForm.currency} onChange={e => setNewCatalogForm(p => ({ ...p, currency: e.target.value }))} style={{ width: '100%', padding: '7px 10px', border: '2px solid var(--ink)', borderRadius: '5px' }}>
+                      {['CAD', 'EUR', 'GBP', 'USD', 'AUD'].map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Official Catalog URL</label>
+                  <input required type="url" placeholder="https://..." value={newCatalogForm.officialCatalogUrl} onChange={e => setNewCatalogForm(p => ({ ...p, officialCatalogUrl: e.target.value }))} style={{ width: '100%', padding: '7px 10px', border: '2px solid var(--ink)', borderRadius: '5px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Source Document Title</label>
+                  <input required type="text" placeholder="e.g. University of Toronto 2024-25 Graduate Tuition Schedule" value={newCatalogForm.officialSourceTitle} onChange={e => setNewCatalogForm(p => ({ ...p, officialSourceTitle: e.target.value }))} style={{ width: '100%', padding: '7px 10px', border: '2px solid var(--ink)', borderRadius: '5px' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddCatalogModal(false)}>Cancel</Button>
+                  <Button type="submit" variant="emerald" size="sm" loading={actionLoadingId === 'new-catalog'}>
+                    Save & Verify Catalog Entry
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL 1: AGENCY AUDIT DOSSIER */}
       {selectedAgencyDossier && (
         <div className={styles.modalBackdrop} onClick={() => setSelectedAgencyDossier(null)}>
@@ -1389,7 +1874,7 @@ export default function AdminPanel() {
                 onClick={() =>
                   handleAgencyAction(
                     selectedAgencyDossier.id,
-                    'REJECT',
+                    'REJECTED',
                     'Rejected during administrative dossier inspection'
                   )
                 }

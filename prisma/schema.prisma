@@ -136,6 +136,7 @@ model Agency {
   complaints          Complaint[]
   verificationReports VerificationReport[]
   subscriptions       Subscription[]
+  feeSubmissions      AgencyFeeSubmission[]
 
   @@index([licenseStatus])
   @@index([riskScore])
@@ -699,5 +700,102 @@ model CommunityReport {
 
   @@index([postId])
   @@index([reporterId])
+}
+
+// -----------------------------------------------------------------------------
+// 12. Verified Data Provenance & Cost Benchmarks (Module 5.17)
+// -----------------------------------------------------------------------------
+
+enum ProvenanceStatus {
+  VERIFIED
+  PENDING
+  REJECTED
+  FLAGGED
+}
+
+model CountryCostBenchmark {
+  id                          String           @id @default(uuid())
+  country                     String           @unique // e.g. "Germany", "Canada", "UK"
+  countryCode                 String           // e.g. "DE", "CA", "GB"
+  flagEmoji                   String           // e.g. "🇩🇪"
+  currency                    String           // e.g. "EUR", "CAD", "GBP"
+  exchangeRateBdt             Float            // e.g. 138.50 for EUR
+  
+  livingCostMonthlyPoishaMin  BigInt           // Min monthly living cost in poisha
+  livingCostMonthlyPoishaMax  BigInt           // Max monthly living cost in poisha
+  blockedAccountOrGicPoisha   BigInt           // Official statutory financial guarantee (e.g. €11,904 in poisha)
+  requirementType             String           // "BLOCKED_ACCOUNT", "GIC", "MAINTENANCE_FUNDS", "BANK_SOLVENCY"
+  visaFeePoisha               BigInt           // Statutory embassy/visa fee in poisha
+  healthInsuranceYearlyPoisha BigInt           // Statutory health insurance in poisha
+  
+  officialGovUrl              String           // e.g. https://www.auswaertiges-amt.de/en/visa-service/blocked-account
+  officialGovSourceTitle      String           // e.g. "German Federal Foreign Office (Auswärtiges Amt)"
+  
+  isVerified                  Boolean          @default(true)
+  verifiedByAdminId           String?
+  lastAuditedAt               DateTime         @default(now())
+  createdAt                   DateTime         @default(now())
+  updatedAt                   DateTime         @updatedAt
+
+  courseCatalogs              UniversityCourseCatalog[]
+
+  @@index([country])
+  @@index([countryCode])
+}
+
+model UniversityCourseCatalog {
+  id                    String                @id @default(uuid())
+  benchmarkId           String?
+  benchmark             CountryCostBenchmark? @relation(fields: [benchmarkId], references: [id], onDelete: SetNull)
+  
+  universityName        String                // e.g. "Technical University of Munich"
+  country               String                // e.g. "Germany"
+  degreeLevel           String                // "Bachelor", "Master", "PhD"
+  programName           String                // e.g. "M.Sc. in Informatics / Computer Science"
+  
+  annualTuitionLocal    Float                 // In local currency (e.g. 0 EUR, 45,000 CAD)
+  currency              String                // e.g. "EUR", "CAD", "USD"
+  annualTuitionPoisha   BigInt                // Normalized to BDT Poisha
+  
+  officialCatalogUrl    String                // Direct link to university official tuition schedule
+  officialSourceTitle   String                // e.g. "TUM Official Tuition & Fees Schedule 2026/2027"
+  intakeYear            String                @default("2026/2027")
+  
+  status                ProvenanceStatus      @default(VERIFIED)
+  isVerified            Boolean               @default(true)
+  verifiedByAdminId     String?
+  lastAuditedAt         DateTime              @default(now())
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([universityName])
+  @@index([country])
+  @@index([programName])
+}
+
+model AgencyFeeSubmission {
+  id                    String                @id @default(uuid())
+  agencyId              String
+  agency                Agency                @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  
+  country               String                // Country package is for
+  serviceName           String                // e.g. "Full Visa & Admission Assistance Package"
+  amountPoisha          BigInt                // Proposed agency fee in poisha
+  whenCharged           String                // e.g. "30% on Offer, 40% on Filing, 30% on Visa"
+  refundable            Boolean               @default(true)
+  refundPolicy          String                @db.Text // Exact refund conditions
+  proofDocumentUrls     String[]              // Trade license, university partnership agreement, or circular
+  
+  status                ProvenanceStatus      @default(PENDING)
+  adminFeedback         String?               @db.Text
+  reviewedByAdminId     String?
+  reviewedAt            DateTime?
+  
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([agencyId])
+  @@index([country])
+  @@index([status])
 }
 

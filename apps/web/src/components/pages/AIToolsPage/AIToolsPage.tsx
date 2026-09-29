@@ -274,54 +274,54 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
               📋 Agreement Analyzer
             </button>
           </div>
-          <Badge variant="ai" size="md">✦ Powered by Ethos AI</Badge>
+          <Badge variant="outline" size="sm">Verification Suite</Badge>
         </div>
       </div>
 
-      {/* ─── Executive KPI Stat Cards ─── */}
+      {/* ─── Document Analysis Parameters ─── */}
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
           <div className={styles.statIconBox}>🎯</div>
           <div className={styles.statInfo}>
-            <div className={styles.statVal}>99.4%</div>
-            <div className={styles.statLabel}>Detection Accuracy</div>
-            <Badge variant="verified" size="sm" dot>Trained on 10k+ BD Docs</Badge>
+            <div className={styles.statVal}>Heuristic Model</div>
+            <div className={styles.statLabel}>Pattern & Clause Analysis</div>
+            <Badge variant="verified" size="sm">Rule + LLM Hybrid</Badge>
           </div>
         </div>
 
         <div className={styles.statCard}>
           <div className={styles.statIconBox}>🏛️</div>
           <div className={styles.statInfo}>
-            <div className={styles.statVal}>Official Registry</div>
-            <div className={styles.statLabel}>Domain Match</div>
-            <Badge variant="success" size="sm">BFIU & UGC Linked</Badge>
+            <div className={styles.statVal}>Domain Registry</div>
+            <div className={styles.statLabel}>University Email / URL Match</div>
+            <Badge variant="success" size="sm">Official Catalog Check</Badge>
           </div>
         </div>
 
         <div className={styles.statCard}>
           <div className={styles.statIconBox}>🔍</div>
           <div className={styles.statInfo}>
-            <div className={styles.statVal}>Deep OCR Scan</div>
-            <div className={styles.statLabel}>Pixel Tamper AI</div>
-            <Badge variant="ai" size="sm">Altered Font & Seal Detection</Badge>
+            <div className={styles.statVal}>OCR Text Extraction</div>
+            <div className={styles.statLabel}>Layout & Format Consistency</div>
+            <Badge variant="info" size="sm">Tesseract + Visual Check</Badge>
           </div>
         </div>
 
         <div className={styles.statCard}>
-          <div className={styles.statIconBox}>🚫</div>
+          <div className={styles.statIconBox}>🛡️</div>
           <div className={styles.statInfo}>
-            <div className={styles.statVal}>32+ Flagged</div>
-            <div className={styles.statLabel}>Blacklist Domains</div>
-            <Badge variant="danger" size="sm">Active Defense</Badge>
+            <div className={styles.statVal}>Clause Verification</div>
+            <div className={styles.statLabel}>Escrow & Refund Terms</div>
+            <Badge variant="verified" size="sm">Consumer Protection</Badge>
           </div>
         </div>
       </div>
 
-      {/* ─── 1-Click Demo Quick Test Bar ─── */}
+      {/* ─── Reference Sample Loader ─── */}
       <div className={styles.samplesBar}>
         <span className={styles.samplesLabel}>
-          <span>💡</span>
-          <span>Instant Demo Samples:</span>
+          <span>📄</span>
+          <span>Load Reference Sample:</span>
         </span>
         <button
           type="button"
@@ -331,7 +331,7 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
             testSampleOffer(true);
           }}
         >
-          📄 Test Genuine Offer (Univ. of Toronto)
+          Univ. of Toronto (Genuine)
         </button>
         <button
           type="button"
@@ -341,7 +341,7 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
             testSampleOffer(false);
           }}
         >
-          ⚠️ Test Forged Offer (Skyline / Bedfordshire)
+          Flagged Irregular Offer
         </button>
         <button
           type="button"
@@ -351,7 +351,7 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
             testSampleAgreement(true);
           }}
         >
-          📋 Test Escrow Agreement (BFIU Compliant)
+          Escrow-Protected Agreement
         </button>
         <button
           type="button"
@@ -361,7 +361,7 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
             testSampleAgreement(false);
           }}
         >
-          🚨 Test Predatory Agreement (100% Upfront)
+          Non-Compliant Agreement
         </button>
       </div>
 
@@ -471,7 +471,7 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
               <div className={styles.clauses} aria-live="polite">
                 <div className={styles.verdictRow}>
                   {docVerdictMeta && <Badge variant={docVerdictMeta.variant} size="md">{docVerdictMeta.label}</Badge>}
-                  <Badge variant="ai" size="sm">✦ AI Fraud Scanner</Badge>
+                  <Badge variant="outline" size="sm">Offer Analysis</Badge>
                 </div>
 
                 {docVerdictMeta && (
@@ -621,8 +621,8 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
               <div className={styles.clauses} aria-live="polite">
                 <div className={styles.verdictRow}>
                   {agreementVerdictMeta && <Badge variant={agreementVerdictMeta.variant} size="md">{agreementVerdictMeta.label}</Badge>}
-                  <Badge variant="ai" size="sm">
-                    {agreementResult.model_used === 'gemini' ? '✦ AI Agreement Analyzer' : '✦ Rule Analysis Engine'}
+                  <Badge variant="outline" size="sm">
+                    {agreementResult.model_used === 'gemini' ? 'Gemini AI Model' : 'Standard Rule Engine'}
                   </Badge>
                   {agreementResult.truncated && <Badge variant="neutral" size="sm">Truncated Input</Badge>}
                 </div>

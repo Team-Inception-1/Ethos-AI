@@ -129,8 +129,15 @@ const CommunityIcon = () => (
   </svg>
 );
 
+const BenchmarkIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+  </svg>
+);
+
 const getNavItems = (role?: string): NavItem[] => {
-  switch (role) {
+  const normRole = (role || '').toLowerCase();
+  switch (normRole) {
     case 'agency':
       return [
         {
@@ -140,27 +147,40 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <DashboardIcon />,
         },
         {
-          href: '/agency/dashboard',
-          label: 'Applications',
-          labelBn: 'আবেদন',
+          href: '/agency/dashboard#applications',
+          label: 'Student Queue',
+          labelBn: 'আবেদন সারি',
           icon: <ApplicationsIcon />,
         },
         {
-          href: '/dashboard/documents',
-          label: 'Documents',
-          labelBn: 'ডকুমেন্ট',
-          icon: <DocumentsIcon />,
+          href: '/agency/dashboard#services',
+          label: 'Service Packages',
+          labelBn: 'প্যাকেজ ও ফি',
+          icon: <PaymentsIcon />,
         },
         {
-          href: '/dashboard/chat',
-          label: 'Chat',
-          labelBn: 'চ্যাট',
+          href: '/agency/dashboard#benchmarks',
+          label: 'Cost Benchmarks',
+          labelBn: 'কস্ট বেঞ্চমার্ক',
+          icon: <BenchmarkIcon />,
+          badge: 'Data',
+        },
+        {
+          href: '/agency/dashboard#license',
+          label: 'License & Compliance',
+          labelBn: 'লাইসেন্স ও প্রমাণ',
+          icon: <VerificationQueueIcon />,
+        },
+        {
+          href: '/agency/chat',
+          label: 'Applicant Inbox',
+          labelBn: 'আবেদনকারী চ্যাট',
           icon: <ChatIcon />,
-          badge: '3',
+          badge: '4',
         },
         {
-          href: '/profile',
-          label: 'Profile',
+          href: '/agency/profile',
+          label: 'Agency Profile',
           labelBn: 'প্রোফাইল',
           icon: <ProfileIcon />,
         },
@@ -169,27 +189,52 @@ const getNavItems = (role?: string): NavItem[] => {
     case 'admin':
       return [
         {
-          href: '/admin',
-          label: 'Verification Queue',
-          labelBn: 'যাচাইকরণ সারি',
+          href: '/admin#agencies',
+          label: 'Agency Audits',
+          labelBn: 'এজেন্সি অডিট',
           icon: <VerificationQueueIcon />,
         },
         {
-          href: '/admin',
-          label: 'Disputes',
-          labelBn: 'বিরোধ',
+          href: '/admin#provenance',
+          label: 'Data Provenance',
+          labelBn: 'ডাটা যাচাই',
+          icon: <BenchmarkIcon />,
+          badge: 'Data',
+        },
+        {
+          href: '/admin#disputes',
+          label: 'Escrow Disputes',
+          labelBn: 'এসক্রো বিরোধ',
           icon: <DisputesIcon />,
         },
         {
-          href: '/dashboard/chat',
-          label: 'Chat',
-          labelBn: 'চ্যাট',
+          href: '/admin#scams',
+          label: 'AI Fraud Flags',
+          labelBn: 'জালিয়াতি সতর্কতা',
+          icon: <FraudCheckIcon />,
+        },
+        {
+          href: '/admin#users',
+          label: 'User Directory',
+          labelBn: 'ব্যবহারকারী তালিকা',
+          icon: <CommunityIcon />,
+        },
+        {
+          href: '/admin#ledger',
+          label: 'Audit Ledger',
+          labelBn: 'অডিট লেজার',
+          icon: <AgreementIcon />,
+        },
+        {
+          href: '/admin/chat',
+          label: 'Dispute Transcripts',
+          labelBn: 'চ্যাট অডিট',
           icon: <ChatIcon />,
         },
         {
-          href: '/profile',
-          label: 'Profile',
-          labelBn: 'প্রোফাইল',
+          href: '/admin/profile',
+          label: 'Admin Profile',
+          labelBn: 'অ্যাডমিন প্রোফাইল',
           icon: <ProfileIcon />,
         },
       ];
@@ -256,8 +301,8 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <ChatIcon />,
         },
         {
-          href: '/profile',
-          label: 'Profile',
+          href: '/dashboard/profile',
+          label: 'Guardian Profile',
           labelBn: 'প্রোফাইল',
           icon: <ProfileIcon />,
         },
@@ -340,8 +385,8 @@ const getNavItems = (role?: string): NavItem[] => {
           badge: '3',
         },
         {
-          href: '/profile',
-          label: 'Profile',
+          href: '/dashboard/profile',
+          label: 'Student Profile',
           labelBn: 'প্রোফাইল',
           icon: <ProfileIcon />,
         },
@@ -355,17 +400,36 @@ interface SidebarProps {
 
 export default function Sidebar({ lang = 'en' }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const pathname = usePathname();
   const { user } = useAuth();
 
-  const navItems = getNavItems(user?.role);
-  let userName = user?.name || 'Student User';
-  if (userName.includes('@')) {
+  React.useEffect(() => {
+    setImgError(false);
+  }, [user?.avatarUrl]);
+
+  // If URL path is /agency/* or /admin/*, enforce appropriate role navigation immediately
+  const effectiveRole =
+    pathname?.startsWith('/agency') ? 'agency' :
+    pathname?.startsWith('/admin') ? 'admin' :
+    (user?.role?.toLowerCase() || 'student');
+  const navItems = getNavItems(effectiveRole);
+
+  let userName = user?.name;
+  if (!userName) {
+    userName = effectiveRole === 'agency' 
+      ? 'Global Edu BD' 
+      : effectiveRole === 'admin' 
+      ? 'Platform Administrator' 
+      : effectiveRole === 'parent' 
+      ? 'Parent User' 
+      : 'Student User';
+  } else if (userName.includes('@')) {
     const local = userName.split('@')[0].replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim();
     userName = local ? local.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : userName;
   }
-  const userRoleDisplay = user?.role?.toUpperCase() || 'STUDENT';
-  const initial = userName ? userName.charAt(0).toUpperCase() : 'S';
+  const userRoleDisplay = effectiveRole.toUpperCase();
+  const initial = userName ? userName.charAt(0).toUpperCase() : 'U';
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
@@ -430,10 +494,11 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
       {!collapsed && (
         <div className={styles.profile} suppressHydrationWarning>
           <div className={styles.avatar} aria-hidden="true" suppressHydrationWarning>
-            {user?.avatarUrl ? (
+            {user?.avatarUrl && !imgError ? (
               <img
                 src={user.avatarUrl}
                 alt={userName}
+                onError={() => setImgError(true)}
                 className={styles.avatarImg}
               />
             ) : (

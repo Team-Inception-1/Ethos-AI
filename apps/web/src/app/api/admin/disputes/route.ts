@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { EscrowTransitionError } from '@/lib/escrowStateMachine';
+import { requireRole } from '@/lib/auth/authorization';
 
 export async function GET() {
   try {
+    const authorization = await requireRole(['ADMIN']);
+    if (authorization.response) return authorization.response;
     const disputes = db.getAdminDisputes();
     return NextResponse.json({
       success: true,
@@ -20,6 +23,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const authorization = await requireRole(['ADMIN']);
+    if (authorization.response) return authorization.response;
     const body = await request.json();
     const { milestoneId, action, reason } = body;
 
@@ -41,7 +46,7 @@ export async function POST(request: Request) {
       milestoneId,
       action,
       reason: reason || `Admin resolved dispute in favor of ${action}`,
-      actorId: 'usr-admin-01',
+      actorId: authorization.user.id,
     });
 
     return NextResponse.json({

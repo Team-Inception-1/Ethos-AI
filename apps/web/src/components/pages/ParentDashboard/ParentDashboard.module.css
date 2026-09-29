@@ -1,0 +1,170 @@
+/* ============================================================
+   ParentDashboard — same design system as StudentDashboard
+   ============================================================ */
+
+.page { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.greeting {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.greetingText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.greetingSubtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+/* ── Stats ── */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  position: relative;
+  background: var(--glass-bg);
+  border: var(--border-width) solid var(--ink);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.statCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.statHeader { display: flex; justify-content: space-between; align-items: center; }
+.statIconWrap {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.stat-blue    .statIconWrap { background: rgba(59,130,246,.12); color: var(--blue-primary); }
+.stat-purple  .statIconWrap { background: rgba(139,92,246,.12);  color: var(--purple-accent); }
+.stat-amber   .statIconWrap { background: rgba(245,158,11,.12);  color: var(--amber); }
+.stat-emerald .statIconWrap { background: rgba(16,185,129,.12);  color: var(--emerald); }
+
+.statValue {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px; font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+}
+
+.statLabel { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── Grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+.appCard, .activityCard {
+  background: var(--glass-bg);
+  border: var(--border-width) solid var(--ink);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+}
+
+.cardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); flex-wrap: wrap; gap: var(--space-2); }
+.cardTitle { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; color: var(--text-primary); }
+
+/* App info */
+.appInfo { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-5); }
+.appAgency { display: flex; align-items: center; gap: var(--space-3); }
+.agencyLogo {
+  width: 40px; height: 40px; border-radius: var(--radius-md);
+  background: var(--emerald); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 18px;
+  border: 2px solid var(--ink);
+}
+.agencyName { font-weight: 700; font-size: 15px; color: var(--text-primary); }
+.appTarget { display: flex; flex-direction: column; gap: 2px; }
+.appLabel { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); font-weight: 600; }
+
+/* Stage */
+.stageSection { margin-bottom: var(--space-5); }
+.stageBar { display: flex; align-items: center; margin-bottom: var(--space-2); }
+.stageWrap { display: flex; align-items: center; flex: 1; }
+.stageWrap:last-child { flex: none; }
+.stageDot {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: var(--glass-bg); border: 2px solid var(--border-color);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--text-secondary);
+  position: relative;
+}
+.stageDone { background: var(--emerald); border-color: var(--emerald); color: #fff; }
+.stageCurrent { background: var(--amber); border-color: var(--amber); color: #fff; }
+.stagePulse {
+  position: absolute; width: 100%; height: 100%; border-radius: 50%;
+  background: var(--amber); opacity: 0.3;
+  animation: pulse 1.5s ease-out infinite;
+}
+@keyframes pulse { 0% { transform: scale(1); opacity: 0.3; } 100% { transform: scale(2); opacity: 0; } }
+.stageLine { flex: 1; height: 2px; background: var(--border-color); margin: 0 2px; }
+.stageLineDone { background: var(--emerald); }
+.stageLabels { display: flex; align-items: center; gap: 2px; }
+.stageLabel { flex: 1; font-size: 10px; color: var(--text-secondary); text-align: center; font-weight: 500; }
+.stageLabel:last-child { flex: none; }
+.stageLabelActive { color: var(--amber); font-weight: 700; }
+
+.appActions { display: flex; gap: var(--space-3); }
+
+/* Activity */
+.activityList { display: flex; flex-direction: column; gap: var(--space-4); list-style: none; padding: 0; margin: var(--space-4) 0 0; }
+.activityItem { display: flex; gap: var(--space-3); align-items: flex-start; }
+.activityDot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px;
+  background: currentColor;
+}
+.activityBody { display: flex; flex-direction: column; gap: 2px; }
+.activityText { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+.activityTime { font-size: 12px; color: var(--text-secondary); }
+
+/* Quick links */
+.quickLinks { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+.quickCard {
+  background: var(--glass-bg);
+  border: var(--border-width) solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  cursor: pointer;
+}
+.quickCard:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-md); }
+.quickIcon { font-size: 22px; }
+.quickLabel { font-size: 12px; font-weight: 600; color: var(--text-primary); text-align: center; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .statsRow { grid-template-columns: repeat(2, 1fr); }
+  .grid { grid-template-columns: 1fr; }
+  .quickLinks { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .statsRow { grid-template-columns: 1fr 1fr; }
+  .greetingText { font-size: 22px; }
+}

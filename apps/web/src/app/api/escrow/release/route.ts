@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { EscrowTransitionError } from '@/lib/escrowStateMachine';
+import { forbiddenResponse, requireRole } from '@/lib/auth/authorization';
 
 /**
  * POST /api/escrow/release
@@ -8,11 +9,11 @@ import { EscrowTransitionError } from '@/lib/escrowStateMachine';
  */
 export async function POST(request: Request) {
   try {
+    const authorization = await requireRole(['STUDENT', 'ADMIN']);
+    if (authorization.response) return authorization.response;
     const body = await request.json();
     const {
       milestoneId,
-      actorId = 'usr-student-01',
-      actorRole = 'STUDENT',
       note,
     } = body;
 
@@ -31,11 +32,16 @@ export async function POST(request: Request) {
       );
     }
 
+    const application = db.getApplicationById(milestone.applicationId);
+    if (!application || (authorization.user.role !== 'ADMIN' && application.studentId !== authorization.user.id)) {
+      return forbiddenResponse();
+    }
+
     const result = db.updateMilestoneStatus({
       milestoneId,
       targetStatus: 'RELEASED',
-      actorId,
-      actorRole,
+      actorId: authorization.user.id,
+      actorRole: authorization.user.role,
       note: note || `Authorized release of milestone: ${milestone.releaseCondition}`,
       provider: 'SSLCOMMERZ',
     });

@@ -255,9 +255,9 @@
 }
 
 :global([data-theme='light']) .searchModeToggle {
-  background: #FFFFFF;
-  border: 2px solid #15141B;
-  box-shadow: 2px 2px 0 0 #15141B;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .searchModeBtn {
@@ -276,7 +276,7 @@
 }
 
 :global([data-theme='light']) .searchModeBtn {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .searchModeBtn:hover {
@@ -285,8 +285,8 @@
 }
 
 :global([data-theme='light']) .searchModeBtn:hover {
-  color: #0F172A;
-  background: #F1F5F9;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
 }
 
 .searchModeActive {
@@ -298,9 +298,10 @@
 }
 
 :global([data-theme='light']) .searchModeActive {
-  background: #4f46e5 !important;
-  border-color: #15141B !important;
-  box-shadow: 2px 2px 0 0 #15141B;
+  background: var(--blue-primary) !important;
+  border-color: var(--ink) !important;
+  box-shadow: 2px 2px 0 0 var(--ink);
+  color: #FFFFFF !important;
 }
 
 /* ── Search Bar & Filters ── */
@@ -336,10 +337,10 @@
 }
 
 :global([data-theme='light']) .entitySelect {
-  background: #F1F5F9;
-  border: 2px solid #15141B;
-  color: #0F172A;
-  box-shadow: 2px 2px 0 0 #15141B;
+  background: var(--bg-elevated);
+  border: 2px solid var(--ink);
+  color: var(--text-primary);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .entitySelect:focus,
@@ -350,8 +351,8 @@
 
 :global([data-theme='light']) .entitySelect:focus,
 :global([data-theme='light']) .entitySelect:hover {
-  border-color: #4f46e5;
-  background: #E2E8F0;
+  border-color: var(--blue-primary);
+  background: var(--bg-surface);
 }
 
 .entityHint {
@@ -364,7 +365,7 @@
 }
 
 :global([data-theme='light']) .entityHint {
-  color: #64748B;
+  color: var(--text-muted);
 }
 
 .searchInput {
@@ -380,10 +381,10 @@
 }
 
 :global([data-theme='light']) .searchInput {
-  background: #FFFFFF;
-  border: 2px solid #15141B;
-  color: #0F172A;
-  box-shadow: 2px 2px 0 0 #15141B;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  color: var(--text-primary);
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .searchInput:focus {
@@ -393,8 +394,8 @@
 }
 
 :global([data-theme='light']) .searchInput:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  border-color: var(--blue-primary);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .filterChipsRow {
@@ -415,7 +416,7 @@
 }
 
 :global([data-theme='light']) .filterLabel {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 .filterChip {
@@ -431,9 +432,9 @@
 }
 
 :global([data-theme='light']) .filterChip {
-  background: #FFFFFF;
-  border: 1.5px solid #CBD5E1;
-  color: #334155;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .filterChip:hover {
@@ -443,9 +444,10 @@
 }
 
 :global([data-theme='light']) .filterChip:hover {
-  background: #F1F5F9;
-  border-color: #94A3B8;
-  color: #0F172A;
+  background: var(--bg-surface);
+  border-color: var(--ink);
+  color: var(--text-primary);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .filterChip.chipActive {
@@ -456,10 +458,10 @@
 }
 
 :global([data-theme='light']) .filterChip.chipActive {
-  background: #4f46e5;
-  border-color: #15141B;
+  background: var(--blue-primary);
+  border-color: var(--ink);
   color: #FFFFFF;
-  box-shadow: 2px 2px 0 #15141B;
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .toggleCheckboxLabel {
@@ -474,7 +476,7 @@
 }
 
 :global([data-theme='light']) .toggleCheckboxLabel {
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 /* ── Professor Cards Grid ── */
@@ -499,11 +501,11 @@
 }
 
 :global([data-theme='light']) .profCard {
-  background: #FFFFFF !important;
-  border: 2px solid #15141B !important;
-  border-top: 4px solid #4f46e5 !important;
-  box-shadow: 4px 4px 0 0 #15141B, 0 4px 16px rgba(0, 0, 0, 0.05) !important;
-  color: #0F172A;
+  background: var(--bg-surface) !important;
+  border: 2px solid var(--ink) !important;
+  border-top: 4px solid var(--blue-primary) !important;
+  box-shadow: 4px 4px 0 0 var(--ink) !important;
+  color: var(--text-primary);
 }
 
 .profCard:hover {
@@ -514,7 +516,7 @@
 
 :global([data-theme='light']) .profCard:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 0 #15141B !important;
+  box-shadow: 6px 6px 0 0 var(--ink) !important;
 }
 
 .profHeader {
@@ -533,7 +535,7 @@
 }
 
 :global([data-theme='light']) .profName {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .profTitle {
@@ -542,7 +544,7 @@
 }
 
 :global([data-theme='light']) .profTitle {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 .uniName {
@@ -553,7 +555,7 @@
 }
 
 :global([data-theme='light']) .uniName {
-  color: #4F46E5;
+  color: var(--blue-primary);
 }
 
 .profMetaRow {
@@ -573,8 +575,9 @@
 }
 
 :global([data-theme='light']) .hIndexBadge {
-  color: #64748B;
-  background: #F1F5F9;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
 }
 
 .labInfo {
@@ -587,8 +590,8 @@
 }
 
 :global([data-theme='light']) .labInfo {
-  background: #F8FAFC;
-  border: 1.5px solid #E2E8F0;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
 }
 
 .labName {
@@ -600,7 +603,7 @@
 }
 
 :global([data-theme='light']) .labName {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .labLink {
@@ -611,7 +614,7 @@
 }
 
 :global([data-theme='light']) .labLink {
-  color: #4F46E5;
+  color: var(--blue-primary);
 }
 
 .fundingTags {
@@ -655,9 +658,9 @@
 }
 
 :global([data-theme='light']) .topicTag {
-  background: #EEF2FF;
-  border: 1px solid #C7D2FE;
-  color: #3730A3;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .recentPubsSection {
@@ -668,7 +671,7 @@
 }
 
 :global([data-theme='light']) .recentPubsSection {
-  border-top: 1px dashed #CBD5E1;
+  border-top: 1px dashed var(--border-subtle);
 }
 
 .pubTitleHeader {
@@ -681,7 +684,7 @@
 }
 
 :global([data-theme='light']) .pubTitleHeader {
-  color: #64748B;
+  color: var(--text-muted);
 }
 
 .pubItem {
@@ -693,7 +696,7 @@
 }
 
 :global([data-theme='light']) .pubItem {
-  color: #1E293B;
+  color: var(--text-primary);
 }
 
 .pubVenue {
@@ -702,7 +705,7 @@
 }
 
 :global([data-theme='light']) .pubVenue {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 .profActions {
@@ -738,11 +741,11 @@
 }
 
 :global([data-theme='light']) .studioForm {
-  background: #FFFFFF !important;
-  border: 2px solid #15141B !important;
-  border-top: 3px solid #4f46e5 !important;
-  box-shadow: 4px 4px 0 0 #15141B, 0 4px 20px rgba(0, 0, 0, 0.05) !important;
-  color: #0F172A;
+  background: var(--bg-surface) !important;
+  border: 2px solid var(--ink) !important;
+  border-top: 3px solid var(--blue-primary) !important;
+  box-shadow: 4px 4px 0 0 var(--ink) !important;
+  color: var(--text-primary);
 }
 
 .targetProfBanner {
@@ -755,9 +758,9 @@
 }
 
 :global([data-theme='light']) .targetProfBanner {
-  background: #EEF2FF;
-  border: 1.5px solid #C7D2FE;
-  border-left: 4px solid #4f46e5;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  border-left: 4px solid var(--blue-primary);
 }
 
 .targetProfName {
@@ -767,7 +770,7 @@
 }
 
 :global([data-theme='light']) .targetProfName {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .targetProfUni {
@@ -777,7 +780,7 @@
 }
 
 :global([data-theme='light']) .targetProfUni {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 .targetProfEmail {
@@ -788,7 +791,7 @@
 }
 
 :global([data-theme='light']) .targetProfEmail {
-  color: #4F46E5;
+  color: var(--blue-primary);
 }
 
 .noProfAlert {
@@ -817,8 +820,8 @@
 }
 
 :global([data-theme='light']) .cvDropzone {
-  background: #F8FAFC;
-  border: 2px dashed #94A3B8;
+  background: var(--bg-surface);
+  border: 2px dashed var(--ink);
 }
 
 .cvDropzone:hover,
@@ -830,8 +833,8 @@
 
 :global([data-theme='light']) .cvDropzone:hover,
 :global([data-theme='light']) .cvDropzoneActive {
-  border-color: #4f46e5;
-  background: #EEF2FF;
+  border-color: var(--blue-primary);
+  background: var(--bg-elevated);
 }
 
 .cvDropzoneTitle {
@@ -841,7 +844,7 @@
 }
 
 :global([data-theme='light']) .cvDropzoneTitle {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .cvDropzoneSub {
@@ -850,7 +853,7 @@
 }
 
 :global([data-theme='light']) .cvDropzoneSub {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 .cvUploadInput {
@@ -872,10 +875,10 @@
 }
 
 :global([data-theme='light']) .matchScoreCard {
-  background: #F0FDF4;
-  border: 2px solid #15141B;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
   border-left: 4px solid #059669;
-  box-shadow: 3px 3px 0 0 #15141B;
+  box-shadow: 3px 3px 0 0 var(--ink);
 }
 
 .matchHeaderRow {
@@ -896,7 +899,7 @@
 }
 
 :global([data-theme='light']) .matchTitle {
-  color: #065F46;
+  color: var(--text-primary);
 }
 
 .matchScoreBadge {
@@ -988,10 +991,10 @@
 }
 
 :global([data-theme='light']) .deconstructCard {
-  background: #EEF2FF;
-  border: 2px solid #15141B;
-  border-left: 4px solid #4f46e5;
-  box-shadow: 3px 3px 0 0 #15141B;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  border-left: 4px solid var(--blue-primary);
+  box-shadow: 3px 3px 0 0 var(--ink);
 }
 
 .deconstructHeader {
@@ -1010,7 +1013,7 @@
 }
 
 :global([data-theme='light']) .deconstructTitle {
-  color: #4F46E5;
+  color: var(--text-primary);
 }
 
 .hookSnippet {
@@ -1025,9 +1028,9 @@
 }
 
 :global([data-theme='light']) .hookSnippet {
-  background: #F8FAFC;
+  background: var(--bg-elevated);
   border-left: 3px solid #059669;
-  color: #1E293B;
+  color: var(--text-primary);
 }
 
 .applyHookBtn {
@@ -1062,7 +1065,7 @@
 }
 
 :global([data-theme='light']) .formLabel {
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .formInput,
@@ -1080,9 +1083,9 @@
 :global([data-theme='light']) .formInput,
 :global([data-theme='light']) .formSelect,
 :global([data-theme='light']) .formTextarea {
-  background: #F8FAFC;
-  border: 2px solid #CBD5E1;
-  color: #0F172A;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .formInput:focus,
@@ -1096,8 +1099,8 @@
 :global([data-theme='light']) .formInput:focus,
 :global([data-theme='light']) .formSelect:focus,
 :global([data-theme='light']) .formTextarea:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  border-color: var(--blue-primary);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .deconstructBtn {
@@ -1133,11 +1136,11 @@
 }
 
 :global([data-theme='light']) .emailOutputCard {
-  background: #FFFFFF !important;
-  border: 2px solid #15141B !important;
-  border-top: 3px solid #4f46e5 !important;
-  box-shadow: 4px 4px 0 0 #15141B, 0 4px 20px rgba(0, 0, 0, 0.05) !important;
-  color: #0F172A;
+  background: var(--bg-surface) !important;
+  border: 2px solid var(--ink) !important;
+  border-top: 3px solid var(--blue-primary) !important;
+  box-shadow: 4px 4px 0 0 var(--ink) !important;
+  color: var(--text-primary);
 }
 
 .emailTabsRow {
@@ -1148,7 +1151,7 @@
 }
 
 :global([data-theme='light']) .emailTabsRow {
-  border-bottom: 2px solid #CBD5E1;
+  border-bottom: 2px solid var(--ink);
 }
 
 .subTabBtn {
@@ -1164,9 +1167,9 @@
 }
 
 :global([data-theme='light']) .subTabBtn {
-  background: #F1F5F9;
-  border: 1.5px solid #CBD5E1;
-  color: #475569;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-secondary);
 }
 
 .subTabBtn:hover {
@@ -1175,8 +1178,9 @@
 }
 
 :global([data-theme='light']) .subTabBtn:hover {
-  background: #E2E8F0;
-  color: #0F172A;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .subTabBtn.subTabActive {
@@ -1187,10 +1191,10 @@
 }
 
 :global([data-theme='light']) .subTabBtn.subTabActive {
-  background: #4f46e5;
-  border-color: #15141B;
+  background: var(--blue-primary);
+  border-color: var(--ink);
   color: #FFFFFF;
-  box-shadow: 2px 2px 0 0 #15141B;
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 .subjectLineBox {
@@ -1206,9 +1210,9 @@
 }
 
 :global([data-theme='light']) .subjectLineBox {
-  background: #F8FAFC;
-  border: 1.5px solid #CBD5E1;
-  border-left: 4px solid #4f46e5;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  border-left: 4px solid var(--blue-primary);
 }
 
 .subjectLineLabel {
@@ -1220,7 +1224,7 @@
 }
 
 :global([data-theme='light']) .subjectLineLabel {
-  color: #4F46E5;
+  color: var(--blue-primary);
 }
 
 .subjectSelect {
@@ -1235,7 +1239,7 @@
 }
 
 :global([data-theme='light']) .subjectSelect {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .emailContentBox {
@@ -1254,9 +1258,9 @@
 }
 
 :global([data-theme='light']) .emailContentBox {
-  background: #FFFFFF;
-  border: 2px solid #CBD5E1;
-  color: #0F172A;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  color: var(--text-primary);
   box-shadow: none;
 }
 
@@ -1342,10 +1346,10 @@
 }
 
 :global([data-theme='light']) .kanbanColumn {
-  background: #FFFFFF;
-  border: 2px solid #15141B;
-  box-shadow: 4px 4px 0 0 #15141B;
-  color: #0F172A;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 0 var(--ink);
+  color: var(--text-primary);
 }
 
 .emptyKanbanState {
@@ -1360,9 +1364,9 @@
 }
 
 :global([data-theme='light']) .emptyKanbanState {
-  border-color: #CBD5E1;
-  background: #F8FAFC;
-  color: #64748B;
+  border-color: var(--ink);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
 }
 
 .columnHeader {
@@ -1379,8 +1383,8 @@
 }
 
 :global([data-theme='light']) .columnHeader {
-  border-bottom-color: #E2E8F0;
-  color: #4F46E5;
+  border-bottom-color: var(--ink);
+  color: var(--text-primary);
 }
 
 .columnCount {
@@ -1394,9 +1398,9 @@
 }
 
 :global([data-theme='light']) .columnCount {
-  background: #EEF2FF;
-  border-color: #C7D2FE;
-  color: #4338CA;
+  background: var(--bg-elevated);
+  border-color: var(--ink);
+  color: var(--text-primary);
 }
 
 .pipelineCard {
@@ -1415,10 +1419,10 @@
 }
 
 :global([data-theme='light']) .pipelineCard {
-  background: #F8FAFC;
-  border: 1.5px solid #CBD5E1;
-  color: #0F172A;
-  box-shadow: 2px 2px 0 #CBD5E1;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .pipelineCard:hover {
@@ -1428,8 +1432,8 @@
 }
 
 :global([data-theme='light']) .pipelineCard:hover {
-  border-color: #4f46e5;
-  box-shadow: 3px 3px 0 #15141B;
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
 }
 
 .pipelineCardProf {
@@ -1439,7 +1443,7 @@
 }
 
 :global([data-theme='light']) .pipelineCardProf {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .pipelineCardUni {
@@ -1448,7 +1452,7 @@
 }
 
 :global([data-theme='light']) .pipelineCardUni {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 .pipelineDateRow {
@@ -1531,11 +1535,11 @@
 }
 
 :global([data-theme='light']) .guideCard {
-  background: #FFFFFF !important;
-  border: 2px solid #15141B !important;
-  border-top: 3px solid #4f46e5 !important;
-  box-shadow: 4px 4px 0 0 #15141B !important;
-  color: #0F172A;
+  background: var(--bg-surface) !important;
+  border: 2px solid var(--ink) !important;
+  border-top: 3px solid var(--blue-primary) !important;
+  box-shadow: 4px 4px 0 0 var(--ink) !important;
+  color: var(--text-primary);
 }
 
 .guideCountryHeader {
@@ -1547,7 +1551,7 @@
 }
 
 :global([data-theme='light']) .guideCountryHeader {
-  border-bottom-color: #E2E8F0;
+  border-bottom-color: var(--ink);
 }
 
 .guideCountryName {
@@ -1560,7 +1564,7 @@
 }
 
 :global([data-theme='light']) .guideCountryName {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .stipendHighlight {
@@ -1595,7 +1599,7 @@
 }
 
 :global([data-theme='light']) .guideSectionTitle {
-  color: #4F46E5;
+  color: var(--blue-primary);
 }
 
 .guideText {
@@ -1605,7 +1609,7 @@
 }
 
 :global([data-theme='light']) .guideText {
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .speakingCutoffBox {
@@ -1684,10 +1688,10 @@
 }
 
 :global([data-theme='light']) .modalContent {
-  background: #FFFFFF;
-  border: 2px solid #15141B;
-  box-shadow: 6px 6px 0 0 #15141B, 0 20px 50px rgba(0, 0, 0, 0.15);
-  color: #0F172A;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 6px 6px 0 0 var(--ink), 0 20px 50px rgba(0, 0, 0, 0.15);
+  color: var(--text-primary);
 }
 
 .modalHeader {
@@ -1700,7 +1704,7 @@
 }
 
 :global([data-theme='light']) .modalHeader {
-  border-bottom-color: #CBD5E1;
+  border-bottom: 2px solid var(--ink);
 }
 
 .modalCloseBtn {
@@ -1726,9 +1730,9 @@
 }
 
 :global([data-theme='light']) .interviewCultureBox {
-  background: #EEF2FF;
-  border-color: #C7D2FE;
-  color: #3730A3;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .interviewQuestionCard {
@@ -1742,8 +1746,8 @@
 }
 
 :global([data-theme='light']) .interviewQuestionCard {
-  background: #F8FAFC;
-  border: 1.5px solid #CBD5E1;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
 }
 
 .interviewQuestionTitle {
@@ -1753,7 +1757,7 @@
 }
 
 :global([data-theme='light']) .interviewQuestionTitle {
-  color: #4F46E5;
+  color: var(--blue-primary);
 }
 
 .interviewWhyText {
@@ -1762,7 +1766,7 @@
 }
 
 :global([data-theme='light']) .interviewWhyText {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 .interviewStrategyBox {
@@ -1777,9 +1781,9 @@
 }
 
 :global([data-theme='light']) .interviewStrategyBox {
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
-  color: #1E40AF;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .interviewKeywordsText {
@@ -1789,7 +1793,7 @@
 }
 
 :global([data-theme='light']) .interviewKeywordsText {
-  color: #64748B;
+  color: var(--text-muted);
 }
 
 /* ========================================================================= */
@@ -1810,7 +1814,7 @@
 }
 
 :global([data-theme='light']) .taraSuiteTitle {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .taraSuiteSubtitle {
@@ -1822,7 +1826,7 @@
 }
 
 :global([data-theme='light']) .taraSuiteSubtitle {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 /* Sub-Navigation Pill Tabs */
@@ -1852,9 +1856,9 @@
 }
 
 :global([data-theme='light']) .taraSubNavBtn {
-  background: #FFFFFF;
-  border-color: #E2E8F0;
-  color: #64748B;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  color: var(--text-secondary);
 }
 
 .taraSubNavBtn:hover {
@@ -1864,9 +1868,10 @@
 }
 
 :global([data-theme='light']) .taraSubNavBtn:hover {
-  color: #4F46E5;
-  background: #F8FAFC;
-  border-color: #CBD5E1;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .taraSubNavBtnActive {
@@ -1877,9 +1882,10 @@
 }
 
 :global([data-theme='light']) .taraSubNavBtnActive {
-  background: #EEF2FF !important;
-  border-color: #4F46E5 !important;
-  color: #4F46E5 !important;
+  background: var(--blue-primary) !important;
+  border-color: var(--ink) !important;
+  color: #FFFFFF !important;
+  box-shadow: 2px 2px 0 0 var(--ink);
 }
 
 /* --- MODULE 1: AI FIT & VIABILITY EVALUATOR --- */
@@ -1907,8 +1913,9 @@
 }
 
 :global([data-theme='light']) .evaluatorFormCard {
-  background: #FFFFFF;
-  border-color: #E2E8F0;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 0 var(--ink);
 }
 
 .formGroup {
@@ -1926,7 +1933,7 @@
 }
 
 :global([data-theme='light']) .formLabel {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .formInput,
@@ -1944,9 +1951,9 @@
 
 :global([data-theme='light']) .formInput,
 :global([data-theme='light']) .formSelect {
-  background: #F8FAFC;
-  border-color: #CBD5E1;
-  color: #0F172A;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .formInput:focus,
@@ -1983,8 +1990,9 @@
 }
 
 :global([data-theme='light']) .viabilityMeterCard {
-  background: #FFFFFF;
-  border-color: #E2E8F0;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 0 var(--ink);
 }
 
 .meterHeader {
@@ -2004,7 +2012,7 @@
 }
 
 :global([data-theme='light']) .meterTitle {
-  color: #1E293B;
+  color: var(--text-primary);
 }
 
 .meterScoreNumber {
@@ -2023,7 +2031,7 @@
 }
 
 :global([data-theme='light']) .meterProgressBar {
-  background: #E2E8F0;
+  background: var(--border-subtle);
 }
 
 .meterProgressFill {
@@ -2075,8 +2083,8 @@
 }
 
 :global([data-theme='light']) .pitchBox {
-  background: #EEF2FF;
-  border-color: #C7D2FE;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
 }
 
 .pitchBoxHeader {
@@ -2094,7 +2102,7 @@
 }
 
 :global([data-theme='light']) .pitchText {
-  color: #312E81;
+  color: var(--text-primary);
 }
 
 .pitchActions {
@@ -2123,7 +2131,7 @@
 }
 
 :global([data-theme='light']) .actionStepItem {
-  color: #334155;
+  color: var(--text-secondary);
 }
 
 .actionStepIcon {
@@ -2143,8 +2151,9 @@
 }
 
 :global([data-theme='light']) .simulatorControlsCard {
-  background: #FFFFFF;
-  border-color: #E2E8F0;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 0 var(--ink);
 }
 
 .simControlsGrid {
@@ -2172,8 +2181,8 @@
 }
 
 :global([data-theme='light']) .simTile {
-  background: #FFFFFF;
-  border-color: #E2E8F0;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
 }
 
 .simTileLabel {
@@ -2185,7 +2194,7 @@
 }
 
 :global([data-theme='light']) .simTileLabel {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 .simTilePrimaryVal {
@@ -2196,7 +2205,7 @@
 }
 
 :global([data-theme='light']) .simTilePrimaryVal {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .simTileSecondaryVal {
@@ -2206,7 +2215,7 @@
 }
 
 :global([data-theme='light']) .simTileSecondaryVal {
-  color: #4F46E5;
+  color: var(--blue-primary);
 }
 
 .summerGapBanner {
@@ -2222,7 +2231,8 @@
 
 :global([data-theme='light']) .summerGapBanner {
   background: #FFFBEB;
-  border-color: #FCD34D;
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 0 var(--ink);
 }
 
 .summerGapTitle {
@@ -2251,9 +2261,9 @@
 }
 
 :global([data-theme='light']) .summerGapItem {
-  background: #FFFFFF;
-  border-color: #E2E8F0;
-  color: #1E293B;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
 }
 
 /* --- MODULE 3: AI FUNDING ADVISOR CONVERSATIONAL CHAT (COUNSELOR INSPIRED) --- */
@@ -2277,10 +2287,10 @@
 }
 
 :global([data-theme='light']) .advisorChatSection {
-  background: #FFFFFF;
-  border: 2px solid #15141B;
-  border-top: 3px solid #4F46E5;
-  box-shadow: 4px 4px 0 0 #15141B;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  border-top: 3px solid var(--blue-primary);
+  box-shadow: 4px 4px 0 0 var(--ink);
 }
 
 .advisorChatHeader {
@@ -2293,8 +2303,8 @@
 }
 
 :global([data-theme='light']) .advisorChatHeader {
-  background: #F8FAFC;
-  border-bottom: 1.5px solid #E2E8F0;
+  background: var(--bg-elevated);
+  border-bottom: 2px solid var(--ink);
 }
 
 .advisorChatTitle {
@@ -2308,7 +2318,7 @@
 }
 
 :global([data-theme='light']) .advisorChatTitle {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .advisorChatWindow {
@@ -2324,7 +2334,7 @@
 }
 
 :global([data-theme='light']) .advisorChatWindow {
-  background: #FAFAFA;
+  background: var(--bg-surface);
 }
 
 .messageRow {
@@ -2363,9 +2373,9 @@
 }
 
 :global([data-theme='light']) .msgBubbleUser {
-  background: #4F46E5;
-  border: 2px solid #15141B;
-  box-shadow: 2px 2px 0 #15141B;
+  background: var(--blue-primary);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .msgBubbleBot {
@@ -2379,12 +2389,12 @@
 }
 
 :global([data-theme='light']) .msgBubbleBot {
-  background: #FFFFFF;
-  color: #0F172A;
-  border: 2px solid #15141B;
-  border-top: 3px solid #4F46E5;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 2px solid var(--ink);
+  border-top: 3px solid var(--blue-primary);
   border-bottom-left-radius: 4px;
-  box-shadow: 4px 4px 0 0 #15141B, 0 4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 4px 4px 0 0 var(--ink), 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .advisorBadge {
@@ -2404,9 +2414,9 @@
 }
 
 :global([data-theme='light']) .advisorBadge {
-  background: rgba(79, 70, 229, 0.08);
-  border-color: rgba(79, 70, 229, 0.3);
-  color: #4F46E5;
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.3);
+  color: var(--blue-primary);
 }
 
 .advisorBadgeDot {
@@ -2432,7 +2442,7 @@
 
 :global([data-theme='light']) .advisorTakeawayBox {
   background: #ECFDF5;
-  border-color: #A7F3D0;
+  border: 1.5px solid var(--ink);
   color: #065F46;
 }
 
@@ -2457,9 +2467,9 @@
 }
 
 :global([data-theme='light']) .advisorChipBtn {
-  background: #EEF2FF;
-  border-color: #C7D2FE;
-  color: #3730A3;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .advisorChipBtn:hover {
@@ -2470,8 +2480,9 @@
 }
 
 :global([data-theme='light']) .advisorChipBtn:hover {
-  background: #E0E7FF;
-  color: #1E1B4B;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .suggestedQueriesRow {
@@ -2484,7 +2495,7 @@
 }
 
 :global([data-theme='light']) .suggestedQueriesRow {
-  border-top-color: #E2E8F0;
+  border-top-color: var(--ink);
 }
 
 .suggestedQueryBtn {
@@ -2503,9 +2514,9 @@
 }
 
 :global([data-theme='light']) .suggestedQueryBtn {
-  background: #EEF2FF;
-  border-color: #C7D2FE;
-  color: #4338CA;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .suggestedQueryBtn:hover {
@@ -2515,8 +2526,9 @@
 }
 
 :global([data-theme='light']) .suggestedQueryBtn:hover {
-  background: #E0E7FF;
-  color: #312E81;
+  background: var(--bg-surface);
+  color: var(--blue-primary);
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .chatActionsRow {
@@ -2546,12 +2558,12 @@
 }
 
 :global([data-theme='light']) .speechBtn {
-  color: #64748B;
+  color: var(--text-secondary);
 }
 
 :global([data-theme='light']) .speechBtn:hover {
-  color: #0F172A;
-  background: #F1F5F9;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
 }
 
 .speechBtnActive {
@@ -2569,8 +2581,8 @@
 }
 
 :global([data-theme='light']) .advisorInputBar {
-  background: #FFFFFF;
-  border-top: 1.5px solid #E2E8F0;
+  background: var(--bg-elevated);
+  border-top: 2px solid var(--ink);
 }
 
 .advisorInput {
@@ -2585,9 +2597,9 @@
 }
 
 :global([data-theme='light']) .advisorInput {
-  background: #F8FAFC;
-  border-color: #CBD5E1;
-  color: #0F172A;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  color: var(--text-primary);
 }
 
 .advisorInput:focus {
@@ -2611,13 +2623,14 @@
 }
 
 :global([data-theme='light']) .resetChatBtn {
-  border-color: #CBD5E1;
-  color: #64748B;
+  border: 1.5px solid var(--ink);
+  color: var(--text-secondary);
 }
 
 :global([data-theme='light']) .resetChatBtn:hover {
   color: #DC2626;
   border-color: #DC2626;
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .advisorFollowupsTitle {
@@ -2636,8 +2649,9 @@
 }
 
 :global([data-theme='light']) .matrixWrapper {
-  background: #FFFFFF;
-  border-color: #E2E8F0;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 0 var(--ink);
 }
 
 .matrixTable {
@@ -2657,9 +2671,9 @@
 }
 
 :global([data-theme='light']) .matrixTable th {
-  background: #F8FAFC;
-  color: #475569;
-  border-bottom-color: #E2E8F0;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--ink);
 }
 
 .matrixTable td {
@@ -2671,8 +2685,8 @@
 }
 
 :global([data-theme='light']) .matrixTable td {
-  border-bottom-color: #F1F5F9;
-  color: #1E293B;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
 }
 
 .matrixTable tr:last-child td {
@@ -2687,5 +2701,5 @@
 }
 
 :global([data-theme='light']) .matrixCountryCol {
-  color: #0F172A;
+  color: var(--text-primary);
 }

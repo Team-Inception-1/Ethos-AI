@@ -194,7 +194,7 @@ export default function DocumentsPage() {
         <div className={styles.titleArea}>
           <h1>Document Vault & Storage</h1>
           <p>
-            Zero-knowledge encrypted cloud storage with real-time <strong>AI Tamper & Fraud Heuristics</strong>
+            Secure document vault with automated <strong>Offer & Agreement Verification</strong>
           </p>
         </div>
 

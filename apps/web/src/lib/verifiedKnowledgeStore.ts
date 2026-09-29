@@ -65,6 +65,32 @@ export interface CountryCostStandard {
   keyRequirementsBn: string[];
   intakes: string[];
   topSpecializedAgencyIds: string[];
+  // Provenance & Claimable Verification Fields
+  officialGovUrl?: string;
+  officialGovSourceTitle?: string;
+  lastAuditedAt?: string;
+  isVerified?: boolean;
+  verifiedByAdmin?: string;
+}
+
+export interface UniversityCourseCatalogItem {
+  id: string;
+  universityName: string;
+  country: string;
+  countryCode: string;
+  degreeLevel: 'Bachelor' | 'Master' | 'PhD';
+  programName: string;
+  annualTuitionLocal: number;
+  currency: string;
+  annualTuitionBdt: number;
+  officialCatalogUrl: string;
+  officialSourceTitle: string;
+  intakeYear: string;
+  isVerified: boolean;
+  status: 'VERIFIED' | 'PENDING' | 'REJECTED' | 'FLAGGED';
+  verifiedByAdmin: string;
+  lastAuditedAt: string;
+  notes?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

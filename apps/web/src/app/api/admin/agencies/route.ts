@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireRole } from '@/lib/auth/authorization';
 
 export async function GET() {
   try {
+    const authorization = await requireRole(['ADMIN']);
+    if (authorization.response) return authorization.response;
     const rawAgencies = db.getAgencies();
     const agencies = rawAgencies.map((agency) => {
       const owner = db.getUserById(agency.ownerUserId);
@@ -34,6 +37,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const authorization = await requireRole(['ADMIN']);
+    if (authorization.response) return authorization.response;
     const body = await request.json();
     const { agencyId, action, note } = body;
 

@@ -19,8 +19,21 @@ export default function Navbar() {
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const dashboardHref = user?.role === 'agency' ? '/agency/dashboard' : '/dashboard';
-  const isDashboardActive = pathname === dashboardHref || (pathname?.startsWith('/agency') && user?.role === 'agency') || pathname === '/dashboard';
+  const dashboardHref =
+    user?.role === 'agency' ? '/agency/dashboard' :
+    user?.role === 'admin' ? '/admin' :
+    '/dashboard';
+  const isDashboardActive =
+    pathname === dashboardHref ||
+    (pathname?.startsWith('/agency') && user?.role === 'agency') ||
+    (pathname?.startsWith('/admin') && user?.role === 'admin') ||
+    pathname === '/dashboard';
+
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [user?.avatarUrl]);
 
   useEffect(() => {
     try {
@@ -45,6 +58,7 @@ export default function Navbar() {
       window.dispatchEvent(new CustomEvent('ethos-lang-change', { detail: next }));
     } catch {}
   };
+
 
   return (
     <header className={styles.header} suppressHydrationWarning>
@@ -94,16 +108,17 @@ export default function Navbar() {
           {isAuthenticated && user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               {/* User Profile Link */}
-              <Link href="/profile" className={styles.userPill} title="View Profile & Settings">
+              <Link href="/dashboard/profile" className={styles.userPill} title="View Profile & Settings">
                 <span className={styles.userAvatarPill}>
-                  {user.avatarUrl ? (
+                  {user.avatarUrl && !imgError ? (
                     <img
                       src={user.avatarUrl}
                       alt={user.name}
+                      onError={() => setImgError(true)}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
                     />
                   ) : (
-                    user.name.charAt(0)
+                    (user.name?.charAt(0) || 'U').toUpperCase()
                   )}
                 </span>
                 <span className={styles.userNamePill}>{user.name.split(' ')[0]}</span>

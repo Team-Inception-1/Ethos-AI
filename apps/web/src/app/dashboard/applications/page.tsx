@@ -1,4 +1,16 @@
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'My Applications' };
 import ApplicationsPage from '@/components/pages/ApplicationsPage';
-export default function Applications() { return <ApplicationsPage />; }
+import RoleRestricted from '@/components/auth/RoleRestricted';
+
+export const metadata: Metadata = { title: 'My Applications | Ethos AI' };
+
+export default function Applications() {
+  return (
+    <RoleRestricted
+      allowedRoles={['student', 'parent']}
+      featureName="Application Tracker"
+    >
+      <ApplicationsPage />
+    </RoleRestricted>
+  );
+}

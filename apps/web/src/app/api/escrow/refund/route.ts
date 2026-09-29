@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { EscrowTransitionError } from '@/lib/escrowStateMachine';
+import { requireRole } from '@/lib/auth/authorization';
 
 /**
  * POST /api/escrow/refund
@@ -8,11 +9,11 @@ import { EscrowTransitionError } from '@/lib/escrowStateMachine';
  */
 export async function POST(request: Request) {
   try {
+    const authorization = await requireRole(['ADMIN']);
+    if (authorization.response) return authorization.response;
     const body = await request.json();
     const {
       milestoneId,
-      actorId = 'usr-admin-01',
-      actorRole = 'ADMIN',
       reason = 'Refund approved per dispute resolution policy',
     } = body;
 
@@ -34,8 +35,8 @@ export async function POST(request: Request) {
     const result = db.updateMilestoneStatus({
       milestoneId,
       targetStatus: 'REFUNDED',
-      actorId,
-      actorRole,
+      actorId: authorization.user.id,
+      actorRole: authorization.user.role,
       note: `Escrow Refund Issued: ${reason}`,
       provider: 'SSLCOMMERZ_REFUND',
     });

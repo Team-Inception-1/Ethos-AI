@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import ScholarFinderPage from '@/components/pages/ScholarFinder/ScholarFinderPage';
+import RoleRestricted from '@/components/auth/RoleRestricted';
 
 export const metadata: Metadata = {
   title: 'Scholar Finder — Professors & Full-Fund RA/TA Scholarships | Ethos AI',
@@ -8,5 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardScholarFinder() {
-  return <ScholarFinderPage />;
+  return (
+    <RoleRestricted
+      allowedRoles={['student', 'parent']}
+      featureName="Scholar Finder & Research Assistantships"
+    >
+      <ScholarFinderPage />
+    </RoleRestricted>
+  );
 }

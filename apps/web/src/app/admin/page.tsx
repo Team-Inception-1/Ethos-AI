@@ -1,6 +1,5 @@
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
-import AIBubble from '@/components/ui/AIBubble';
 import AdminPanel from '@/components/pages/AdminPanel';
 import styles from '@/app/dashboard/DashboardLayout.module.css';
 import type { Metadata } from 'next';
@@ -13,7 +12,6 @@ export default function Admin() {
         <TopBar />
         <main className={styles.content}><AdminPanel /></main>
       </div>
-      <AIBubble />
     </div>
   );
 }

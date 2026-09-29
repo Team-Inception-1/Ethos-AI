@@ -104,24 +104,19 @@
 }
 .neutral .dot { background: var(--text-muted); border-color: var(--text-muted); }
 
-/* AI — Yellow pop */
+/* Outline — Clean minimal border */
+.outline {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+.outline .dot { background: var(--text-muted); border-color: var(--text-muted); }
+
+/* AI — Subdued indicator */
 .ai {
   background: var(--yellow);
   color: #3D2E00;
 }
 .ai .dot { background: #3D2E00; border-color: #3D2E00; }
-
-/* ── Wiggle animation for verified/ai badges ── */
-.verified,
-.ai {
-  animation: badgeWiggle 4s ease-in-out infinite;
-}
-
-@keyframes badgeWiggle {
-  0%, 92%, 100% { transform: rotate(0deg); }
-  94% { transform: rotate(-4deg); }
-  96% { transform: rotate(4deg); }
-  98% { transform: rotate(-2deg); }
-}
 
 /* ── Light theme adjustments (colors stay flat/saturated, no change needed) ── */

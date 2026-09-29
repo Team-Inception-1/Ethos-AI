@@ -52,6 +52,65 @@ export interface ScamAlertRecord {
   actionTaken: string | null;
 }
 
+export interface CountryCostBenchmarkRecord {
+  id: string;
+  country: string;
+  countryCode: string;
+  flagEmoji: string;
+  currency: string;
+  exchangeRateBdt: number;
+  livingCostMonthlyBdtMin: number;
+  livingCostMonthlyBdtMax: number;
+  blockedAccountOrGicBdt: number;
+  requirementType: 'BLOCKED_ACCOUNT' | 'GIC' | 'MAINTENANCE_FUNDS' | 'BANK_SOLVENCY';
+  visaFeeBdt: number;
+  healthInsuranceYearlyBdt: number;
+  officialGovUrl: string;
+  officialGovSourceTitle: string;
+  isVerified: boolean;
+  verifiedByAdminId: string;
+  lastAuditedAt: string;
+  keyRequirements: string[];
+}
+
+export interface UniversityCourseCatalogRecord {
+  id: string;
+  benchmarkId?: string;
+  universityName: string;
+  country: string;
+  countryCode: string;
+  degreeLevel: 'Bachelor' | 'Master' | 'PhD';
+  programName: string;
+  annualTuitionLocal: number;
+  currency: string;
+  annualTuitionBdt: number;
+  officialCatalogUrl: string;
+  officialSourceTitle: string;
+  intakeYear: string;
+  isVerified: boolean;
+  status: 'VERIFIED' | 'PENDING' | 'REJECTED' | 'FLAGGED';
+  verifiedByAdminId: string;
+  lastAuditedAt: string;
+}
+
+export interface AgencyFeeSubmissionRecord {
+  id: string;
+  agencyId: string;
+  agencyName: string;
+  country: string;
+  serviceName: string;
+  amountBdt: number;
+  whenCharged: string;
+  refundable: boolean;
+  refundPolicy: string;
+  proofDocumentUrls: string[];
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  adminFeedback?: string | null;
+  reviewedByAdminId?: string | null;
+  reviewedAt?: string | null;
+  submittedAt: string;
+}
+
 // In-Memory Database Store (initialized with seedData)
 class InMemoryDatabase {
   users = [...seedData.users];
@@ -222,6 +281,379 @@ class InMemoryDatabase {
       verdict: null,
       flags: [],
       uploadedAt: '2026-06-28T16:20:00Z',
+    },
+  ];
+
+  countryCostBenchmarks: CountryCostBenchmarkRecord[] = [
+    {
+      id: 'bmk-can',
+      country: 'Canada',
+      countryCode: 'CAN',
+      flagEmoji: '🇨🇦',
+      currency: 'CAD',
+      exchangeRateBdt: 89.5,
+      livingCostMonthlyBdtMin: 140000,
+      livingCostMonthlyBdtMax: 180000,
+      blockedAccountOrGicBdt: 1850000,
+      requirementType: 'GIC',
+      visaFeeBdt: 21500,
+      healthInsuranceYearlyBdt: 75000,
+      officialGovUrl: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada.html',
+      officialGovSourceTitle: 'Immigration, Refugees and Citizenship Canada (IRCC) - Official GIC & Study Permit Regulations',
+      isVerified: true,
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+      keyRequirements: [
+        'Mandatory CAD $20,635 GIC deposit with Scotiabank/CIBC',
+        'Provincial Attestation Letter (PAL) required for undergraduate admissions',
+        'IELTS 6.5 overall (minimum 6.0 in each band) for Student Direct Stream (SDS)',
+      ],
+    },
+    {
+      id: 'bmk-deu',
+      country: 'Germany',
+      countryCode: 'DEU',
+      flagEmoji: '🇩🇪',
+      currency: 'EUR',
+      exchangeRateBdt: 128.0,
+      livingCostMonthlyBdtMin: 110000,
+      livingCostMonthlyBdtMax: 140000,
+      blockedAccountOrGicBdt: 1525000,
+      requirementType: 'BLOCKED_ACCOUNT',
+      visaFeeBdt: 9800,
+      healthInsuranceYearlyBdt: 140000,
+      officialGovUrl: 'https://www.auswaertiges-amt.de/en/visa-service/blocked-account',
+      officialGovSourceTitle: 'German Federal Foreign Office (Auswärtiges Amt) Statutory Solvency Standard',
+      isVerified: true,
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+      keyRequirements: [
+        'Public Universities charge €0 tuition (only semester admin fee ~€150–€350)',
+        'Mandatory Blocked Account (Sperrkonto) of €11,904 in Expatrio, Coracle or Fintiba',
+        'APS Certificate verification required before German embassy visa appointment',
+      ],
+    },
+    {
+      id: 'bmk-gbr',
+      country: 'United Kingdom',
+      countryCode: 'GBR',
+      flagEmoji: '🇬🇧',
+      currency: 'GBP',
+      exchangeRateBdt: 152.0,
+      livingCostMonthlyBdtMin: 155000,
+      livingCostMonthlyBdtMax: 200000,
+      blockedAccountOrGicBdt: 1450000,
+      requirementType: 'BANK_SOLVENCY',
+      visaFeeBdt: 74000,
+      healthInsuranceYearlyBdt: 118000,
+      officialGovUrl: 'https://www.gov.uk/student-visa/money',
+      officialGovSourceTitle: 'UK Visas and Immigration (UKVI) Student Route Financial Requirements',
+      isVerified: true,
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+      keyRequirements: [
+        'Confirmation of Acceptance for Studies (CAS) from licensed Student Sponsor',
+        '28-Day Bank Statement Rule: £1,023/month (outside London) or £1,334/month (in London)',
+        'IHS (Immigration Health Surcharge) of £776/year payable upfront',
+      ],
+    },
+    {
+      id: 'bmk-usa',
+      country: 'United States',
+      countryCode: 'USA',
+      flagEmoji: '🇺🇸',
+      currency: 'USD',
+      exchangeRateBdt: 122.5,
+      livingCostMonthlyBdtMin: 160000,
+      livingCostMonthlyBdtMax: 220000,
+      blockedAccountOrGicBdt: 1500000,
+      requirementType: 'BANK_SOLVENCY',
+      visaFeeBdt: 65000,
+      healthInsuranceYearlyBdt: 150000,
+      officialGovUrl: 'https://travel.state.gov/content/travel/en/us-visas/study/student-visa.html',
+      officialGovSourceTitle: 'US Department of State & SEVP Official Student Visa Regulations',
+      isVerified: true,
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+      keyRequirements: [
+        'SEVP-certified institution Form I-20 and valid SEVIS I-901 fee receipt ($350)',
+        'DS-160 MRV Visa fee ($185) with in-person embassy interview in Dhaka',
+        '95%+ of STEM PhD students receive full tuition waiver + monthly TA/RA stipend',
+      ],
+    },
+    {
+      id: 'bmk-aus',
+      country: 'Australia',
+      countryCode: 'AUS',
+      flagEmoji: '🇦🇺',
+      currency: 'AUD',
+      exchangeRateBdt: 80.0,
+      livingCostMonthlyBdtMin: 170000,
+      livingCostMonthlyBdtMax: 220000,
+      blockedAccountOrGicBdt: 2350000,
+      requirementType: 'BANK_SOLVENCY',
+      visaFeeBdt: 135000,
+      healthInsuranceYearlyBdt: 60000,
+      officialGovUrl: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500',
+      officialGovSourceTitle: 'Australian Department of Home Affairs Financial Capacity Standard',
+      isVerified: true,
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+      keyRequirements: [
+        'Department of Home Affairs minimum living cost standard: AUD $29,710/year',
+        'Genuine Student (GS) assessment criteria and Confirmation of Enrolment (CoE)',
+        'Overseas Student Health Cover (OSHC) mandatory for entire visa duration',
+      ],
+    },
+    {
+      id: 'bmk-swe',
+      country: 'Sweden',
+      countryCode: 'SWE',
+      flagEmoji: '🇸🇪',
+      currency: 'SEK',
+      exchangeRateBdt: 11.5,
+      livingCostMonthlyBdtMin: 115000,
+      livingCostMonthlyBdtMax: 145000,
+      blockedAccountOrGicBdt: 1400000,
+      requirementType: 'BANK_SOLVENCY',
+      visaFeeBdt: 18000,
+      healthInsuranceYearlyBdt: 0,
+      officialGovUrl: 'https://www.migrationsverket.se/en/private-individuals/studying-and-working-in-sweden/higher-education.html',
+      officialGovSourceTitle: 'Swedish Migration Agency (Migrationsverket) Higher Education Residence Permit',
+      isVerified: true,
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+      keyRequirements: [
+        'Centralized portal UniversityAdmissions.se for up to 4 master applications',
+        'Migrationsverket maintenance requirement: SEK 10,314/month for 10-12 months',
+        'Comprehensive health insurance covered by Swedish state university system',
+      ],
+    },
+  ];
+
+  universityCourseCatalogs: UniversityCourseCatalogRecord[] = [
+    {
+      id: 'cat-001',
+      benchmarkId: 'bmk-deu',
+      universityName: 'Technical University of Munich (TUM)',
+      country: 'Germany',
+      countryCode: 'DEU',
+      degreeLevel: 'Master',
+      programName: 'M.Sc. in Informatics / Computer Science',
+      annualTuitionLocal: 0,
+      currency: 'EUR',
+      annualTuitionBdt: 0,
+      officialCatalogUrl: 'https://www.tum.de/en/studies/fees/tuition',
+      officialSourceTitle: 'TUM Official Study & Tuition Regulations 2026/2027',
+      intakeYear: '2026/2027',
+      isVerified: true,
+      status: 'VERIFIED',
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+    },
+    {
+      id: 'cat-002',
+      benchmarkId: 'bmk-deu',
+      universityName: 'RWTH Aachen University',
+      country: 'Germany',
+      countryCode: 'DEU',
+      degreeLevel: 'Master',
+      programName: 'M.Sc. in Software Systems Engineering',
+      annualTuitionLocal: 0,
+      currency: 'EUR',
+      annualTuitionBdt: 0,
+      officialCatalogUrl: 'https://www.rwth-aachen.de/go/id/bkmj',
+      officialSourceTitle: 'RWTH Aachen University Registrar Fee Schedule 2026/2027',
+      intakeYear: '2026/2027',
+      isVerified: true,
+      status: 'VERIFIED',
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+    },
+    {
+      id: 'cat-003',
+      benchmarkId: 'bmk-can',
+      universityName: 'University of Toronto',
+      country: 'Canada',
+      countryCode: 'CAN',
+      degreeLevel: 'Master',
+      programName: 'M.Sc. in Applied Computing (MScAC)',
+      annualTuitionLocal: 42500,
+      currency: 'CAD',
+      annualTuitionBdt: 3803750,
+      officialCatalogUrl: 'https://planningandbudget.utoronto.ca/tuition-fee-lookup-tool/',
+      officialSourceTitle: 'University of Toronto Planning & Budget Official Tuition Schedule',
+      intakeYear: '2026/2027',
+      isVerified: true,
+      status: 'VERIFIED',
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+    },
+    {
+      id: 'cat-004',
+      benchmarkId: 'bmk-can',
+      universityName: 'Memorial University of Newfoundland',
+      country: 'Canada',
+      countryCode: 'CAN',
+      degreeLevel: 'Master',
+      programName: 'M.Sc. in Computer Science',
+      annualTuitionLocal: 9666,
+      currency: 'CAD',
+      annualTuitionBdt: 865100,
+      officialCatalogUrl: 'https://www.mun.ca/finance/fees-and-charges/tuition-fees/',
+      officialSourceTitle: 'Memorial University Financial & Administrative Services Official Calendar',
+      intakeYear: '2026/2027',
+      isVerified: true,
+      status: 'VERIFIED',
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+    },
+    {
+      id: 'cat-005',
+      benchmarkId: 'bmk-gbr',
+      universityName: 'University of Oxford',
+      country: 'United Kingdom',
+      countryCode: 'GBR',
+      degreeLevel: 'Master',
+      programName: 'M.Sc. in Advanced Computer Science',
+      annualTuitionLocal: 37450,
+      currency: 'GBP',
+      annualTuitionBdt: 6179250,
+      officialCatalogUrl: 'https://www.ox.ac.uk/admissions/graduate/courses/msc-advanced-computer-science',
+      officialSourceTitle: 'University of Oxford Graduate Admissions Official Fee Schedule',
+      intakeYear: '2026/2027',
+      isVerified: true,
+      status: 'VERIFIED',
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+    },
+    {
+      id: 'cat-006',
+      benchmarkId: 'bmk-gbr',
+      universityName: 'University of Manchester',
+      country: 'United Kingdom',
+      countryCode: 'GBR',
+      degreeLevel: 'Master',
+      programName: 'M.Sc. in Data Science',
+      annualTuitionLocal: 31000,
+      currency: 'GBP',
+      annualTuitionBdt: 5115000,
+      officialCatalogUrl: 'https://www.manchester.ac.uk/study/masters/courses/list/10293/msc-data-science/',
+      officialSourceTitle: 'University of Manchester Postgraduate Tuition Table',
+      intakeYear: '2026/2027',
+      isVerified: true,
+      status: 'VERIFIED',
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+    },
+    {
+      id: 'cat-007',
+      benchmarkId: 'bmk-aus',
+      universityName: 'University of Melbourne',
+      country: 'Australia',
+      countryCode: 'AUS',
+      degreeLevel: 'Master',
+      programName: 'Master of Information Technology',
+      annualTuitionLocal: 52000,
+      currency: 'AUD',
+      annualTuitionBdt: 4160000,
+      officialCatalogUrl: 'https://study.unimelb.edu.au/find/courses/graduate/master-of-information-technology/fees/',
+      officialSourceTitle: 'University of Melbourne International Course Fee Schedule',
+      intakeYear: '2026/2027',
+      isVerified: true,
+      status: 'VERIFIED',
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+    },
+    {
+      id: 'cat-008',
+      benchmarkId: 'bmk-usa',
+      universityName: 'University of Texas at Arlington',
+      country: 'United States',
+      countryCode: 'USA',
+      degreeLevel: 'Master',
+      programName: 'M.S. in Computer Science',
+      annualTuitionLocal: 21000,
+      currency: 'USD',
+      annualTuitionBdt: 2520000,
+      officialCatalogUrl: 'https://www.uta.edu/admissions/cost-and-affordability',
+      officialSourceTitle: 'UTA Office of Financial Aid & Tuition Schedule',
+      intakeYear: '2026/2027',
+      isVerified: true,
+      status: 'VERIFIED',
+      verifiedByAdminId: 'usr-admin-01',
+      lastAuditedAt: '2026-09-01T00:00:00Z',
+    },
+  ];
+
+  agencyFeeSubmissions: AgencyFeeSubmissionRecord[] = [
+    {
+      id: 'sub-001',
+      agencyId: 'agt-001',
+      agencyName: 'Global Edu BD',
+      country: 'Canada',
+      serviceName: 'Canada University Admission & SDS Visa Escrow Package',
+      amountBdt: 45000,
+      whenCharged: '30% on Offer Letter, 40% on Visa Filing, 30% on Visa Approval',
+      refundable: true,
+      refundPolicy: '100% refund of unreleased escrow milestone fees if visa is refused by IRCC with official refusal letter.',
+      proofDocumentUrls: ['/uploads/globaledu_moe_license.pdf', '/uploads/globaledu_toronto_agreement.pdf'],
+      status: 'APPROVED',
+      adminFeedback: 'Audited against DNCC Trade License TRAD/DNCC/041289/2022 and verified for student escrow protection.',
+      reviewedByAdminId: 'usr-admin-01',
+      reviewedAt: '2026-08-15T10:00:00Z',
+      submittedAt: '2026-08-12T09:00:00Z',
+    },
+    {
+      id: 'sub-002',
+      agencyId: 'agt-005',
+      agencyName: "Mentors' Study Abroad",
+      country: 'Germany',
+      serviceName: 'Germany APS & Public University Zero-Tuition Escrow Package',
+      amountBdt: 50000,
+      whenCharged: '40% VPD & APS Verification, 60% Visa Slot Booking',
+      refundable: true,
+      refundPolicy: 'Guaranteed 80% refund if student fails to secure admission in 3 public universities.',
+      proofDocumentUrls: ['/uploads/mentors_moe_license.pdf'],
+      status: 'APPROVED',
+      adminFeedback: 'Verified with Ministry of Education license MOE-BD-2022-771.',
+      reviewedByAdminId: 'usr-admin-01',
+      reviewedAt: '2026-08-18T14:30:00Z',
+      submittedAt: '2026-08-16T11:20:00Z',
+    },
+    {
+      id: 'sub-003',
+      agencyId: 'agt-006',
+      agencyName: 'Shabuj Global Education',
+      country: 'United Kingdom',
+      serviceName: 'UK Russell Group Fast-Track CAS Processing & Visa Filing',
+      amountBdt: 55000,
+      whenCharged: '25% Application, 50% CAS Issue, 25% Visa Approved',
+      refundable: true,
+      refundPolicy: 'Full refund on CAS refusal under UKVI standard terms.',
+      proofDocumentUrls: ['/uploads/shabuj_dscc_trade.pdf'],
+      status: 'PENDING',
+      adminFeedback: null,
+      reviewedByAdminId: null,
+      reviewedAt: null,
+      submittedAt: '2026-09-28T09:15:00Z',
+    },
+    {
+      id: 'sub-004',
+      agencyId: 'agt-004',
+      agencyName: 'Skyline Consultancy',
+      country: 'United Kingdom',
+      serviceName: 'Unlicensed Expedited Visa Premium Guaranteed Package',
+      amountBdt: 120000,
+      whenCharged: '100% upfront payment before document filing',
+      refundable: false,
+      refundPolicy: 'Strictly non-refundable after document intake.',
+      proofDocumentUrls: ['/uploads/skyline_unregistered_claim.pdf'],
+      status: 'REJECTED',
+      adminFeedback: 'Violates BFIU & Ministry of Education consultancy directives. 100% non-refundable upfront cash without escrow protection is prohibited.',
+      reviewedByAdminId: 'usr-admin-01',
+      reviewedAt: '2026-09-27T16:00:00Z',
+      submittedAt: '2026-09-26T14:00:00Z',
     },
   ];
 
@@ -985,6 +1417,161 @@ class InMemoryDatabase {
     if (updates.role !== undefined) user.role = updates.role;
     return user;
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Data Provenance & Verified Numerical Cost Queries & Mutations (Module 5.17)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getCountryCostBenchmarks() {
+    return this.countryCostBenchmarks;
+  }
+
+  getCountryCostBenchmark(countryOrCode: string) {
+    const q = countryOrCode.toLowerCase().trim();
+    return (
+      this.countryCostBenchmarks.find(
+        (b) =>
+          b.country.toLowerCase() === q ||
+          b.countryCode.toLowerCase() === q ||
+          b.country.toLowerCase().includes(q)
+      ) || null
+    );
+  }
+
+  upsertCountryCostBenchmark(benchmark: CountryCostBenchmarkRecord) {
+    const idx = this.countryCostBenchmarks.findIndex((b) => b.id === benchmark.id || b.countryCode === benchmark.countryCode);
+    if (idx >= 0) {
+      this.countryCostBenchmarks[idx] = { ...benchmark, lastAuditedAt: new Date().toISOString() };
+      return this.countryCostBenchmarks[idx];
+    } else {
+      const created = {
+        ...benchmark,
+        id: benchmark.id || `bmk-${Date.now()}`,
+        lastAuditedAt: new Date().toISOString(),
+      };
+      this.countryCostBenchmarks.push(created);
+      return created;
+    }
+  }
+
+  getUniversityCourseCatalogs(country?: string, universityName?: string) {
+    let list = this.universityCourseCatalogs;
+    if (country) {
+      const c = country.toLowerCase().trim();
+      list = list.filter((cat) => cat.country.toLowerCase().includes(c) || cat.countryCode.toLowerCase() === c);
+    }
+    if (universityName) {
+      const u = universityName.toLowerCase().trim();
+      list = list.filter((cat) => cat.universityName.toLowerCase().includes(u));
+    }
+    return list;
+  }
+
+  getUniversityCourseCatalogById(id: string) {
+    return this.universityCourseCatalogs.find((cat) => cat.id === id) || null;
+  }
+
+  upsertUniversityCourseCatalog(catalog: Omit<UniversityCourseCatalogRecord, 'id' | 'lastAuditedAt'> & { id?: string }) {
+    const existingIdx = catalog.id ? this.universityCourseCatalogs.findIndex((cat) => cat.id === catalog.id) : -1;
+    if (existingIdx >= 0) {
+      this.universityCourseCatalogs[existingIdx] = {
+        ...this.universityCourseCatalogs[existingIdx],
+        ...catalog,
+        id: catalog.id!,
+        lastAuditedAt: new Date().toISOString(),
+      };
+      return this.universityCourseCatalogs[existingIdx];
+    } else {
+      const created: UniversityCourseCatalogRecord = {
+        ...catalog,
+        id: catalog.id || `cat-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        lastAuditedAt: new Date().toISOString(),
+        status: catalog.status || 'VERIFIED',
+        isVerified: catalog.isVerified !== undefined ? catalog.isVerified : true,
+      };
+      this.universityCourseCatalogs.unshift(created);
+      return created;
+    }
+  }
+
+  deleteUniversityCourseCatalog(id: string) {
+    const idx = this.universityCourseCatalogs.findIndex((cat) => cat.id === id);
+    if (idx >= 0) {
+      const deleted = this.universityCourseCatalogs.splice(idx, 1)[0];
+      return deleted;
+    }
+    return null;
+  }
+
+  getAgencyFeeSubmissions(agencyId?: string, status?: string) {
+    let list = this.agencyFeeSubmissions;
+    if (agencyId) {
+      list = list.filter((sub) => sub.agencyId === agencyId);
+    }
+    if (status) {
+      list = list.filter((sub) => sub.status === status);
+    }
+    return list;
+  }
+
+  getAgencyFeeSubmissionById(id: string) {
+    return this.agencyFeeSubmissions.find((sub) => sub.id === id) || null;
+  }
+
+  createAgencyFeeSubmission(
+    submission: Omit<AgencyFeeSubmissionRecord, 'id' | 'submittedAt' | 'status'> & { id?: string }
+  ) {
+    const agency = this.getAgencyById(submission.agencyId);
+    const newSubmission: AgencyFeeSubmissionRecord = {
+      ...submission,
+      id: submission.id || `sub-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      agencyName: submission.agencyName || agency?.name || 'Verified Agency',
+      status: 'PENDING',
+      submittedAt: new Date().toISOString(),
+    };
+    this.agencyFeeSubmissions.unshift(newSubmission);
+    return newSubmission;
+  }
+
+  reviewAgencyFeeSubmission(
+    id: string,
+    status: 'APPROVED' | 'REJECTED',
+    adminFeedback: string,
+    adminId: string
+  ) {
+    const sub = this.getAgencyFeeSubmissionById(id);
+    if (!sub) throw new Error(`Agency fee submission '${id}' not found`);
+
+    sub.status = status;
+    sub.adminFeedback = adminFeedback;
+    sub.reviewedByAdminId = adminId;
+    sub.reviewedAt = new Date().toISOString();
+
+    // If approved, create or update the agency's official pricing service
+    if (status === 'APPROVED') {
+      const existingPricing = this.agencyPricings.find(
+        (p) => p.agencyId === sub.agencyId && p.serviceName.toLowerCase() === sub.serviceName.toLowerCase()
+      );
+      if (existingPricing) {
+        existingPricing.amountPoisha = (sub.amountBdt * 100).toString();
+        existingPricing.whenCharged = sub.whenCharged;
+        existingPricing.refundable = sub.refundable;
+        existingPricing.conditions = sub.refundPolicy;
+      } else {
+        this.agencyPricings.push({
+          id: `prc-${Date.now()}`,
+          agencyId: sub.agencyId,
+          serviceName: sub.serviceName,
+          amountPoisha: (sub.amountBdt * 100).toString(),
+          whenCharged: sub.whenCharged,
+          refundable: sub.refundable,
+          conditions: sub.refundPolicy,
+        });
+      }
+    }
+
+    return sub;
+  }
 }
 
 // Global singleton instance for in-memory persistence during development / demo
@@ -996,6 +1583,15 @@ if (globalForDb.ethosDb) {
   }
   if (!globalForDb.ethosDb.scamAlerts) {
     globalForDb.ethosDb.scamAlerts = new InMemoryDatabase().scamAlerts;
+  }
+  if (!globalForDb.ethosDb.countryCostBenchmarks) {
+    globalForDb.ethosDb.countryCostBenchmarks = new InMemoryDatabase().countryCostBenchmarks;
+  }
+  if (!globalForDb.ethosDb.universityCourseCatalogs) {
+    globalForDb.ethosDb.universityCourseCatalogs = new InMemoryDatabase().universityCourseCatalogs;
+  }
+  if (!globalForDb.ethosDb.agencyFeeSubmissions) {
+    globalForDb.ethosDb.agencyFeeSubmissions = new InMemoryDatabase().agencyFeeSubmissions;
   }
   for (const m of new InMemoryDatabase().milestones) {
     if (!globalForDb.ethosDb.milestones.some((em) => em.id === m.id)) {

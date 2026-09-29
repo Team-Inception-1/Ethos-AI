@@ -5,7 +5,9 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import styles from './TopBar.module.css';
 
-const INITIAL_NOTIFICATIONS = [
+import { usePathname } from 'next/navigation';
+
+const STUDENT_NOTIFICATIONS = [
   {
     id: 'n1',
     title: 'Offer Letter Verified',
@@ -24,26 +26,113 @@ const INITIAL_NOTIFICATIONS = [
   },
   {
     id: 'n3',
-    title: 'New Message from Dream Abroad',
-    desc: 'German blocked account documentation has been reviewed.',
+    title: 'German Blocked Amount Updated',
+    desc: 'Official benchmark €11,904 verified by licensed agencies & Auswärtiges Amt.',
     time: '2h ago',
-    link: '/dashboard/applications/app-002',
+    link: '/dashboard/campus-living',
+    read: false,
+  },
+];
+
+const AGENCY_NOTIFICATIONS = [
+  {
+    id: 'ag-1',
+    title: 'New Student Inquiry',
+    desc: 'Sara Islam inquired regarding German blocked account & TU Berlin admissions.',
+    time: '8m ago',
+    link: '/dashboard/chat',
+    read: false,
+  },
+  {
+    id: 'ag-2',
+    title: 'Cost Benchmark Verified',
+    desc: 'Admin approved your Germany Blocked Account benchmark (€11,904/yr).',
+    time: '45m ago',
+    link: '/agency/dashboard',
+    read: false,
+  },
+  {
+    id: 'ag-3',
+    title: 'Escrow Milestone Released',
+    desc: '৳18,000 released for Riya Ahmed (Milestone 1: Offer Letter Received).',
+    time: '2h ago',
+    link: '/agency/dashboard',
+    read: false,
+  },
+];
+
+const ADMIN_NOTIFICATIONS = [
+  {
+    id: 'adm-1',
+    title: 'Dispute Docket Review',
+    desc: 'Escrow dispute #DSP-8821 filed for Global Edu BD milestone release.',
+    time: '14m ago',
+    link: '/admin#disputes',
+    read: false,
+  },
+  {
+    id: 'adm-2',
+    title: 'New Agency Audit Dossier',
+    desc: 'Crescent Pathway Consultancy submitted license documentation.',
+    time: '50m ago',
+    link: '/admin#agencies',
+    read: false,
+  },
+  {
+    id: 'adm-3',
+    title: 'Cost Benchmark Verification',
+    desc: 'Germany Auswärtiges Amt €11,904 benchmark approved for student view.',
+    time: '2h ago',
+    link: '/admin#provenance',
     read: false,
   },
 ];
 
 export default function TopBar() {
   const { user } = useAuth();
-  let userName = user?.name || 'Student User';
-  if (userName.includes('@')) {
+  const pathname = usePathname();
+
+  const effectiveRole =
+    pathname?.startsWith('/agency') ? 'agency' :
+    pathname?.startsWith('/admin') ? 'admin' :
+    (user?.role || 'student');
+
+  let userName = user?.name;
+  if (!userName) {
+    userName = effectiveRole === 'agency'
+      ? 'Global Edu BD'
+      : effectiveRole === 'admin'
+      ? 'Platform Administrator'
+      : effectiveRole === 'parent'
+      ? 'Parent User'
+      : 'Student User';
+  } else if (userName.includes('@')) {
     const local = userName.split('@')[0].replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim();
     userName = local ? local.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : userName;
   }
-  const initial = userName ? userName.charAt(0).toUpperCase() : 'S';
+  const initial = userName ? userName.charAt(0).toUpperCase() : 'U';
 
-  const [notifs, setNotifs] = React.useState(INITIAL_NOTIFICATIONS);
+  const initialNotifs =
+    effectiveRole === 'agency' ? AGENCY_NOTIFICATIONS :
+    effectiveRole === 'admin' ? ADMIN_NOTIFICATIONS :
+    STUDENT_NOTIFICATIONS;
+
+  const [notifs, setNotifs] = React.useState(initialNotifs);
   const [openNotifs, setOpenNotifs] = React.useState(false);
+  const [imgError, setImgError] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [user?.avatarUrl]);
+
+  React.useEffect(() => {
+    setNotifs(
+      effectiveRole === 'agency' ? AGENCY_NOTIFICATIONS :
+      effectiveRole === 'admin' ? ADMIN_NOTIFICATIONS :
+      STUDENT_NOTIFICATIONS
+    );
+  }, [effectiveRole]);
 
   const unreadCount = notifs.filter((n) => !n.read).length;
 
@@ -66,10 +155,23 @@ export default function TopBar() {
     setOpenNotifs(false);
   };
 
+  const pageTitle =
+    pathname?.startsWith('/admin') ? 'Platform Governance' :
+    pathname?.startsWith('/agency') ? 'Agency Operations' :
+    pathname?.includes('/counselor') ? 'AI Counselor' :
+    pathname?.includes('/scholar-finder') ? 'Scholar Finder' :
+    pathname?.includes('/campus-living') ? 'Living Cost Estimator' :
+    pathname?.includes('/applications') ? 'My Applications' :
+    pathname?.includes('/documents') ? 'Document Storage Vault' :
+    pathname?.includes('/payments') ? 'Payments & Escrow' :
+    pathname?.includes('/chat') ? (effectiveRole === 'agency' ? 'Applicant Messages' : effectiveRole === 'admin' ? 'Supervisory Dispute Audit' : 'Agency Consultation') :
+    pathname?.includes('/profile') ? 'Account Settings' :
+    'Student Dashboard';
+
   return (
     <header className={styles.topbar} role="banner">
       <div className={styles.left}>
-        <h1 className={styles.pageTitle} id="page-heading">Dashboard</h1>
+        <h1 className={styles.pageTitle} id="page-heading">{pageTitle}</h1>
       </div>
       <div className={styles.right}>
         {/* Search */}
@@ -150,16 +252,17 @@ export default function TopBar() {
         {/* Avatar */}
         <div className={styles.avatarWrap}>
           <Link
-            href="/profile"
+            href="/dashboard/profile"
             className={styles.avatar}
             aria-label={`User menu for ${userName}`}
             title={userName}
             id="user-menu-btn"
           >
-            {user?.avatarUrl ? (
+            {user?.avatarUrl && !imgError ? (
               <img
                 src={user.avatarUrl}
                 alt={userName}
+                onError={() => setImgError(true)}
                 className={styles.avatarImg}
               />
             ) : (

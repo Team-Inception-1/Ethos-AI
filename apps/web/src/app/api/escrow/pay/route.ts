@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { PaymentProviderRegistry } from '@/lib/paymentProviders';
 import { EscrowTransitionError } from '@/lib/escrowStateMachine';
+import { forbiddenResponse, requireRole } from '@/lib/auth/authorization';
 
 /**
  * POST /api/escrow/pay
@@ -9,11 +10,12 @@ import { EscrowTransitionError } from '@/lib/escrowStateMachine';
  */
 export async function POST(request: Request) {
   try {
+    const authorization = await requireRole(['STUDENT']);
+    if (authorization.response) return authorization.response;
     const body = await request.json();
     const {
       milestoneId,
       provider = 'SSLCOMMERZ',
-      studentId = 'usr-student-01',
       simulateInstantHold = true,
       note,
     } = body;
@@ -33,6 +35,9 @@ export async function POST(request: Request) {
       );
     }
 
+    const application = db.getApplicationById(milestone.applicationId);
+    if (!application || application.studentId !== authorization.user.id) return forbiddenResponse();
+
     if (milestone.status !== 'PENDING') {
       return NextResponse.json(
         {
@@ -42,6 +47,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const studentId = authorization.user.id;
     const user = db.getUserById(studentId);
     const providerInstance = PaymentProviderRegistry.get(provider);
 

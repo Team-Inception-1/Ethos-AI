@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { EscrowTransitionError } from '@/lib/escrowStateMachine';
+import { forbiddenResponse, requireRole } from '@/lib/auth/authorization';
 
 /**
  * POST /api/escrow/dispute
@@ -8,11 +9,11 @@ import { EscrowTransitionError } from '@/lib/escrowStateMachine';
  */
 export async function POST(request: Request) {
   try {
+    const authorization = await requireRole(['STUDENT']);
+    if (authorization.response) return authorization.response;
     const body = await request.json();
     const {
       milestoneId,
-      actorId = 'usr-student-01',
-      actorRole = 'STUDENT',
       reason,
     } = body;
 
@@ -38,11 +39,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const application = db.getApplicationById(milestone.applicationId);
+    if (!application || application.studentId !== authorization.user.id) return forbiddenResponse();
+
     const result = db.updateMilestoneStatus({
       milestoneId,
       targetStatus: 'DISPUTED',
-      actorId,
-      actorRole,
+      actorId: authorization.user.id,
+      actorRole: authorization.user.role,
       note: `Escrow Dispute Raised: ${reason}`,
       provider: 'ESCROW_VAULT',
     });

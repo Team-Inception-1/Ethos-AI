@@ -44,9 +44,15 @@ function mapPrismaTypeToFrontend(type: string): 'offer_letter' | 'agreement' | '
 }
 
 function buildStorageUrl(storageKey: string): string {
+  if (!storageKey) return '';
+  if (storageKey.startsWith('http://') || storageKey.startsWith('https://')) {
+    return storageKey;
+  }
   const endpoint = (process.env.AWS_ENDPOINT_URL_S3 || '').replace(/\/$/, '');
-  if (endpoint && storageKey.startsWith('documents/')) {
-    return `${endpoint}/documents/${storageKey}`;
+  if (endpoint) {
+    // Avoid duplicate 'documents/documents/' when storageKey already starts with 'documents/'
+    const cleanKey = storageKey.replace(/^documents\//, '');
+    return `${endpoint}/documents/${cleanKey}`;
   }
   const filename = path.basename(storageKey);
   return `/uploads/${filename}`;
@@ -141,7 +147,9 @@ export async function GET(request: Request) {
     await syncNeonBucketObjects(ownerId);
 
     // 2. Resolve target user if ownerId provided
-    let resolvedUserIds: string[] = ['usr-student-01'];
+    let resolvedUserIds: string[] = [];
+    const isDemoStudent = !ownerId || ownerId === 'usr-student-01';
+
     if (ownerId) {
       resolvedUserIds.push(ownerId);
       const user = await prisma.user.findFirst({
@@ -153,13 +161,13 @@ export async function GET(request: Request) {
         resolvedUserIds.push(user.id);
         resolvedUserIds.push(user.email);
       }
-      // Also match previous temporary timestamp IDs if owner was usr-17900...
-      if (ownerId.startsWith('usr-')) {
+      // If it's the demo student account, also include the sample upload id
+      if (ownerId === 'usr-student-01') {
         resolvedUserIds.push('usr-1790087091301');
       }
     } else {
-      // Include usr-1790087091301 by default so previously uploaded student files are visible
-      resolvedUserIds.push('usr-1790087091301');
+      // Default fallback to student demo
+      resolvedUserIds.push('usr-student-01', 'usr-1790087091301');
     }
 
     // 3. Query persistent documents from Neon Postgres
@@ -211,8 +219,8 @@ export async function GET(request: Request) {
       };
     });
 
-    // Fallback: If DB is empty, include in-memory seed documents so student demo always works
-    if (documents.length === 0) {
+    // Fallback: If DB is empty and it's the demo student, include in-memory seed documents so student demo always works
+    if (documents.length === 0 && isDemoStudent) {
       const fallbackDocs = db.getDocuments(ownerId);
       return NextResponse.json({ documents: fallbackDocs });
     }

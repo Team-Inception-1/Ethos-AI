@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { uploadAvatarFile } from '@/lib/storage';
 import { db } from '@/lib/db';
 
+import { prisma } from '@/lib/prisma';
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -31,6 +33,20 @@ export async function POST(request: Request) {
     const user = db.getUserById(userId);
     if (user) {
       user.avatarUrl = result.url;
+    }
+
+    // Persist permanently into Neon Postgres public.User
+    try {
+      await prisma.user.updateMany({
+        where: {
+          OR: [{ id: userId }, { email: userId.toLowerCase() }],
+        },
+        data: {
+          avatarUrl: result.url,
+        },
+      });
+    } catch (dbErr) {
+      console.warn('[Avatar Upload] Non-critical error updating Prisma User avatarUrl:', dbErr);
     }
 
     return NextResponse.json({

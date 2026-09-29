@@ -14,7 +14,6 @@ import {
 } from '@/lib/chatClient';
 import styles from './ChatPage.module.css';
 
-// Fallback initial thread data for offline/standalone execution
 const DEFAULT_THREADS: ChatThreadSummary[] = [
   {
     id: 'thd-001',
@@ -49,6 +48,77 @@ const DEFAULT_THREADS: ChatThreadSummary[] = [
     unreadCount: 1,
     createdAt: '2026-08-01T09:00:00Z',
     updatedAt: '2026-08-01T09:30:00Z',
+  },
+];
+
+const AGENCY_DEFAULT_THREADS: ChatThreadSummary[] = [
+  {
+    id: 'thd-app-001',
+    applicationId: 'app-001',
+    agencyId: 'agt-001',
+    agencyName: 'Global Edu BD',
+    studentName: 'Riya Ahmed',
+    targetUniversity: 'University of Toronto',
+    targetCountry: 'Canada 🇨🇦',
+    lastMessage: {
+      text: 'Great, thank you! Please also share the visa processing timeline.',
+      time: '2026-07-25T11:00:00Z',
+      senderRole: 'STUDENT',
+    },
+    unreadCount: 0,
+    createdAt: '2026-07-10T11:05:00Z',
+    updatedAt: '2026-07-25T11:00:00Z',
+  },
+  {
+    id: 'thd-app-002',
+    applicationId: 'app-002',
+    agencyId: 'agt-001',
+    agencyName: 'Global Edu BD',
+    studentName: 'Mehedi Hasan',
+    targetUniversity: 'TU Munich',
+    targetCountry: 'Germany 🇩🇪',
+    lastMessage: {
+      text: 'I submitted my German blocked account deposit slip for verification.',
+      time: '2026-08-01T09:30:00Z',
+      senderRole: 'STUDENT',
+    },
+    unreadCount: 1,
+    createdAt: '2026-08-01T09:00:00Z',
+    updatedAt: '2026-08-01T09:30:00Z',
+  },
+  {
+    id: 'thd-app-003',
+    applicationId: 'app-003',
+    agencyId: 'agt-001',
+    agencyName: 'Global Edu BD',
+    studentName: 'Sara Islam',
+    targetUniversity: 'Monash University',
+    targetCountry: 'Australia 🇦🇺',
+    lastMessage: {
+      text: 'Offer letter received! What are the next GTE financial steps?',
+      time: '2026-08-05T14:20:00Z',
+      senderRole: 'STUDENT',
+    },
+    unreadCount: 2,
+    createdAt: '2026-08-05T10:00:00Z',
+    updatedAt: '2026-08-05T14:20:00Z',
+  },
+  {
+    id: 'thd-app-004',
+    applicationId: 'app-004',
+    agencyId: 'agt-001',
+    agencyName: 'Global Edu BD',
+    studentName: 'Arif Khan',
+    targetUniversity: 'Imperial College London',
+    targetCountry: 'United Kingdom 🇬🇧',
+    lastMessage: {
+      text: 'CAS document has been requested from Imperial admissions.',
+      time: '2026-08-07T16:45:00Z',
+      senderRole: 'AGENCY',
+    },
+    unreadCount: 0,
+    createdAt: '2026-08-07T12:00:00Z',
+    updatedAt: '2026-08-07T16:45:00Z',
   },
 ];
 
@@ -117,6 +187,84 @@ const DEFAULT_MESSAGES: Record<string, ChatMessageItem[]> = {
       sentAt: '2026-08-01T09:30:00Z',
     },
   ],
+  'thd-app-001': [
+    {
+      id: 'msg-001',
+      threadId: 'thd-app-001',
+      senderId: 'usr-agency-01',
+      senderRole: 'AGENCY',
+      body: 'Hello Riya! We have received your application for U of Toronto and are reviewing your academic transcripts.',
+      msgHash: '8f48a1d2e9bc35a64d1f2b3c4d5e6f7a',
+      isRead: true,
+      sentAt: '2026-07-25T10:00:00Z',
+    },
+    {
+      id: 'msg-004',
+      threadId: 'thd-app-001',
+      senderId: 'usr-student-01',
+      senderRole: 'STUDENT',
+      body: 'Great, thank you! Please also share the visa processing timeline.',
+      msgHash: '5c15a1d2e9bc35a64d1f2b3c4d5e6f7a',
+      isRead: true,
+      sentAt: '2026-07-25T11:00:00Z',
+    },
+  ],
+  'thd-app-002': [
+    {
+      id: 'msg-m01',
+      threadId: 'thd-app-002',
+      senderId: 'usr-agency-01',
+      senderRole: 'AGENCY',
+      body: 'Hi Mehedi, welcome! We are processing your TU Munich application for Mechanical Engineering.',
+      msgHash: '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d',
+      isRead: true,
+      sentAt: '2026-08-01T09:00:00Z',
+    },
+    {
+      id: 'msg-m02',
+      threadId: 'thd-app-002',
+      senderId: 'usr-student-02',
+      senderRole: 'STUDENT',
+      body: 'I submitted my German blocked account deposit slip for verification.',
+      msgHash: '2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e',
+      isRead: false,
+      sentAt: '2026-08-01T09:30:00Z',
+    },
+  ],
+  'thd-app-003': [
+    {
+      id: 'msg-s01',
+      threadId: 'thd-app-003',
+      senderId: 'usr-student-03',
+      senderRole: 'STUDENT',
+      body: 'Offer letter received! What are the next GTE financial steps?',
+      msgHash: '3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f',
+      isRead: false,
+      sentAt: '2026-08-05T14:20:00Z',
+    },
+    {
+      id: 'msg-s02',
+      threadId: 'thd-app-003',
+      senderId: 'usr-agency-01',
+      senderRole: 'AGENCY',
+      body: 'Congratulations Sara! We will draft your GTE statement checklist today.',
+      msgHash: '4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a',
+      isRead: true,
+      sentAt: '2026-08-05T14:35:00Z',
+    },
+  ],
+  'thd-app-004': [
+    {
+      id: 'msg-a01',
+      threadId: 'thd-app-004',
+      senderId: 'usr-agency-01',
+      senderRole: 'AGENCY',
+      body: 'CAS document has been requested from Imperial admissions. Expect it by Thursday.',
+      msgHash: '5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
+      isRead: true,
+      sentAt: '2026-08-07T16:45:00Z',
+    },
+  ],
 };
 
 const VAULT_DOCS = [
@@ -151,9 +299,10 @@ function formatTime(iso: string): string {
 export default function ChatPage() {
   const { user } = useAuth();
   const isAgency = user?.role?.toLowerCase() === 'agency';
-  const [threads, setThreads] = useState<ChatThreadSummary[]>(DEFAULT_THREADS);
-  const [activeThreadId, setActiveThreadId] = useState<string>('thd-001');
-  const [messages, setMessages] = useState<ChatMessageItem[]>(DEFAULT_MESSAGES['thd-001'] || []);
+  const defaultList = isAgency ? AGENCY_DEFAULT_THREADS : DEFAULT_THREADS;
+  const [threads, setThreads] = useState<ChatThreadSummary[]>(defaultList);
+  const [activeThreadId, setActiveThreadId] = useState<string>(isAgency ? 'thd-app-001' : 'thd-001');
+  const [messages, setMessages] = useState<ChatMessageItem[]>(DEFAULT_MESSAGES[isAgency ? 'thd-app-001' : 'thd-001'] || []);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [exportData, setExportData] = useState<any | null>(null);
@@ -169,15 +318,44 @@ export default function ChatPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tid = params.get('threadId');
+      const studentName = params.get('student');
       if (tid) {
         setActiveThreadId(tid);
       }
+      if (isAgency && studentName && tid) {
+        setThreads((prev) => {
+          if (prev.some((t) => t.id === tid)) return prev;
+          return [
+            {
+              id: tid,
+              applicationId: tid.replace('thd-', ''),
+              agencyId: 'agt-001',
+              agencyName: 'Global Edu BD',
+              studentName: decodeURIComponent(studentName),
+              targetUniversity: 'Under Review',
+              targetCountry: 'International',
+              lastMessage: {
+                text: 'Consultation initiated.',
+                time: new Date().toISOString(),
+                senderRole: 'STUDENT',
+              },
+              unreadCount: 0,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            ...prev,
+          ];
+        });
+      }
     }
-  }, []);
+  }, [isAgency]);
 
   // Load threads on mount / user change
   useEffect(() => {
     let cancelled = false;
+    const defaultList = isAgency ? AGENCY_DEFAULT_THREADS : DEFAULT_THREADS;
+    setThreads(defaultList);
+
     const roleParam = isAgency ? 'AGENCY' : (user?.role?.toUpperCase() || 'STUDENT');
     const userIdParam = user?.id || (isAgency ? 'usr-agency-01' : 'usr-student-01');
 
@@ -185,10 +363,7 @@ export default function ChatPage() {
       .then((res) => {
         if (!cancelled && res.length > 0) {
           setThreads(res);
-          if (isAgency) {
-            const riyaThread = res.find((t) => t.studentName?.toLowerCase().includes('riya')) || res[0];
-            setActiveThreadId(riyaThread.id);
-          } else if (!res.some((t) => t.id === activeThreadId)) {
+          if (!res.some((t) => t.id === activeThreadId)) {
             setActiveThreadId(res[0].id);
           }
         }
@@ -329,24 +504,34 @@ export default function ChatPage() {
       {/* ─── Top Header & Trust Row ─── */}
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
-          <h1>1-on-1 Secure Agency Chat</h1>
+          <h1>
+            {isAgency
+              ? 'Agency Applicant Messaging Inbox'
+              : user?.role === 'admin'
+                ? 'Dispute Resolution & Audit Transcripts'
+                : '1-on-1 Secure Agency Consultation'}
+          </h1>
           <p className={styles.headerSubtitle}>
-            End-to-end encrypted in transit with immutable cryptographic message audit ledger (Module 5.12)
+            {isAgency
+              ? 'Real-time communication with active university applicants and verified document sharing'
+              : user?.role === 'admin'
+                ? 'Supervisory transcript review and tamper-evident dispute arbitration records'
+                : 'Direct verified messaging with your licensed study-abroad consultancy'}
           </p>
         </div>
 
         <div className={styles.trustBar}>
           <div className={styles.trustPill}>
-            <span>🛡️</span>
-            <span>SHA-256 Tamper Proof</span>
+            <span>🔒</span>
+            <span>Encrypted Session</span>
           </div>
           <div className={styles.trustPill}>
-            <span>⚖️</span>
-            <span>Tribunal Admissible</span>
+            <span>✓</span>
+            <span>Verified Identity</span>
           </div>
           <div className={styles.trustPill}>
-            <span>💼</span>
-            <span>Escrow Linked (#app-001)</span>
+            <span>📋</span>
+            <span>Application Linked</span>
           </div>
         </div>
       </div>
@@ -422,20 +607,22 @@ export default function ChatPage() {
             </Button>
           </div>
 
-          {/* Prompt Suggestion Chips */}
-          <div className={styles.promptBar}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>QUICK INQUIRY:</span>
-            {quickPrompts.map((prompt, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className={styles.promptChip}
-                onClick={() => setInput(prompt)}
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
+          {/* Prompt Suggestion Chips (Students & Agencies only) */}
+          {user?.role !== 'admin' && (
+            <div className={styles.promptBar}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>QUICK INQUIRY:</span>
+              {quickPrompts.map((prompt, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className={styles.promptChip}
+                  onClick={() => setInput(prompt)}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Messages Feed */}
           <div ref={messagesContainerRef} className={styles.messages} aria-live="polite" aria-label="Chat messages">
@@ -527,44 +714,62 @@ export default function ChatPage() {
               </div>
             )}
 
-            <div className={styles.inputRow}>
-              <input
-                type="text"
-                className={styles.input}
-                placeholder={
-                  isAgency
-                    ? `Type an official message to ${activeThread?.studentName || 'student'}…`
-                    : 'Type a message to consultancy…'
-                }
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                aria-label="Message input"
-                id="chat-input"
-                disabled={isSending}
-              />
-              <button
-                type="button"
-                className={styles.attachBtn}
-                onClick={() => setShowVaultSelector(!showVaultSelector)}
-                aria-label="Attach file from Document Vault"
-                title="Attach Document from Vault"
-              >
-                📎
-              </button>
-              <button
-                type="button"
-                className={styles.sendBtn}
-                onClick={handleSend}
-                disabled={(!input.trim() && !attachedDoc) || isSending}
-                aria-label="Send message"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
-            </div>
+            {user?.role === 'admin' ? (
+              <div style={{
+                padding: '16px 20px',
+                background: 'var(--bg-secondary)',
+                borderTop: '2px solid var(--border-color)',
+                textAlign: 'center',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}>
+                <span>🛡️</span>
+                <span><strong>Supervisory Dispute View:</strong> Conversation is archived for compliance audit. Messaging input is active only for direct student and agency participants.</span>
+              </div>
+            ) : (
+              <div className={styles.inputRow}>
+                <input
+                  type="text"
+                  className={styles.input}
+                  placeholder={
+                    isAgency
+                      ? `Type an official message to ${activeThread?.studentName || 'student'}…`
+                      : 'Type a message to consultancy…'
+                  }
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  aria-label="Message input"
+                  id="chat-input"
+                  disabled={isSending}
+                />
+                <button
+                  type="button"
+                  className={styles.attachBtn}
+                  onClick={() => setShowVaultSelector(!showVaultSelector)}
+                  aria-label="Attach file from Document Vault"
+                  title="Attach Document from Vault"
+                >
+                  📎
+                </button>
+                <button
+                  type="button"
+                  className={styles.sendBtn}
+                  onClick={handleSend}
+                  disabled={(!input.trim() && !attachedDoc) || isSending}
+                  aria-label="Send message"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
+            )}
 
             <div className={styles.auditFooter}>
               <span className={styles.auditBadge}>
@@ -622,10 +827,10 @@ export default function ChatPage() {
                           Official Ethos AI Dispute Record
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          BFIU &amp; Ministry of Education grievance compliance standard
+                          Ethos AI Dispute Record & Resolution Summary
                         </div>
                       </div>
-                      <Badge variant="verified" size="sm">✓ Tamper-Evident</Badge>
+                      <Badge variant="verified" size="sm">Audit Logged</Badge>
                     </div>
 
                     <div className={styles.certGrid}>

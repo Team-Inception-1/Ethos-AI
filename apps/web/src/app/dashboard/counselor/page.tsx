@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import CounselorPage from '@/components/pages/CounselorPage';
+import RoleRestricted from '@/components/auth/RoleRestricted';
 
 export const metadata: Metadata = {
   title: 'AI Counselor — Study-Abroad University & Visa Evaluator | Ethos AI',
@@ -8,5 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardCounselor() {
-  return <CounselorPage />;
+  return (
+    <RoleRestricted
+      allowedRoles={['student', 'parent']}
+      featureName="AI University & Visa Counselor"
+    >
+      <CounselorPage />
+    </RoleRestricted>
+  );
 }

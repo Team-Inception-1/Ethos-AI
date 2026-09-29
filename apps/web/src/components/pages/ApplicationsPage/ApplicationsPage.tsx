@@ -45,7 +45,7 @@ export default function ApplicationsPage() {
       <div className={styles.header}>
         <h1>My Applications</h1>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <Link href="/counselor"><Button size="sm" variant="outline">✦ AI Counselor</Button></Link>
+          <Link href="/dashboard/counselor"><Button size="sm" variant="outline">AI Counselor</Button></Link>
           <Link href="/directory"><Button size="sm">+ New Application</Button></Link>
         </div>
       </div>
@@ -55,9 +55,9 @@ export default function ApplicationsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignContent: 'center' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif', margin: 0 }}>
-              ✦ Shortlisted by AI Counselor ({shortlist.length})
+              Shortlisted by AI Counselor ({shortlist.length})
             </h2>
-            <Link href="/counselor">
+            <Link href="/dashboard/counselor">
               <Button size="sm" variant="ghost">Re-Evaluate Profile →</Button>
             </Link>
           </div>

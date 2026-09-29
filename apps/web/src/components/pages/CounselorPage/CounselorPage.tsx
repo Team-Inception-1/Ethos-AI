@@ -534,7 +534,7 @@ export default function CounselorPage() {
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>
-            <span>✦</span> {lang === 'en' ? 'AI Counselor' : 'এআই কাউন্সেলর'}
+            {lang === 'en' ? 'AI Counselor' : 'এআই কাউন্সেলর'}
             <Badge variant="ai" size="sm">
               {lang === 'en' ? 'Unbiased Guidance' : 'নিরপেক্ষ পরামর্শ'}
             </Badge>
@@ -803,8 +803,8 @@ export default function CounselorPage() {
         <div className={styles.wizardActions}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {lang === 'en'
-              ? '✦ Deterministic heuristic matching across 7 destination countries with offline zero-downtime failover'
-              : '✦ ৭টি দেশের অফিসিয়াল ডেটাবেজের ভিত্তিতে তাৎক্ষণিক ও নিরপেক্ষ বিশ্লেষণ'}
+              ? 'Deterministic heuristic matching across 7 destination countries with offline zero-downtime failover'
+              : '৭টি দেশের অফিসিয়াল ডেটাবেজের ভিত্তিতে তাৎক্ষণিক ও নিরপেক্ষ বিশ্লেষণ'}
           </span>
           <Button
             type="button"

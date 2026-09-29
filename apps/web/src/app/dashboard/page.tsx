@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import StudentDashboard from '@/components/pages/StudentDashboard';
 import AgencyDashboard from '@/components/pages/AgencyDashboard';
 import AdminPanel from '@/components/pages/AdminPanel';
+import ParentDashboard from '@/components/pages/ParentDashboard';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -14,8 +15,25 @@ export default function DashboardPage() {
     setMounted(true);
   }, []);
 
+  // Neutral loading state — no role-specific content until hydrated
   if (!mounted) {
-    return <StudentDashboard />;
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60vh',
+        gap: '12px',
+        flexDirection: 'column',
+        opacity: 0.5,
+      }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <span style={{ fontSize: '14px', fontWeight: 500 }}>Loading dashboard…</span>
+      </div>
+    );
   }
 
   if (user?.role === 'agency') {
@@ -27,7 +45,7 @@ export default function DashboardPage() {
   }
 
   if (user?.role === 'parent') {
-    return <StudentDashboard />;
+    return <ParentDashboard />;
   }
 
   return <StudentDashboard />;

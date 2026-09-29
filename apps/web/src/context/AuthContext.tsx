@@ -165,25 +165,31 @@ export function formatDisplayName(emailOrName: string): string {
 export function normalizeUser(u: Partial<User> & { role?: UserRole }): User {
   const role: UserRole = u.role || 'student';
   const demo = DEMO_USERS[role] || DEMO_USERS.student;
+  const isDemo = u.id === demo.id || (u.email && u.email.toLowerCase() === demo.email.toLowerCase());
 
   let resolvedName = u.name;
   if (!resolvedName || resolvedName === 'Student User' || resolvedName === 'hola') {
-    resolvedName = u.email ? formatDisplayName(u.email) : demo.name;
+    resolvedName = u.email ? formatDisplayName(u.email) : (isDemo ? demo.name : 'User');
   }
 
+  // If a non-empty avatarUrl is provided, use it. Otherwise, if demo account, retain designated photo.
+  const resolvedAvatar = (u.avatarUrl && u.avatarUrl.trim().length > 0)
+    ? u.avatarUrl 
+    : (isDemo ? (demo.avatarUrl || '') : (u.avatarUrl || ''));
+
   return {
-    id: u.id || demo.id || `usr-${role}-${Date.now()}`,
+    id: u.id || (isDemo ? demo.id : `usr-${role}-${Date.now()}`),
     name: resolvedName,
-    email: u.email || demo.email,
-    phone: u.phone || demo.phone,
+    email: u.email || (isDemo ? demo.email : ''),
+    phone: u.phone || (isDemo ? demo.phone : ''),
     role: role,
     isVerified: role === 'agency' ? (u.isVerified !== undefined ? u.isVerified : true) : false,
-    avatarUrl: u.avatarUrl !== undefined ? u.avatarUrl : demo.avatarUrl || '',
-    linkedParentIds: u.linkedParentIds || demo.linkedParentIds || [],
-    linkedStudentIds: u.linkedStudentIds || demo.linkedStudentIds || [],
-    studentDetails: u.studentDetails || demo.studentDetails,
-    agencyDetails: u.agencyDetails || demo.agencyDetails,
-    createdAt: u.createdAt || demo.createdAt || new Date().toISOString().split('T')[0],
+    avatarUrl: resolvedAvatar,
+    linkedParentIds: u.linkedParentIds || (isDemo ? demo.linkedParentIds : []) || [],
+    linkedStudentIds: u.linkedStudentIds || (isDemo ? demo.linkedStudentIds : []) || [],
+    studentDetails: u.studentDetails || (isDemo ? demo.studentDetails : undefined),
+    agencyDetails: u.agencyDetails || (isDemo ? demo.agencyDetails : undefined),
+    createdAt: u.createdAt || (isDemo ? demo.createdAt : new Date().toISOString().split('T')[0]),
   };
 }
 

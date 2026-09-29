@@ -2,7 +2,7 @@
 import React from 'react';
 import styles from './Badge.module.css';
 
-type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'ai';
+type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'ai' | 'outline';
 
 interface BadgeProps {
   variant?: BadgeVariant;
@@ -15,7 +15,6 @@ const icons: Partial<Record<BadgeVariant, string>> = {
   verified: '✓',
   pending:  '◐',
   rejected: '✕',
-  ai:       '✦',
 };
 
 export default function Badge({ variant = 'neutral', children, size = 'md', dot = false }: BadgeProps) {
