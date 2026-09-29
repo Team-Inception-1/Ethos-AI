@@ -401,12 +401,31 @@ interface SidebarProps {
 export default function Sidebar({ lang = 'en' }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [currentSearch, setCurrentSearch] = useState('');
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { user } = useAuth();
 
   React.useEffect(() => {
     setImgError(false);
   }, [user?.avatarUrl]);
+
+  React.useEffect(() => {
+    setMounted(true);
+    setCurrentSearch(window.location.search);
+
+    const updateSearch = () => {
+      setCurrentSearch(window.location.search);
+    };
+
+    window.addEventListener('popstate', updateSearch);
+    const interval = setInterval(updateSearch, 200);
+
+    return () => {
+      window.removeEventListener('popstate', updateSearch);
+      clearInterval(interval);
+    };
+  }, [pathname]);
 
   // If URL path is /agency/* or /admin/*, enforce appropriate role navigation immediately
   const effectiveRole =
@@ -459,19 +478,20 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
             );
 
             if (hrefQuery) {
-              // For query-param based items (e.g. ?tab=applications or ?tab=agencies),
-              // check if both path and query match the current URL
-              if (typeof window !== 'undefined') {
-                const currentSearch = window.location.search;
-                isActive = pathname === hrefBase && currentSearch.includes(hrefQuery);
-                // Default tab active states when no query param is in URL:
-                if (!currentSearch && pathname === '/admin' && hrefQuery === 'tab=agencies') {
-                  isActive = true;
+              if (mounted) {
+                if (currentSearch) {
+                  isActive = pathname === hrefBase && currentSearch.includes(hrefQuery);
+                } else {
+                  // Default tab active state when no query param is in URL:
+                  isActive = pathname === hrefBase && hrefQuery === 'tab=agencies';
                 }
+              } else {
+                // Server and initial hydration match (guaranteed deterministic!)
+                isActive = pathname === hrefBase && hrefQuery === 'tab=agencies';
               }
             } else if (item.href === '/agency/dashboard' && effectiveRole === 'agency') {
               // Dashboard root: only active when no tab query present
-              isActive = pathname === '/agency/dashboard' && (typeof window === 'undefined' || !window.location.search.includes('tab='));
+              isActive = pathname === '/agency/dashboard' && (!mounted || !currentSearch.includes('tab='));
             } else {
               isActive = pathnameMatches;
             }
