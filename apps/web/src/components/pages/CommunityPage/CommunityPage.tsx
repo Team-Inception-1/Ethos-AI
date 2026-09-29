@@ -26,6 +26,104 @@ const CATEGORIES = [
   'Scholarship',
 ];
 
+function HubFlagIcon({ code, size = 'sm' }: { code?: string; size?: 'sm' | 'lg' }) {
+  const isLg = size === 'lg';
+  const width = isLg ? 36 : 22;
+  const height = isLg ? 24 : 15;
+  const radius = isLg ? '5px' : '3px';
+  const style: React.CSSProperties = {
+    borderRadius: radius,
+    flexShrink: 0,
+    boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+    display: 'inline-block',
+    verticalAlign: 'middle',
+    overflow: 'hidden',
+  };
+
+  switch (code?.toUpperCase()) {
+    case 'DE':
+      return (
+        <svg width={width} height={height} viewBox="0 0 640 480" style={style}>
+          <path fill="#000" d="M0 0h640v160H0z"/>
+          <path fill="#D00" d="M0 160h640v160H0z"/>
+          <path fill="#FFCE00" d="M0 320h640v160H0z"/>
+        </svg>
+      );
+    case 'CA':
+      return (
+        <svg width={width} height={height} viewBox="0 0 640 480" style={style}>
+          <path fill="#D80027" d="M0 0h640v480H0z"/>
+          <path fill="#fff" d="M160 0h320v480H160z"/>
+          <path fill="#D80027" d="M320 100l20 50 50-15-20 50 45 25-50 15 15 50-45-25-10 50-10-50-45 25 15-50-50-15 45-25-20-50 50 15z"/>
+        </svg>
+      );
+    case 'GB':
+    case 'UK':
+      return (
+        <svg width={width} height={height} viewBox="0 0 640 480" style={style}>
+          <clipPath id={`uk-flag-${size}`}><path d="M0 0v480h640V0z"/></clipPath>
+          <g clipPath={`url(#uk-flag-${size})`}>
+            <path fill="#012169" d="M0 0v480h640V0z"/>
+            <path stroke="#fff" strokeWidth="60" d="M0 0l640 480M640 0L0 480"/>
+            <path stroke="#c8102e" strokeWidth="40" d="M0 0l640 480M640 0L0 480"/>
+            <path stroke="#fff" strokeWidth="100" d="M320 0v480M0 240h640"/>
+            <path stroke="#c8102e" strokeWidth="60" d="M320 0v480M0 240h640"/>
+          </g>
+        </svg>
+      );
+    case 'US':
+    case 'USA':
+      return (
+        <svg width={width} height={height} viewBox="0 0 640 480" style={style}>
+          <path fill="#bd3d44" d="M0 0h640v480H0z"/>
+          <path stroke="#fff" strokeWidth="37" d="M0 55.5h640m-640 74h640m-640 74h640m-640 74h640m-640 74h640m-640 74h640"/>
+          <path fill="#192f5d" d="M0 0h260v260H0z"/>
+          <circle cx="45" cy="45" r="10" fill="#fff"/>
+          <circle cx="105" cy="45" r="10" fill="#fff"/>
+          <circle cx="165" cy="45" r="10" fill="#fff"/>
+          <circle cx="215" cy="45" r="10" fill="#fff"/>
+          <circle cx="75" cy="95" r="10" fill="#fff"/>
+          <circle cx="135" cy="95" r="10" fill="#fff"/>
+          <circle cx="195" cy="95" r="10" fill="#fff"/>
+          <circle cx="45" cy="145" r="10" fill="#fff"/>
+          <circle cx="105" cy="145" r="10" fill="#fff"/>
+          <circle cx="165" cy="145" r="10" fill="#fff"/>
+          <circle cx="215" cy="145" r="10" fill="#fff"/>
+          <circle cx="75" cy="195" r="10" fill="#fff"/>
+          <circle cx="135" cy="195" r="10" fill="#fff"/>
+          <circle cx="195" cy="195" r="10" fill="#fff"/>
+        </svg>
+      );
+    case 'AU':
+      return (
+        <svg width={width} height={height} viewBox="0 0 640 480" style={style}>
+          <path fill="#00008b" d="M0 0h640v480H0z"/>
+          <path fill="#fff" d="M0 0h320v240H0z"/>
+          <path fill="#012169" d="M0 0h320v240H0z"/>
+          <path stroke="#fff" strokeWidth="30" d="M0 0l320 240M320 0L0 240"/>
+          <path stroke="#c8102e" strokeWidth="20" d="M0 0l320 240M320 0L0 240"/>
+          <path stroke="#fff" strokeWidth="50" d="M160 0v240M0 120h320"/>
+          <path stroke="#c8102e" strokeWidth="30" d="M160 0v240M0 120h320"/>
+          <polygon fill="#fff" points="160,300 170,330 200,330 175,350 185,380 160,360 135,380 145,350 120,330 150,330"/>
+          <circle cx="480" cy="120" r="16" fill="#fff"/>
+          <circle cx="530" cy="200" r="16" fill="#fff"/>
+          <circle cx="480" cy="340" r="16" fill="#fff"/>
+          <circle cx="430" cy="220" r="16" fill="#fff"/>
+          <circle cx="500" cy="260" r="10" fill="#fff"/>
+        </svg>
+      );
+    case 'SE':
+      return (
+        <svg width={width} height={height} viewBox="0 0 640 480" style={style}>
+          <path fill="#006aa7" d="M0 0h640v480H0z"/>
+          <path fill="#fecc00" d="M190 0h70v480h-70zM0 205h640v70H0z"/>
+        </svg>
+      );
+    default:
+      return <span style={{ fontSize: isLg ? '28px' : '16px' }}>🌍</span>;
+  }
+}
+
 export default function CommunityPage() {
   const { user } = useAuth();
   const currentUserId = user?.id || 'usr-student-01';
@@ -341,11 +439,14 @@ export default function CommunityPage() {
         {hubs.map((hub) => {
           const isActive = hub.id === activeHubId;
           const isJoined = joinedHubIds.includes(hub.id);
+          const tabLabel = hub.countryCode === 'GB' ? 'UK' : hub.countryCode === 'US' ? 'USA' : hub.country;
+
           return (
             <button
               key={hub.id}
               role="tab"
               aria-selected={isActive}
+              title={`${hub.country} Student Community (${hub.memberCount} members)`}
               onClick={() => {
                 setActiveHubId(hub.id);
                 setSelectedCategory('All');
@@ -353,8 +454,10 @@ export default function CommunityPage() {
               }}
               className={`${styles.hubTab} ${isActive ? styles.hubTabActive : ''}`}
             >
-              <span className={styles.hubTabFlag}>{hub.flag}</span>
-              <span className={styles.hubTabName}>{hub.country}</span>
+              <span className={styles.hubTabFlag}>
+                <HubFlagIcon code={hub.countryCode} size="sm" />
+              </span>
+              <span className={styles.hubTabName}>{tabLabel}</span>
               <span className={styles.hubTabMeta}>
                 {isJoined && <span className={styles.hubJoinedDot} title="Joined Community" />}
                 <span className={styles.hubTabBadge}>{hub.memberCount}</span>
@@ -369,7 +472,9 @@ export default function CommunityPage() {
         <div className={styles.activeHubBanner}>
           <div className={styles.bannerTop}>
             <div className={styles.bannerMain}>
-              <span className={styles.bannerFlag}>{currentHub.flag}</span>
+              <span className={styles.bannerFlag}>
+                <HubFlagIcon code={currentHub.countryCode} size="lg" />
+              </span>
               <div>
                 <h2 className={styles.bannerTitle}>
                   {currentHub.country} Student Community
@@ -889,8 +994,10 @@ export default function CommunityPage() {
             <form onSubmit={handleCreatePost}>
               <div className={styles.modalBody}>
                 {/* Fixed Country Alert */}
-                <div style={{ padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: '6px', fontSize: '12.5px' }}>
-                  📍 <strong>Destination:</strong> {currentHub?.flag} {currentHub?.country} (Will only be visible inside this country group)
+                <div style={{ padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: '6px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📍 <strong>Destination:</strong></span>
+                  <HubFlagIcon code={currentHub?.countryCode} size="sm" />
+                  <span>{currentHub?.country} (Will only be visible inside this country group)</span>
                 </div>
 
                 <div className={styles.formGroup}>
