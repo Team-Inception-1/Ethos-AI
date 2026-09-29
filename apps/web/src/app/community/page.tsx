@@ -13,10 +13,12 @@ export default function Community() {
   return (
     <>
       <Navbar />
-      <div style={{ minHeight: '100vh', paddingTop: 'var(--header-height, 70px)' }}>
-        <Suspense fallback={<div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Student Network...</div>}>
-          <CommunityPage />
-        </Suspense>
+      <div style={{ minHeight: '100vh', paddingTop: 'calc(var(--navbar-height, 70px) + 24px)', paddingBottom: '60px' }}>
+        <div className="container">
+          <Suspense fallback={<div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Student Network...</div>}>
+            <CommunityPage />
+          </Suspense>
+        </div>
       </div>
     </>
   );
