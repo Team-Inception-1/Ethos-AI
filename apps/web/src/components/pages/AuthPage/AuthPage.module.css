@@ -305,6 +305,38 @@
 }
 .phoneInput { flex: 1; }
 
+.passwordWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.passwordInput {
+  padding-right: 44px !important;
+}
+
+.passwordToggleBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.passwordToggleBtn:hover {
+  color: var(--text-primary);
+}
+
 .forgotLink {
   font-size: 12px;
   font-weight: 700;
@@ -414,6 +446,38 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.demoBadge {
+  background: var(--blue-primary);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.04em;
+  margin-left: auto;
+}
+
+.demoOtpHint {
+  background: rgba(79, 142, 247, 0.12);
+  border: 1.5px solid var(--blue-primary);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  margin: 10px 0 14px 0;
+  text-align: center;
+}
+
+.demoOtpHint code {
+  background: var(--glass-bg-elevated);
+  border: 1px solid var(--ink);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--blue-light);
 }
 
 .demoGrid {

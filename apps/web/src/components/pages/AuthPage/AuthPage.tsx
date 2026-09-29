@@ -46,6 +46,20 @@ const AdminIcon = () => (
   </svg>
 );
 
+const EyeIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
 const QuoteIcon = () => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity="0.1" style={{ position: 'absolute', top: 16, left: 16, zIndex: 0 }}>
     <path d="M14.017 21L16.411 14.603H10.893V3H21v11.397L18.606 21h-4.589zm-10.893 0L5.518 14.603H0V3h10.107v11.397L7.714 21H3.124z" />
@@ -60,7 +74,7 @@ const roles: { id: UserRole; label: string; labelBn: string; icon: React.ReactNo
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
-  const { user, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail } = useAuth();
+  const { user, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail, quickLoginDemo } = useAuth();
 
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [role, setRole] = useState<UserRole>('student');
@@ -70,9 +84,21 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [errorMsg, setErrorMsg] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  const handleQuickDemo = (demoRole: UserRole) => {
+    quickLoginDemo(demoRole);
+    if (demoRole === 'agency') {
+      router.push('/agency/dashboard');
+    } else if (demoRole === 'admin') {
+      router.push('/admin');
+    } else {
+      router.push('/dashboard');
+    }
+  };
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -327,23 +353,25 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     required
                   />
                 </div>
-                <div className={styles.fieldGroup}>
-                  <label className={styles.label} htmlFor="phone">
-                    {lang === 'en' ? 'Phone Number' : 'ফোন নম্বর'}
-                  </label>
-                  <div className={styles.phoneWrap}>
-                    <span className={styles.phonePrefix}>🇧🇩 +880</span>
-                    <input
-                      id="phone"
-                      type="tel"
-                      className={`${styles.input} ${styles.phoneInput}`}
-                      placeholder="1XXXXXXXXX"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                    />
+                {mode === 'register' && (
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.label} htmlFor="phone">
+                      {lang === 'en' ? 'Phone Number' : 'ফোন নম্বর'}
+                    </label>
+                    <div className={styles.phoneWrap}>
+                      <span className={styles.phonePrefix}>🇧🇩 +880</span>
+                      <input
+                        id="phone"
+                        type="tel"
+                        className={`${styles.input} ${styles.phoneInput}`}
+                        placeholder="1XXXXXXXXX"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className={styles.fieldGroup}>
                   <label className={styles.label} htmlFor="password">
                     {lang === 'en'
@@ -354,14 +382,25 @@ export default function AuthPage({ mode }: AuthPageProps) {
                         ? 'পাসওয়ার্ড'
                         : 'নতুন পাসওয়ার্ড'}
                   </label>
-                  <input
-                    id="password"
-                    type="password"
-                    className={styles.input}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
+                  <div className={styles.passwordWrap}>
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className={`${styles.input} ${styles.passwordInput}`}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={styles.passwordToggleBtn}
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                   {mode === 'login' && (
                     <Link href="#" className={styles.forgotLink}>
                       {lang === 'en' ? 'Forgot password?' : 'পাসওয়ার্ড ভুলে গেছেন?'}
@@ -396,6 +435,69 @@ export default function AuthPage({ mode }: AuthPageProps) {
                   </>
                 )}
               </p>
+
+              {/* 1-Click Demo Login Dock */}
+              {mode === 'login' && (
+                <div className={styles.demoPanel}>
+                  <div className={styles.demoTitle}>
+                    <span>⚡ {lang === 'en' ? '1-Click Demo Login' : '১-ক্লিকে ডেমো লগইন'}</span>
+                    <span className={styles.demoBadge}>Instant Access</span>
+                  </div>
+                  <div className={styles.demoGrid}>
+                    <button
+                      type="button"
+                      className={styles.demoBtn}
+                      onClick={() => handleQuickDemo('student')}
+                      title="Login instantly as student Riya Ahmed"
+                    >
+                      <span className={styles.demoIcon}><StudentIcon /></span>
+                      <div>
+                        <strong>{lang === 'en' ? 'Student' : 'শিক্ষার্থী'}</strong>
+                        <span className={styles.demoRoleLabel}>Riya Ahmed (Canada)</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={styles.demoBtn}
+                      onClick={() => handleQuickDemo('parent')}
+                      title="Login instantly as parent Farhana Ahmed"
+                    >
+                      <span className={styles.demoIcon}><ParentIcon /></span>
+                      <div>
+                        <strong>{lang === 'en' ? 'Parent' : 'অভিভাবক'}</strong>
+                        <span className={styles.demoRoleLabel}>Farhana Ahmed</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={styles.demoBtn}
+                      onClick={() => handleQuickDemo('agency')}
+                      title="Login instantly as Global Edu BD consultancy"
+                    >
+                      <span className={styles.demoIcon}><AgencyIcon /></span>
+                      <div>
+                        <strong>{lang === 'en' ? 'Agency' : 'এজেন্সি'}</strong>
+                        <span className={styles.demoRoleLabel}>Global Edu BD</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={styles.demoBtn}
+                      onClick={() => handleQuickDemo('admin')}
+                      title="Login instantly as Platform Administrator"
+                    >
+                      <span className={styles.demoIcon}><AdminIcon /></span>
+                      <div>
+                        <strong>{lang === 'en' ? 'Admin' : 'অ্যাডমিন'}</strong>
+                        <span className={styles.demoRoleLabel}>Platform Governance</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             /* OTP Step */
@@ -425,6 +527,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
               <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', margin: '12px 0 16px', lineHeight: '1.5' }}>
                 📬 Verification code sent to <strong style={{ color: 'var(--text-primary)' }}>{otpEmail || 'your email'}</strong>
+              </div>
+
+              <div className={styles.demoOtpHint}>
+                💡 <strong>Demo Shortcut:</strong> Enter any 6-digit code (e.g. <code>123456</code>) to verify instantly.
               </div>
 
               <Button size="lg" fullWidth glow onClick={handleVerify} disabled={isVerifying}>
