@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -21,6 +21,30 @@ export default function Navbar() {
   const pathname = usePathname();
   const dashboardHref = user?.role === 'agency' ? '/agency/dashboard' : '/dashboard';
   const isDashboardActive = pathname === dashboardHref || (pathname?.startsWith('/agency') && user?.role === 'agency') || pathname === '/dashboard';
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ethos-lang') as 'en' | 'bn';
+      if (saved === 'en' || saved === 'bn') setLang(saved);
+    } catch {}
+    const handleLangChange = (e: Event) => {
+      const customEvent = e as CustomEvent<'en' | 'bn'>;
+      if (customEvent.detail === 'en' || customEvent.detail === 'bn') {
+        setLang(customEvent.detail);
+      }
+    };
+    window.addEventListener('ethos-lang-change', handleLangChange);
+    return () => window.removeEventListener('ethos-lang-change', handleLangChange);
+  }, []);
+
+  const toggleLanguage = () => {
+    const next = lang === 'en' ? 'bn' : 'en';
+    setLang(next);
+    try {
+      localStorage.setItem('ethos-lang', next);
+      window.dispatchEvent(new CustomEvent('ethos-lang-change', { detail: next }));
+    } catch {}
+  };
 
   return (
     <header className={styles.header}>
@@ -56,7 +80,7 @@ export default function Navbar() {
           {/* Language Toggle */}
           <button
             id="lang-toggle"
-            onClick={() => setLang((l) => (l === 'en' ? 'bn' : 'en'))}
+            onClick={toggleLanguage}
             className={styles.langBtn}
             aria-label="Toggle language"
           >

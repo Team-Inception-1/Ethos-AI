@@ -156,6 +156,30 @@ function useScrollReveal() {
 export default function LandingPage() {
   const [lang, setLang] = useState<'en'|'bn'>('en');
   
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ethos-lang') as 'en' | 'bn';
+      if (saved === 'en' || saved === 'bn') setLang(saved);
+    } catch {}
+    const handleLangChange = (e: Event) => {
+      const customEvent = e as CustomEvent<'en' | 'bn'>;
+      if (customEvent.detail === 'en' || customEvent.detail === 'bn') {
+        setLang(customEvent.detail);
+      }
+    };
+    window.addEventListener('ethos-lang-change', handleLangChange);
+    return () => window.removeEventListener('ethos-lang-change', handleLangChange);
+  }, []);
+
+  const toggleLanguage = () => {
+    const next = lang === 'en' ? 'bn' : 'en';
+    setLang(next);
+    try {
+      localStorage.setItem('ethos-lang', next);
+      window.dispatchEvent(new CustomEvent('ethos-lang-change', { detail: next }));
+    } catch {}
+  };
+
   const statsReveal = useScrollReveal();
   const featuresReveal = useScrollReveal();
   const stepsReveal = useScrollReveal();
@@ -351,6 +375,7 @@ export default function LandingPage() {
               <Link href="/compare">Compare</Link>
               <Link href="/community">Student Network</Link>
               <Link href="/dashboard/scholar-finder">ScholarFinder</Link>
+              <Link href="/dashboard/campus-living">Campus Living</Link>
               <Link href="/dashboard/ai-tools">AI Tools</Link>
             </div>
             <div className={styles.footerCol}>
@@ -367,7 +392,7 @@ export default function LandingPage() {
           </div>
           <div className={styles.footerBottom}>
             <p>© 2026 Ethos AI. {lang === 'en' ? 'All rights reserved.' : 'সর্বস্বত্ব সংরক্ষিত।'}</p>
-            <button className={styles.footerLang} onClick={() => setLang(l => l === 'en' ? 'bn' : 'en')}>
+            <button className={styles.footerLang} onClick={toggleLanguage}>
               {lang === 'en' ? 'বাংলা' : 'English'}
             </button>
           </div>

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/layout/Navbar';
-import AIBubble from '@/components/ui/AIBubble';
 import LandingPage from '@/components/pages/LandingPage';
 
 export const metadata: Metadata = {
@@ -13,7 +12,6 @@ export default function Home() {
     <>
       <Navbar />
       <LandingPage />
-      <AIBubble />
     </>
   );
 }
