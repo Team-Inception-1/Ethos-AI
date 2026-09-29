@@ -428,35 +428,39 @@
 /* ── Demo Panel ── */
 .demoPanel {
   margin-top: var(--space-4);
-  padding: var(--space-5);
-  background: var(--glass-bg-elevated);
-  border: 2px dashed var(--ink);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-elevated);
+  border: 2px solid var(--ink);
   border-radius: var(--radius-lg);
+  box-shadow: 4px 4px 0 0 var(--ink);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .demoTitle {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
-  color: var(--blue-primary);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 1.5px solid var(--border-subtle);
 }
 
 .demoBadge {
-  background: var(--blue-primary);
+  background: #dc2626;
   color: #ffffff;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: var(--radius-full);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   margin-left: auto;
+  text-transform: uppercase;
 }
 
 .demoOtpHint {
@@ -483,45 +487,54 @@
 .demoGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
+  gap: 8px;
 }
 
 .demoBtn {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--glass-bg);
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
   border: 2px solid var(--ink);
+  border-left-width: 4px;
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 2.5px 2.5px 0 0 var(--ink);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
   text-align: left;
+  font-family: inherit;
 }
 
 .demoBtn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 0 var(--ink);
+  transform: translate(-2px, -2px);
+  box-shadow: 4.5px 4.5px 0 0 var(--ink);
+}
+
+.demoBtn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--ink);
 }
 
 .demoBtn:hover .demoIcon {
-  color: var(--blue-primary);
+  transform: scale(1.15);
 }
 
 .demoIcon {
   color: var(--text-secondary);
-  transition: color var(--transition-fast);
+  transition: transform 0.1s ease;
+  flex-shrink: 0;
 }
 
 .demoRoleLabel {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--text-muted);
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 /* ── Responsive ── */

@@ -440,13 +440,14 @@ export default function AuthPage({ mode }: AuthPageProps) {
               {mode === 'login' && (
                 <div className={styles.demoPanel}>
                   <div className={styles.demoTitle}>
-                    <span>⚡ {lang === 'en' ? '1-Click Demo Login' : '১-ক্লিকে ডেমো লগইন'}</span>
-                    <span className={styles.demoBadge}>Instant Access</span>
+                    <span>🧪 {lang === 'en' ? 'Staging — Quick Login' : 'স্টেজিং — দ্রুত লগইন'}</span>
+                    <span className={styles.demoBadge}>DEMO ENV</span>
                   </div>
                   <div className={styles.demoGrid}>
                     <button
                       type="button"
                       className={styles.demoBtn}
+                      data-role="student"
                       onClick={() => handleQuickDemo('student')}
                       title="Login instantly as student Riya Ahmed"
                     >
@@ -460,6 +461,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     <button
                       type="button"
                       className={styles.demoBtn}
+                      data-role="parent"
                       onClick={() => handleQuickDemo('parent')}
                       title="Login instantly as parent Farhana Ahmed"
                     >
@@ -473,6 +475,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     <button
                       type="button"
                       className={styles.demoBtn}
+                      data-role="agency"
                       onClick={() => handleQuickDemo('agency')}
                       title="Login instantly as Global Edu BD consultancy"
                     >
@@ -486,6 +489,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     <button
                       type="button"
                       className={styles.demoBtn}
+                      data-role="admin"
                       onClick={() => handleQuickDemo('admin')}
                       title="Login instantly as Platform Administrator"
                     >
