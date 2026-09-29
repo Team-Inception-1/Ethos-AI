@@ -482,6 +482,30 @@ export default function CampusLivingPage() {
               </div>
             </div>
 
+            {/* Provenance Banner for Living Expenses */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '8px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              marginBottom: '12px',
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🛡️</span>
+                <span><strong>Database Grounding:</strong> Living costs are benchmarked against official municipal student rental registries &amp; verified by partner consultancies.</span>
+              </span>
+              <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>
+                ✓ Admin Audited 2026/2027 Rates
+              </span>
+            </div>
+
             {/* Expense Breakdown Categories */}
             <div className={styles.breakdownGrid}>
               

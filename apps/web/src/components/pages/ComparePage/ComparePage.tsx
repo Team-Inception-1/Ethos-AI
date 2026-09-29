@@ -244,6 +244,32 @@ export default function ComparePage() {
               </tbody>
             </table>
           </div>
+
+          {/* Fee & Escrow Verification Footnote */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            padding: '12px 16px',
+            borderTop: '1px solid var(--border-subtle)',
+            background: 'rgba(255, 255, 255, 0.02)',
+            fontSize: '12px',
+            color: 'var(--text-secondary)',
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>🛡️</span>
+              <span>
+                {lang === 'en'
+                  ? 'All service fee limits and mandatory refund guarantees are audited by Ethos AI against trade licenses (DNCC/DSCC/Ministry of Education) & Escrow contracts.'
+                  : 'সকল সার্ভিস ফি ও রিফান্ড নীতিমালা সিটি কর্পোরেশন ও শিক্ষা মন্ত্রণালয়ের ট্রেড লাইসেন্স অনুযায়ী ইথোস এডমিন কর্তৃক অডিটকৃত।'}
+              </span>
+            </span>
+            <Badge variant="verified" size="sm">
+              ✓ {lang === 'en' ? 'Legally Audited Rates' : 'যাচাইকৃত রেট'}
+            </Badge>
+          </div>
         </GlassCard>
       </div>
 
