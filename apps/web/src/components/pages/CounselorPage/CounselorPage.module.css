@@ -2086,30 +2086,30 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 14px;
-  margin: 10px 0 12px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.05) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.28);
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
+  padding: 12px 14px;
+  margin: 12px 0 14px;
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: 2.5px 2.5px 0 0 var(--ink);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .agencySourceBanner:hover {
-  border-color: rgba(16, 185, 129, 0.5);
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
+  transform: translate(-1px, -1px);
+  box-shadow: 3.5px 3.5px 0 0 var(--ink);
 }
 
 :global([data-theme='light']) .agencySourceBanner {
-  background: linear-gradient(135deg, #ECFDF5 0%, #EFF6FF 100%);
-  border: 1px solid #A7F3D0;
-  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.1);
+  background: var(--bg-surface);
+  border: 2px solid var(--ink);
+  box-shadow: 2.5px 2.5px 0 0 var(--ink);
 }
 
 .agencySourceLeft {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
   flex: 1;
 }
@@ -2117,16 +2117,19 @@
 .agencySourceLabelRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .agencyGovBadge {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #10B981;
+  color: var(--emerald);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 :global([data-theme='light']) .agencyGovBadge {
@@ -2134,20 +2137,21 @@
 }
 
 .agencyLicenseBadge {
-  font-size: 10.5px;
+  font-size: 10px;
   font-family: monospace;
-  font-weight: 600;
-  padding: 1px 6px;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 4px;
-  color: #6EE7B7;
+  font-weight: 700;
+  padding: 2px 7px;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  box-shadow: 1px 1px 0 0 var(--ink);
 }
 
 :global([data-theme='light']) .agencyLicenseBadge {
-  background: #D1FAE5;
-  border-color: #6EE7B7;
-  color: #065F46;
+  background: var(--bg-elevated);
+  border-color: var(--ink);
+  color: var(--text-primary);
 }
 
 .agencyNameContainer {
@@ -2158,105 +2162,108 @@
 }
 
 .agencySourceName {
-  font-size: 14px;
-  font-weight: 700;
-  color: #F8FAFC;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text-primary);
 }
 
 :global([data-theme='light']) .agencySourceName {
-  color: #0F172A;
+  color: var(--text-primary);
 }
 
 .agencySourceNameBn {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: #94A3B8;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 :global([data-theme='light']) .agencySourceNameBn {
-  color: #64748B;
+  color: var(--text-muted);
 }
 
 .agencyMetricsRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #94A3B8;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
   flex-wrap: wrap;
 }
 
 :global([data-theme='light']) .agencyMetricsRow {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .agencyMetric {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .agencyMetricDot {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .agencyRiskPill {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--ink);
+  box-shadow: 1px 1px 0 0 var(--ink);
 }
 
 .riskPillLow {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34D399;
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(23, 201, 137, 0.18);
+  color: var(--emerald);
 }
 
 :global([data-theme='light']) .riskPillLow {
-  background: #D1FAE5;
-  color: #065F46;
-  border-color: #A7F3D0;
+  background: #DCFCE7;
+  color: #15803D;
+  border-color: var(--ink);
 }
 
 .riskPillMed {
-  background: rgba(245, 158, 11, 0.2);
-  color: #FBBF24;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(255, 201, 60, 0.18);
+  color: var(--amber);
 }
 
 :global([data-theme='light']) .riskPillMed {
   background: #FEF3C7;
-  color: #92400E;
-  border-color: #FDE68A;
+  color: #B45309;
+  border-color: var(--ink);
 }
 
 .verifyAgencyBtn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   padding: 8px 14px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   color: #FFFFFF;
-  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
-  border: 1px solid rgba(52, 211, 153, 0.4);
-  border-radius: 8px;
+  background: var(--emerald);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-md);
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
-  transition: all 0.2s ease;
+  box-shadow: 2.5px 2.5px 0 0 var(--ink);
+  transition: all var(--transition-fast);
 }
 
 .verifyAgencyBtn:hover {
-  background: linear-gradient(135deg, #047857 0%, #059669 100%);
-  border-color: #6EE7B7;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  transform: translate(-1px, -1px);
+  box-shadow: 3.5px 3.5px 0 0 var(--ink);
+}
+
+.verifyAgencyBtn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--ink);
 }
 
 :global([data-theme='light']) .verifyAgencyBtn {
-  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+  background: var(--emerald);
   color: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+  box-shadow: 2.5px 2.5px 0 0 var(--ink);
 }
 
 /* Card Action Button: Verify Agency */

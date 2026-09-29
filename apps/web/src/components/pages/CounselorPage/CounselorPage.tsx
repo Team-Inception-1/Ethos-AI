@@ -965,14 +965,14 @@ export default function CounselorPage() {
                         <div className={styles.agencySourceLeft}>
                           <div className={styles.agencySourceLabelRow}>
                             <span className={styles.agencyGovBadge}>
-                              🇧🇩 {lang === 'en' ? 'Sourced via Verified Agency:' : 'অনুমোদিত এজেন্সির মাধ্যমে প্রাপ্ত:'}
+                              ✓ {lang === 'en' ? 'Verified Agency Partner' : 'অনুমোদিত এজেন্সি'}
                             </span>
                             <span className={styles.agencyLicenseBadge}>
-                              🛡️ {agency.licenseNo}
+                              {agency.licenseNo}
                             </span>
                           </div>
                           <div className={styles.agencyNameContainer}>
-                            <strong className={styles.agencySourceName}>{agency.name}</strong>
+                            <span className={styles.agencySourceName}>{agency.name}</span>
                             {agency.nameBn && (
                               <span className={styles.agencySourceNameBn}>({agency.nameBn})</span>
                             )}
@@ -987,7 +987,7 @@ export default function CounselorPage() {
                             </span>
                             <span className={styles.agencyMetricDot}>•</span>
                             <span className={`${styles.agencyRiskPill} ${agency.riskScore <= 15 ? styles.riskPillLow : styles.riskPillMed}`}>
-                              🛡️ AI Risk: {agency.riskScore}/100 ({agency.riskScore <= 15 ? 'Low' : 'Med'})
+                              🛡️ Risk: {agency.riskScore}/100
                             </span>
                           </div>
                         </div>
@@ -997,7 +997,8 @@ export default function CounselorPage() {
                           className={styles.verifyAgencyBtn}
                           title="Click to view verified trade license, owner, and official credentials"
                         >
-                          🔍 {lang === 'en' ? 'Verify Agency' : 'এজেন্সি যাচাই করুন'}
+                          <span>🔍</span>
+                          <span>{lang === 'en' ? 'Verify Agency' : 'এজেন্সি যাচাই'}</span>
                         </button>
                       </div>
                     );
