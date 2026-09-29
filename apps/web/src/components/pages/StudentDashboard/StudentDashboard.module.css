@@ -33,67 +33,150 @@
   gap: var(--space-5);
 }
 
+@media (max-width: 1100px) {
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .statsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
 .statCard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  position: relative;
-  background: var(--glass-bg);
-  border: var(--border-width) solid var(--ink);
-  box-shadow: var(--shadow-md);
+  justify-content: space-between;
+  padding: 20px 22px;
+  min-height: 140px;
+  background: var(--bg-surface, #ffffff);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-xl, 14px);
+  box-shadow: 3px 3px 0 0 var(--ink);
   transition: transform var(--transition-base), box-shadow var(--transition-base);
+  position: relative;
+  overflow: hidden;
 }
 
 .statCard:hover {
   transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 5px 5px 0 0 var(--ink);
 }
-
-.statCard::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 6px;
-}
-.stat-blue::before   { background: var(--blue-primary); }
-.stat-purple::before { background: var(--purple-accent); }
-.stat-amber::before  { background: var(--amber); }
-.stat-emerald::before{ background: var(--emerald); }
 
 .statHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-2);
+  gap: 12px;
+}
+
+.statLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .statIconWrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  border: 2px solid var(--ink);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
 }
 
-.stat-blue .statIconWrap   { background: var(--blue-primary); color: #fff; }
-.stat-purple .statIconWrap { background: var(--purple-accent); color: #fff; }
-.stat-amber .statIconWrap  { background: var(--amber); color: #3D2E00; }
-.stat-emerald .statIconWrap{ background: var(--emerald); color: #08331F; }
+.statCard:hover .statIconWrap {
+  transform: scale(1.06);
+}
+
+.stat-blue .statIconWrap {
+  background: rgba(79, 142, 247, 0.12);
+  color: var(--blue-primary, #4f8ef7);
+  border: 1.5px solid rgba(79, 142, 247, 0.3);
+}
+
+.stat-purple .statIconWrap {
+  background: rgba(155, 107, 255, 0.12);
+  color: var(--purple-accent, #9b6bff);
+  border: 1.5px solid rgba(155, 107, 255, 0.3);
+}
+
+.stat-amber .statIconWrap {
+  background: rgba(255, 201, 60, 0.15);
+  color: #d97706;
+  border: 1.5px solid rgba(255, 201, 60, 0.35);
+}
+
+.stat-emerald .statIconWrap {
+  background: rgba(23, 201, 137, 0.12);
+  color: var(--emerald, #17c989);
+  border: 1.5px solid rgba(23, 201, 137, 0.3);
+}
 
 .statValue {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 32px;
   font-weight: 800;
   color: var(--text-primary);
-  line-height: 1;
+  line-height: 1.1;
+  margin: 10px 0 8px 0;
+  letter-spacing: -0.02em;
 }
 
-.statLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
+.statFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.statBadge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.badge-blue {
+  background: rgba(79, 142, 247, 0.15);
+  color: var(--blue-primary, #4f8ef7);
+}
+
+.badge-purple {
+  background: rgba(155, 107, 255, 0.15);
+  color: var(--purple-accent, #9b6bff);
+}
+
+.badge-amber {
+  background: rgba(255, 201, 60, 0.2);
+  color: #b45309;
+}
+
+.badge-emerald {
+  background: rgba(23, 201, 137, 0.15);
+  color: var(--emerald-dark, #059669);
+}
+
+.statMetaText {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
 }
 
 /* ── Grid ── */

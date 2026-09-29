@@ -9,27 +9,27 @@ import styles from './StudentDashboard.module.css';
 
 // SVGs to replace emojis
 const ClipboardIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
     <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
   </svg>
 );
 
 const FolderIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
   </svg>
 );
 
 const LockIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
   </svg>
 );
 
 const RobotIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="11" width="18" height="10" rx="2"></rect>
     <circle cx="12" cy="5" r="2"></circle>
     <path d="M12 7v4"></path>
@@ -97,10 +97,38 @@ export default function StudentDashboard() {
   const firstName = user?.name ? user.name.split(' ')[0] : 'Student';
 
   const dynamicStats = [
-    { label: 'Active Applications', value: '2', icon: <ClipboardIcon />, color: 'blue' },
-    { label: 'Documents Uploaded', value: docCount !== null ? String(docCount) : '7', icon: <FolderIcon />, color: 'purple' },
-    { label: 'Escrow Held', value: '৳45K', icon: <LockIcon />, color: 'amber' },
-    { label: 'AI Scans Done', value: '3', icon: <RobotIcon />, color: 'emerald' },
+    {
+      label: 'Active Applications',
+      value: '2',
+      badge: 'Canada & UK',
+      meta: 'Targeting Fall 2025 intake',
+      icon: <ClipboardIcon />,
+      color: 'blue',
+    },
+    {
+      label: 'Documents Uploaded',
+      value: docCount !== null ? String(docCount) : '7',
+      badge: 'Verified',
+      meta: 'SOP, IELTS & Transcripts',
+      icon: <FolderIcon />,
+      color: 'purple',
+    },
+    {
+      label: 'Escrow Protection',
+      value: '৳45,000',
+      badge: 'Protected',
+      meta: 'Released on milestone approval',
+      icon: <LockIcon />,
+      color: 'amber',
+    },
+    {
+      label: 'AI Scans Completed',
+      value: '3',
+      badge: 'Low Risk',
+      meta: 'Fraud & visa readiness passed',
+      icon: <RobotIcon />,
+      color: 'emerald',
+    },
   ];
 
   return (
@@ -118,13 +146,17 @@ export default function StudentDashboard() {
 
       {/* Stats Row */}
       <div className={styles.statsRow} role="list" aria-label="Dashboard statistics">
-        {dynamicStats.map(s => (
+        {dynamicStats.map((s) => (
           <div key={s.label} className={`${styles.statCard} ${styles[`stat-${s.color}`]}`}>
             <div className={styles.statHeader}>
+              <span className={styles.statLabel}>{s.label}</span>
               <div className={styles.statIconWrap} aria-hidden="true">{s.icon}</div>
             </div>
             <div className={styles.statValue}>{s.value}</div>
-            <div className={styles.statLabel}>{s.label}</div>
+            <div className={styles.statFooter}>
+              <span className={`${styles.statBadge} ${styles[`badge-${s.color}`]}`}>{s.badge}</span>
+              <span className={styles.statMetaText}>{s.meta}</span>
+            </div>
           </div>
         ))}
       </div>
