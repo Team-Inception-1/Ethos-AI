@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -154,10 +155,40 @@ interface FeeSubmissionItem {
 type TabType = 'Agency Verification' | 'Data Provenance' | 'Disputes' | 'Scam Alerts' | 'Users' | 'Audit Ledger';
 const TABS: TabType[] = ['Agency Verification', 'Data Provenance', 'Disputes', 'Scam Alerts', 'Users', 'Audit Ledger'];
 
+const TAB_MAP: Record<string, TabType> = {
+  agencies: 'Agency Verification',
+  agency: 'Agency Verification',
+  provenance: 'Data Provenance',
+  benchmarks: 'Data Provenance',
+  disputes: 'Disputes',
+  scams: 'Scam Alerts',
+  alerts: 'Scam Alerts',
+  users: 'Users',
+  ledger: 'Audit Ledger',
+};
+
+const TAB_REVERSE_MAP: Record<TabType, string> = {
+  'Agency Verification': 'agencies',
+  'Data Provenance': 'provenance',
+  'Disputes': 'disputes',
+  'Scam Alerts': 'scams',
+  'Users': 'users',
+  'Audit Ledger': 'ledger',
+};
+
 export default function AdminPanel() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<TabType>('Agency Verification');
+  const tabParam = searchParams.get('tab')?.toLowerCase();
+  const activeTab: TabType = (tabParam && TAB_MAP[tabParam]) || 'Agency Verification';
+
+  const setActiveTab = (tab: TabType) => {
+    const slug = TAB_REVERSE_MAP[tab] || 'agencies';
+    router.push(`/admin?tab=${slug}`, { scroll: false } as any);
+  };
+
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -246,23 +277,14 @@ export default function AdminPanel() {
     fetchData();
   }, [fetchData]);
 
-  // Synchronize URL hash with active governance tab
+  // Support legacy hash links by migrating them to query params
   useEffect(() => {
-    const handleHash = () => {
-      if (typeof window === 'undefined') return;
-      const h = window.location.hash.replace('#', '').toLowerCase();
-      if (h === 'agencies' || h === 'agency') setActiveTab('Agency Verification');
-      else if (h === 'provenance' || h === 'benchmarks') setActiveTab('Data Provenance');
-      else if (h === 'disputes') setActiveTab('Disputes');
-      else if (h === 'scams' || h === 'alerts') setActiveTab('Scam Alerts');
-      else if (h === 'users') setActiveTab('Users');
-      else if (h === 'ledger') setActiveTab('Audit Ledger');
-    };
-
-    handleHash();
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
+    if (typeof window === 'undefined') return;
+    const h = window.location.hash.replace('#', '').toLowerCase();
+    if (h && TAB_MAP[h]) {
+      router.replace(`/admin?tab=${TAB_REVERSE_MAP[TAB_MAP[h]]}`, { scroll: false } as any);
+    }
+  }, [router]);
 
   // Handler: Fee submission review
   const handleFeeSubmissionAction = async (id: string, action: 'APPROVED' | 'REJECTED', note?: string) => {

@@ -189,38 +189,38 @@ const getNavItems = (role?: string): NavItem[] => {
     case 'admin':
       return [
         {
-          href: '/admin#agencies',
+          href: '/admin?tab=agencies',
           label: 'Agency Audits',
           labelBn: 'এজেন্সি অডিট',
           icon: <VerificationQueueIcon />,
         },
         {
-          href: '/admin#provenance',
+          href: '/admin?tab=provenance',
           label: 'Data Provenance',
           labelBn: 'ডাটা যাচাই',
           icon: <BenchmarkIcon />,
           badge: 'Data',
         },
         {
-          href: '/admin#disputes',
+          href: '/admin?tab=disputes',
           label: 'Escrow Disputes',
           labelBn: 'এসক্রো বিরোধ',
           icon: <DisputesIcon />,
         },
         {
-          href: '/admin#scams',
+          href: '/admin?tab=scams',
           label: 'AI Fraud Flags',
           labelBn: 'জালিয়াতি সতর্কতা',
           icon: <FraudCheckIcon />,
         },
         {
-          href: '/admin#users',
+          href: '/admin?tab=users',
           label: 'User Directory',
           labelBn: 'ব্যবহারকারী তালিকা',
           icon: <CommunityIcon />,
         },
         {
-          href: '/admin#ledger',
+          href: '/admin?tab=ledger',
           label: 'Audit Ledger',
           labelBn: 'অডিট লেজার',
           icon: <AgreementIcon />,
@@ -459,11 +459,15 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
             );
 
             if (hrefQuery) {
-              // For query-param based items (e.g. ?tab=applications),
+              // For query-param based items (e.g. ?tab=applications or ?tab=agencies),
               // check if both path and query match the current URL
               if (typeof window !== 'undefined') {
                 const currentSearch = window.location.search;
                 isActive = pathname === hrefBase && currentSearch.includes(hrefQuery);
+                // Default tab active states when no query param is in URL:
+                if (!currentSearch && pathname === '/admin' && hrefQuery === 'tab=agencies') {
+                  isActive = true;
+                }
               }
             } else if (item.href === '/agency/dashboard' && effectiveRole === 'agency') {
               // Dashboard root: only active when no tab query present
