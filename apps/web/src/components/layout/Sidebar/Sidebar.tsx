@@ -425,25 +425,6 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* Collapse Toggle */}
-      <button
-        className={styles.collapseBtn}
-        onClick={() => setCollapsed((c) => !c)}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s ease' }}
-        >
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-      </button>
 
       {/* Profile snippet */}
       {!collapsed && (
