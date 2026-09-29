@@ -30,6 +30,21 @@ export default function ComparePage() {
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [lang, setLang] = useState<'en' | 'bn'>('en');
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ethos-lang') as 'en' | 'bn';
+      if (saved === 'en' || saved === 'bn') setLang(saved);
+    } catch {}
+    const handleLangChange = (e: Event) => {
+      const customEvent = e as CustomEvent<'en' | 'bn'>;
+      if (customEvent.detail === 'en' || customEvent.detail === 'bn') {
+        setLang(customEvent.detail);
+      }
+    };
+    window.addEventListener('ethos-lang-change', handleLangChange);
+    return () => window.removeEventListener('ethos-lang-change', handleLangChange);
+  }, []);
+
   // Parse `ids` parameter from URL query (e.g. ?ids=agt-003,agt-004,agt-006)
   const idsParam = searchParams.get('ids') || searchParams.get('agency');
   const selectedIds = useMemo(() => {
@@ -122,7 +137,7 @@ export default function ComparePage() {
   };
 
   return (
-    <main className={styles.page} style={{ paddingTop: 'var(--topbar-height)' }}>
+    <main className={styles.page} style={{ paddingTop: 'var(--topbar-height)' }} suppressHydrationWarning>
       <div className={`${styles.inner} container`}>
         <div className={styles.header}>
           <div className={styles.headerTop}>
@@ -413,7 +428,7 @@ export default function ComparePage() {
                   {lang === 'en' ? 'View Agency Profile' : 'এজেন্সি প্রোফাইল দেখুন'}
                 </Button>
               </Link>
-              <Link href={`/escrow?agency=${bestAgency.id}`}>
+              <Link href={`/dashboard/payments?agency=${bestAgency.id}`}>
                 <Button size="sm">
                   {lang === 'en' ? 'Apply with Escrow' : 'এসক্রো সুরক্ষায় আবেদন করুন'}
                 </Button>
