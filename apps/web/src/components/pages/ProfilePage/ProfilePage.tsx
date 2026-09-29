@@ -70,7 +70,7 @@ export default function ProfilePage() {
       updateProfile({
         avatarUrl: data.avatarUrl,
       });
-      setAvatarSuccess('Avatar saved to Neon Storage!');
+      setAvatarSuccess('Avatar saved securely!');
       setTimeout(() => setAvatarSuccess(null), 3000);
     } catch (err: any) {
       setAvatarError(err.message || 'Avatar upload failed');
@@ -267,7 +267,7 @@ export default function ProfilePage() {
               <label
                 htmlFor="avatar-file-input"
                 className={styles.avatarEditBadge}
-                title="Upload profile photo to Neon Storage"
+                title="Upload profile photo"
                 aria-label="Upload profile photo"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

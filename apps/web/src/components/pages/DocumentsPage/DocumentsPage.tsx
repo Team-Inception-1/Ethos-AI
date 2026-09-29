@@ -265,8 +265,8 @@ export default function DocumentsPage() {
           <div className={styles.statIconBox}>☁️</div>
           <div className={styles.statInfo}>
             <div className={styles.statVal}>{totalSizeMB}</div>
-            <div className={styles.statLabel}>Neon S3 Storage</div>
-            <Badge variant="ai" size="sm">5 GB Free Tier Active</Badge>
+            <div className={styles.statLabel}>Secure Cloud Storage</div>
+            <Badge variant="ai" size="sm">Active & Encrypted</Badge>
           </div>
         </div>
       </div>
@@ -293,7 +293,7 @@ export default function DocumentsPage() {
         </div>
         <p className={styles.uploadLabel}>
           {uploading ? (
-            'Encrypting & Uploading to Neon Object Storage…'
+            'Encrypting & Uploading to Cloud Vault…'
           ) : isDragging ? (
             'Drop file to upload immediately!'
           ) : (
@@ -306,7 +306,7 @@ export default function DocumentsPage() {
           PDF, JPG, PNG, DOCX up to 20MB — Stored with SHA-256 integrity hash & copy-on-write branching
         </p>
         <div className={styles.badgeRow}>
-          <Badge variant="verified" size="sm">✓ Neon S3 Bucket Active</Badge>
+          <Badge variant="verified" size="sm">✓ Cloud Vault Connected</Badge>
           <Badge variant="ai" size="sm">⚡ Instant AI Fraud Scanner Ready</Badge>
           <Badge variant="neutral" size="sm">🔒 256-bit Encrypted</Badge>
         </div>
@@ -550,7 +550,7 @@ export default function DocumentsPage() {
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Cloud Provider</span>
-                <Badge variant="verified" size="sm">Neon Object Storage (S3)</Badge>
+                <Badge variant="verified" size="sm">Encrypted Cloud Storage</Badge>
               </div>
             </div>
 

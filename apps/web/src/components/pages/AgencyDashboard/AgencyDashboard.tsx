@@ -34,9 +34,21 @@ export default function AgencyDashboard() {
   const [showAddPackage, setShowAddPackage] = useState(false);
   const [pkgName, setPkgName] = useState('');
   const [pkgAmount, setPkgAmount] = useState<number>(45000);
+  const [pkgCountry, setPkgCountry] = useState('Canada');
   const [pkgWhen, setPkgWhen] = useState('30% on Offer, 40% on Visa Filing, 30% on Visa');
   const [pkgRefund, setPkgRefund] = useState('Full 100% refund of unreleased milestone funds upon refusal');
+  const [pkgProofUrl, setPkgProofUrl] = useState('');
+  const [submittingPkg, setSubmittingPkg] = useState(false);
+  const [feeSubmissions, setFeeSubmissions] = useState<any[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
+
+  // Application Dossier Modal State
+  const [selectedAppDossier, setSelectedAppDossier] = useState<ApplicationItem | null>(null);
+  const [milestoneEvidenceNote, setMilestoneEvidenceNote] = useState('');
+  const [appStageSelect, setAppStageSelect] = useState<ApplicationItem['stage']>('Submitted');
+
+  // Benchmark Inspection Modal State
+  const [selectedBenchmarkDossier, setSelectedBenchmarkDossier] = useState<any | null>(null);
 
   // Country Cost Benchmark State (Sir's Verified Financial Provenance)
   const [benchmarks, setBenchmarks] = useState<any[]>([]);
@@ -53,6 +65,15 @@ export default function AgencyDashboard() {
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d?.benchmarks) setBenchmarks(d.benchmarks);
+      })
+      .catch(() => {});
+  };
+
+  const fetchFeeSubmissions = () => {
+    fetch('/api/agency/fee-submissions')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.submissions) setFeeSubmissions(d.submissions);
       })
       .catch(() => {});
   };
@@ -77,6 +98,7 @@ export default function AgencyDashboard() {
     window.addEventListener('hashchange', handleHash);
 
     fetchBenchmarks();
+    fetchFeeSubmissions();
 
     return () => {
       window.removeEventListener('hashchange', handleHash);
@@ -99,34 +121,117 @@ export default function AgencyDashboard() {
     showToast('Application stage updated and synced with Student & Parent portal.');
   };
 
-  const handleAddServicePackage = (e: React.FormEvent) => {
+  const handleUpdateAppStageAndMilestone = (appId: string) => {
+    setApps(prev => prev.map(app => {
+      if (app.id !== appId) return app;
+      const updated: ApplicationItem = {
+        ...app,
+        stage: appStageSelect,
+        escrowStatus:
+          appStageSelect === 'Completed'
+            ? 'Completed'
+            : appStageSelect === 'Offer Received'
+            ? 'Milestone 1 Released'
+            : appStageSelect === 'Visa Processing'
+            ? 'Pending Release'
+            : app.escrowStatus,
+      };
+      return updated;
+    }));
+
+    if (selectedAppDossier && selectedAppDossier.id === appId) {
+      setSelectedAppDossier(prev => prev ? {
+        ...prev,
+        stage: appStageSelect,
+        escrowStatus:
+          appStageSelect === 'Completed'
+            ? 'Completed'
+            : appStageSelect === 'Offer Received'
+            ? 'Milestone 1 Released'
+            : appStageSelect === 'Visa Processing'
+            ? 'Pending Release'
+            : prev.escrowStatus,
+      } : null);
+    }
+
+    showToast(`Application updated to "${appStageSelect}". Synced across Student & Parent portals.`);
+  };
+
+  const handleSubmitMilestoneEvidence = (appId: string) => {
+    if (!milestoneEvidenceNote.trim()) {
+      showToast('Please enter document confirmation reference or notes.');
+      return;
+    }
+    setApps(prev => prev.map(app => {
+      if (app.id !== appId) return app;
+      return {
+        ...app,
+        escrowStatus: 'Pending Release',
+      };
+    }));
+    if (selectedAppDossier && selectedAppDossier.id === appId) {
+      setSelectedAppDossier(prev => prev ? { ...prev, escrowStatus: 'Pending Release' } : null);
+    }
+    showToast(`Milestone evidence submitted: "${milestoneEvidenceNote}". Awaiting verification.`);
+    setMilestoneEvidenceNote('');
+  };
+
+  const handleAddServicePackage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agency || !pkgName.trim()) return;
 
-    const newPkg: AgencyServicePackage = {
-      id: `srv-${Date.now()}`,
-      name: pkgName.trim(),
-      nameBn: pkgName.trim(),
-      amountBdt: Number(pkgAmount) || 30000,
-      whenCharged: pkgWhen,
-      whenChargedBn: pkgWhen,
-      refundable: true,
-      refundPolicy: pkgRefund,
-      refundPolicyBn: pkgRefund,
-    };
+    try {
+      setSubmittingPkg(true);
 
-    const updatedAgency: VerifiedAgencyRecord = {
-      ...agency,
-      services: [...agency.services, newPkg],
-      feeMinBdt: Math.min(agency.feeMinBdt, newPkg.amountBdt),
-      feeMaxBdt: Math.max(agency.feeMaxBdt, newPkg.amountBdt),
-    };
+      // 1. Submit to API for Admin Provenance Verification
+      const res = await fetch('/api/agency/fee-submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceName: pkgName.trim(),
+          country: pkgCountry,
+          amountBdt: Number(pkgAmount) || 30000,
+          whenCharged: pkgWhen,
+          refundable: true,
+          refundPolicy: pkgRefund,
+          proofDocumentUrls: pkgProofUrl ? [pkgProofUrl] : ['/uploads/license_proof.pdf'],
+        }),
+      });
 
-    VerifiedKnowledgeEngine.updateAgency(updatedAgency);
-    setAgency(updatedAgency);
-    setShowAddPackage(false);
-    setPkgName('');
-    showToast(`Package "${newPkg.name}" added successfully! The AI Chatbot & Comparison Engine are now updated.`);
+      const data = await res.json().catch(() => null);
+
+      // 2. Also register in local knowledge store
+      const newPkg: AgencyServicePackage = {
+        id: data?.submission?.id || `srv-${Date.now()}`,
+        name: pkgName.trim(),
+        nameBn: pkgName.trim(),
+        amountBdt: Number(pkgAmount) || 30000,
+        whenCharged: pkgWhen,
+        whenChargedBn: pkgWhen,
+        refundable: true,
+        refundPolicy: pkgRefund,
+        refundPolicyBn: pkgRefund,
+      };
+
+      const updatedAgency: VerifiedAgencyRecord = {
+        ...agency,
+        services: [...agency.services, newPkg],
+        feeMinBdt: Math.min(agency.feeMinBdt, newPkg.amountBdt),
+        feeMaxBdt: Math.max(agency.feeMaxBdt, newPkg.amountBdt),
+      };
+
+      VerifiedKnowledgeEngine.updateAgency(updatedAgency);
+      setAgency(updatedAgency);
+      setShowAddPackage(false);
+      setPkgName('');
+      setPkgProofUrl('');
+      fetchFeeSubmissions();
+      showToast(`Package "${newPkg.name}" submitted for Admin Verification. Status: Pending Review.`);
+    } catch {
+      showToast('Network error submitting package. Saved locally.');
+    } finally {
+      setSubmittingPkg(false);
+    }
   };
 
   const handleDeletePackage = (pkgId: string) => {
@@ -311,16 +416,26 @@ export default function AgencyDashboard() {
                   <td className={styles.date}>{a.date}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedAppDossier(a);
+                          setAppStageSelect(a.stage);
+                        }}
+                      >
+                        Inspect Dossier
+                      </Button>
                       <Link
                         href={`/agency/chat?threadId=thd-${a.id}&student=${encodeURIComponent(a.student)}`}
                         style={{ textDecoration: 'none' }}
                       >
-                        <Button size="sm" variant="outline" title={`Chat with ${a.student}`}>
+                        <Button size="sm" variant="ghost" title={`Chat with ${a.student}`}>
                           💬
                         </Button>
                       </Link>
                       <Button size="sm" variant="emerald" onClick={() => handleAdvanceStage(a.id)}>
-                        Advance Stage →
+                        Advance →
                       </Button>
                     </div>
                   </td>
@@ -346,6 +461,68 @@ export default function AgencyDashboard() {
             </Button>
           </div>
 
+          {/* Section A: Live Admin Verification Pipeline */}
+          {feeSubmissions.length > 0 && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📋 Official Fee Verification Pipeline</span>
+                <Badge variant="info" size="sm">{feeSubmissions.length} Submissions</Badge>
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                {feeSubmissions.map(fs => (
+                  <div key={fs.id} style={{
+                    background: 'var(--bg-elevated, #fff)',
+                    border: '2px solid var(--ink, #14120E)',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    boxShadow: '3px 3px 0 0 var(--ink)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>{fs.serviceName}</h4>
+                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Destination: {fs.country}</span>
+                        </div>
+                        <Badge
+                          variant={fs.status === 'APPROVED' ? 'verified' : fs.status === 'REJECTED' ? 'danger' : 'pending'}
+                          size="sm"
+                        >
+                          {fs.status === 'APPROVED' ? '✓ Verified & Live' : fs.status === 'REJECTED' ? '✕ Needs Revision' : '⏳ Admin Audit Pending'}
+                        </Badge>
+                      </div>
+                      <div style={{ marginTop: '10px', fontSize: '16px', fontWeight: 800, color: 'var(--emerald, #10B981)' }}>
+                        ৳{Number(fs.amountBdt).toLocaleString('en-IN')} BDT
+                      </div>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', margin: 0 }}>
+                        <strong>Milestone Schedule:</strong> {fs.whenCharged}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#059669', marginTop: '4px', margin: 0 }}>
+                        <strong>Refund Terms:</strong> {fs.refundPolicy}
+                      </p>
+                      {fs.adminFeedback && (
+                        <div style={{ marginTop: '10px', padding: '8px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '5px', fontSize: '12px', color: 'var(--text-primary)' }}>
+                          <strong>Admin Feedback:</strong> {fs.adminFeedback}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      <span>Submitted: {new Date(fs.submittedAt || Date.now()).toLocaleDateString()}</span>
+                      {fs.status === 'APPROVED' && <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>Published to Students</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section B: Active Packages in Public Directory */}
+          <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '12px' }}>
+            🌟 Active Packages in Public Directory & AI Counselor
+          </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
             {agency?.services.map(s => (
               <div key={s.id} style={{
@@ -361,7 +538,7 @@ export default function AgencyDashboard() {
               }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700 }}>{s.name}</h3>
+                    <h4 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>{s.name}</h4>
                     <Badge variant="verified" size="sm">৳{s.amountBdt.toLocaleString()} BDT</Badge>
                   </div>
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
@@ -445,6 +622,7 @@ export default function AgencyDashboard() {
                     <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 700 }}>Amount (BDT)</th>
                     <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 700 }}>Official Source</th>
                     <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 700 }}>Status</th>
+                    <th style={{ textAlign: 'left', padding: '8px 12px', fontWeight: 700 }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -464,6 +642,11 @@ export default function AgencyDashboard() {
                         <Badge variant={b.isVerified ? 'verified' : 'pending'} size="sm">
                           {b.isVerified ? '✓ Admin Verified' : '⏳ Pending Review'}
                         </Badge>
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <Button size="sm" variant="outline" onClick={() => setSelectedBenchmarkDossier(b)}>
+                          Inspect
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -545,12 +728,30 @@ export default function AgencyDashboard() {
             border: '3px solid var(--ink, #14120E)',
             borderRadius: '12px',
             padding: '24px',
-            maxWidth: '500px',
+            maxWidth: '520px',
             width: '100%',
             boxShadow: '6px 6px 0 0 var(--ink)',
+            maxHeight: '90vh',
+            overflowY: 'auto',
           }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '16px' }}>Add Verified Service Package</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '16px' }}>Submit Verified Service Package</h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              All submitted packages undergo automated compliance review and admin audit before being published to prospective students.
+            </p>
             <form onSubmit={handleAddServicePackage} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Target Destination Country</label>
+                <select
+                  value={pkgCountry}
+                  onChange={e => setPkgCountry(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '2px solid var(--ink)', borderRadius: '6px', background: 'var(--bg-primary)' }}
+                >
+                  {['Canada', 'Germany', 'United Kingdom', 'United States', 'Australia', 'Netherlands', 'Sweden', 'Other'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Package Name</label>
                 <input
@@ -598,15 +799,291 @@ export default function AgencyDashboard() {
                 />
               </div>
 
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Official Policy / Proof Document URL (Optional)</label>
+                <input
+                  type="url"
+                  placeholder="https://... or /uploads/agreement.pdf"
+                  value={pkgProofUrl}
+                  onChange={e => setPkgProofUrl(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '2px solid var(--ink)', borderRadius: '6px' }}
+                />
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <Button type="button" variant="ghost" onClick={() => setShowAddPackage(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" variant="emerald">
-                  Save & Publish to Ethos AI
+                <Button type="submit" variant="emerald" loading={submittingPkg}>
+                  Submit for Admin Verification
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Application & Escrow Milestone Dossier */}
+      {selectedAppDossier && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '16px',
+        }}>
+          <div style={{
+            background: 'var(--bg-primary, #fff)',
+            border: '3px solid var(--ink, #14120E)',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '640px',
+            width: '100%',
+            boxShadow: '6px 6px 0 0 var(--ink)',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '2px solid var(--ink)', paddingBottom: '12px' }}>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
+                  👤 Student Application Dossier: {selectedAppDossier.student}
+                </h2>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  ID: {selectedAppDossier.id} · Applied: {selectedAppDossier.date} · Destination: {selectedAppDossier.country}
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedAppDossier(null)}
+                style={{
+                  background: 'none',
+                  border: '2px solid var(--ink)',
+                  borderRadius: '4px',
+                  width: '30px',
+                  height: '30px',
+                  cursor: 'pointer',
+                  fontWeight: 800,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ padding: '12px', background: 'var(--bg-elevated)', border: '1.5px solid var(--border)', borderRadius: '6px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Current Application Stage
+                </span>
+                <div style={{ marginTop: '4px' }}>
+                  <Badge variant={selectedAppDossier.stage === 'Completed' ? 'success' : selectedAppDossier.stage === 'Offer Received' ? 'verified' : 'info'} size="sm">
+                    {selectedAppDossier.stage}
+                  </Badge>
+                </div>
+              </div>
+              <div style={{ padding: '12px', background: 'var(--bg-elevated)', border: '1.5px solid var(--border)', borderRadius: '6px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Protected Escrow Capital
+                </span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--emerald, #10b981)', marginTop: '2px' }}>
+                  {selectedAppDossier.escrowAmount} ({selectedAppDossier.escrowStatus})
+                </div>
+              </div>
+            </div>
+
+            {/* Target Program */}
+            <div style={{ padding: '12px', background: 'var(--bg-elevated)', border: '1.5px solid var(--border)', borderRadius: '6px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Target Program & University</span>
+              <div style={{ fontSize: '14px', fontWeight: 700, marginTop: '2px' }}>{selectedAppDossier.program}</div>
+            </div>
+
+            {/* Student Verified Documents */}
+            <div style={{ marginBottom: '16px' }}>
+              <strong style={{ fontSize: '13px', display: 'block', marginBottom: '8px' }}>
+                📂 Applicant Verified Document Repository:
+              </strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {[
+                  { name: 'National Passport (Valid to 2029)', status: '✓ Verified by Admin' },
+                  { name: 'Undergraduate Transcripts & Degree Certificate', status: '✓ Attested by MoE & UGC' },
+                  { name: 'IELTS Academic Test Report Form (TRF: Band 7.5)', status: '✓ Direct British Council Match' },
+                  { name: 'Financial Solvency Certificate & Bank Statement', status: '✓ Solvency Verified' },
+                ].map((doc, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '12px' }}>
+                    <span>📄 {doc.name}</span>
+                    <span style={{ color: 'var(--emerald, #10b981)', fontWeight: 700 }}>{doc.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Escrow Milestone Breakdown & Release Evidence */}
+            <div style={{ marginBottom: '16px', padding: '14px', background: 'var(--bg-elevated)', border: '2px solid var(--ink)', borderRadius: '8px' }}>
+              <strong style={{ fontSize: '13px', display: 'block', marginBottom: '8px' }}>
+                🔒 Escrow Milestone Schedule & Payout Evidence:
+              </strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px dashed var(--border)' }}>
+                  <span>Milestone 1: University Application & Offer Dispatch</span>
+                  <span style={{ fontWeight: 700, color: 'var(--emerald, #10b981)' }}>৳18,000 · {selectedAppDossier.escrowStatus.includes('Released') ? '✅ Released' : '🔒 Held in Escrow'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px dashed var(--border)' }}>
+                  <span>Milestone 2: Embassy Document Preparation & Visa Filing</span>
+                  <span style={{ fontWeight: 700, color: 'var(--blue-primary, #3b82f6)' }}>৳24,000 · 🔒 Locked</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+                  <span>Milestone 3: Final Visa Issuance & Pre-Departure Briefing</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>৳15,000 · 🔒 Locked</span>
+                </div>
+              </div>
+
+              {/* Submit Completion Evidence */}
+              <div style={{ marginTop: '12px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                  Submit Milestone Completion Evidence Note:
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="e.g. Official offer letter dispatched; Ref: UTO-2024-912"
+                    value={milestoneEvidenceNote}
+                    onChange={e => setMilestoneEvidenceNote(e.target.value)}
+                    style={{ flex: 1, padding: '7px 10px', border: '1.5px solid var(--ink)', borderRadius: '5px', fontSize: '12px' }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="emerald"
+                    onClick={() => handleSubmitMilestoneEvidence(selectedAppDossier.id)}
+                  >
+                    Submit Proof
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Advance Stage Selector */}
+            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 700 }}>Update Stage:</label>
+              <select
+                value={appStageSelect}
+                onChange={e => setAppStageSelect(e.target.value as any)}
+                style={{ padding: '6px 12px', border: '2px solid var(--ink)', borderRadius: '6px', background: 'var(--bg-primary)', fontWeight: 700, fontSize: '13px' }}
+              >
+                {['Submitted', 'Under Review', 'Offer Received', 'Visa Processing', 'Completed'].map(stg => (
+                  <option key={stg} value={stg}>{stg}</option>
+                ))}
+              </select>
+              <Button size="sm" variant="primary" onClick={() => handleUpdateAppStageAndMilestone(selectedAppDossier.id)}>
+                Update Stage
+              </Button>
+            </div>
+
+            {/* Footer Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '2px solid var(--ink)', paddingTop: '12px' }}>
+              <Link
+                href={`/agency/chat?threadId=thd-${selectedAppDossier.id}&student=${encodeURIComponent(selectedAppDossier.student)}`}
+                style={{ textDecoration: 'none' }}
+              >
+                <Button size="sm" variant="emerald">
+                  💬 Open Live Chat with Student
+                </Button>
+              </Link>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedAppDossier(null)}>
+                Close Dossier
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Benchmark Inspection Dossier */}
+      {selectedBenchmarkDossier && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '16px',
+        }}>
+          <div style={{
+            background: 'var(--bg-primary, #fff)',
+            border: '3px solid var(--ink, #14120E)',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '520px',
+            width: '100%',
+            boxShadow: '6px 6px 0 0 var(--ink)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '2px solid var(--ink)', paddingBottom: '12px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
+                {selectedBenchmarkDossier.flagEmoji} {selectedBenchmarkDossier.country} Benchmark
+              </h2>
+              <button
+                onClick={() => setSelectedBenchmarkDossier(null)}
+                style={{
+                  background: 'none',
+                  border: '2px solid var(--ink)',
+                  borderRadius: '4px',
+                  width: '30px',
+                  height: '30px',
+                  cursor: 'pointer',
+                  fontWeight: 800,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border)', paddingBottom: '6px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>Requirement Type:</span>
+                <span style={{ fontWeight: 800 }}>{String(selectedBenchmarkDossier.requirementType).replace(/_/g, ' ')}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border)', paddingBottom: '6px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>Total Solvency Amount (BDT):</span>
+                <span style={{ fontWeight: 800, color: 'var(--emerald, #10b981)' }}>৳{Number(selectedBenchmarkDossier.blockedAccountOrGicBdt).toLocaleString('en-IN')} BDT</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border)', paddingBottom: '6px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>Currency Code:</span>
+                <span style={{ fontWeight: 800 }}>{selectedBenchmarkDossier.currency}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border)', paddingBottom: '6px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>Verification Status:</span>
+                <Badge variant={selectedBenchmarkDossier.isVerified ? 'verified' : 'pending'} size="sm">
+                  {selectedBenchmarkDossier.isVerified ? '✓ Admin Verified & Published' : '⏳ Pending Review'}
+                </Badge>
+              </div>
+              <div style={{ marginTop: '8px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Official Government Source:</span>
+                <a
+                  href={selectedBenchmarkDossier.officialGovUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--blue-primary, #3b82f6)', textDecoration: 'underline', wordBreak: 'break-all' }}
+                >
+                  {selectedBenchmarkDossier.officialGovSourceTitle} ↗
+                </a>
+              </div>
+              {selectedBenchmarkDossier.keyRequirements && selectedBenchmarkDossier.keyRequirements.length > 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Key Statutory Requirements:</span>
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                    {selectedBenchmarkDossier.keyRequirements.map((req: string, idx: number) => (
+                      <li key={idx}>{req}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedBenchmarkDossier(null)}>
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       )}

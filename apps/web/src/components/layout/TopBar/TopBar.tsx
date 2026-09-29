@@ -40,7 +40,7 @@ const AGENCY_NOTIFICATIONS = [
     title: 'New Student Inquiry',
     desc: 'Sara Islam inquired regarding German blocked account & TU Berlin admissions.',
     time: '8m ago',
-    link: '/dashboard/chat',
+    link: '/agency/chat',
     read: false,
   },
   {
@@ -252,7 +252,13 @@ export default function TopBar() {
         {/* Avatar */}
         <div className={styles.avatarWrap}>
           <Link
-            href="/dashboard/profile"
+            href={
+              effectiveRole === 'agency'
+                ? '/agency/profile'
+                : effectiveRole === 'admin'
+                ? '/admin/profile'
+                : '/dashboard/profile'
+            }
             className={styles.avatar}
             aria-label={`User menu for ${userName}`}
             title={userName}

@@ -184,6 +184,11 @@ export default function AdminPanel() {
   const [selectedDisputeEvidence, setSelectedDisputeEvidence] = useState<DisputeItem | null>(null);
   const [selectedScamReport, setSelectedScamReport] = useState<ScamAlertItem | null>(null);
   const [selectedFeeSubDossier, setSelectedFeeSubDossier] = useState<FeeSubmissionItem | null>(null);
+  const [selectedUserDossier, setSelectedUserDossier] = useState<UserItem | null>(null);
+  const [feeSubFeedback, setFeeSubFeedback] = useState<string>('');
+  const [agencyAuditNote, setAgencyAuditNote] = useState<string>('');
+  const [disputeResolutionNote, setDisputeResolutionNote] = useState<string>('');
+  const [userRoleUpdate, setUserRoleUpdate] = useState<string>('');
   const [showAddCatalogModal, setShowAddCatalogModal] = useState(false);
   const [newCatalogForm, setNewCatalogForm] = useState({
     universityName: '',
@@ -449,6 +454,34 @@ export default function AdminPanel() {
       }
     } catch {
       showToast('✕ Network error toggling user status');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handler: Update User Role (RBAC)
+  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+    try {
+      setActionLoadingId(userId);
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUsersList((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+        );
+        if (selectedUserDossier && selectedUserDossier.id === userId) {
+          setSelectedUserDossier((prev) => (prev ? { ...prev, role: newRole } : null));
+        }
+        showToast(`✓ User role updated to ${newRole}`);
+      } else {
+        showToast(`✕ Error: ${data.error || 'Failed to update user role'}`);
+      }
+    } catch {
+      showToast('✕ Network error updating user role');
     } finally {
       setActionLoadingId(null);
     }
@@ -1348,11 +1381,12 @@ export default function AdminPanel() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            showToast(`Audit trail recorded for account: ${u.name} (${u.email})`);
+                            setSelectedUserDossier(u);
+                            setUserRoleUpdate(u.role);
                           }}
-                          title="Review security and session audit records for this account"
+                          title="Manage user account, roles, verification and security audit records"
                         >
-                          Audit Log
+                          Audit & Manage
                         </Button>
                       </div>
                     </td>
@@ -1566,29 +1600,41 @@ export default function AdminPanel() {
                           </Badge>
                         </td>
                         <td>
-                          {fs.status === 'PENDING' && (
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <Button
-                                size="sm"
-                                variant="emerald"
-                                loading={actionLoadingId === fs.id}
-                                onClick={() => handleFeeSubmissionAction(fs.id, 'APPROVED')}
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                loading={actionLoadingId === fs.id}
-                                onClick={() => handleFeeSubmissionAction(fs.id, 'REJECTED', 'Does not meet Ethos platform standards.')}
-                              >
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                          {fs.status !== 'PENDING' && (
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{fs.adminFeedback || '—'}</span>
-                          )}
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedFeeSubDossier(fs);
+                                setFeeSubFeedback(fs.adminFeedback || '');
+                              }}
+                            >
+                              Inspect Dossier
+                            </Button>
+                            {fs.status === 'PENDING' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="emerald"
+                                  loading={actionLoadingId === fs.id}
+                                  onClick={() => handleFeeSubmissionAction(fs.id, 'APPROVED')}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  loading={actionLoadingId === fs.id}
+                                  onClick={() => handleFeeSubmissionAction(fs.id, 'REJECTED', 'Service fee package does not satisfy escrow guidelines.')}
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {fs.status !== 'PENDING' && (
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{fs.adminFeedback || 'Reviewed'}</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1867,6 +1913,27 @@ export default function AdminPanel() {
                 </div>
               </div>
             </div>
+            <div style={{ padding: '0 20px 10px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 700, display: 'block', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                Auditor Findings & Regulatory Decision Rationale:
+              </label>
+              <input
+                type="text"
+                value={agencyAuditNote}
+                onChange={(e) => setAgencyAuditNote(e.target.value)}
+                placeholder="e.g. Validated with Dhaka City Corporation trade register & UGC guidelines."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '2px solid var(--ink)',
+                  background: 'var(--bg-elevated)',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'inherit',
+                  fontSize: '13px',
+                }}
+              />
+            </div>
             <div className={styles.modalFooter}>
               <Button
                 variant="danger"
@@ -1875,7 +1942,7 @@ export default function AdminPanel() {
                   handleAgencyAction(
                     selectedAgencyDossier.id,
                     'REJECTED',
-                    'Rejected during administrative dossier inspection'
+                    agencyAuditNote || 'Rejected during administrative dossier inspection'
                   )
                 }
               >
@@ -1884,7 +1951,7 @@ export default function AdminPanel() {
               <Button
                 variant="emerald"
                 size="sm"
-                onClick={() => handleAgencyAction(selectedAgencyDossier.id, 'VERIFIED')}
+                onClick={() => handleAgencyAction(selectedAgencyDossier.id, 'VERIFIED', agencyAuditNote || undefined)}
               >
                 Approve & Grant Badge
               </Button>
@@ -1943,6 +2010,28 @@ export default function AdminPanel() {
                 </p>
               </div>
 
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 700, display: 'block', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                  Adjudication Verdict & Evidence Rationale:
+                </label>
+                <input
+                  type="text"
+                  value={disputeResolutionNote}
+                  onChange={(e) => setDisputeResolutionNote(e.target.value)}
+                  placeholder="e.g. Verified university refusal policy; student eligible for 100% reimbursement."
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '2px solid var(--ink)',
+                    background: 'var(--bg-elevated)',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'inherit',
+                    fontSize: '13px',
+                  }}
+                />
+              </div>
+
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                 ℹ️ Resolution policy: Adjudication takes immediate effect. Funds are returned via Bangladesh
                 National Payment Switch or released to the agency escrow bank account.
@@ -1958,7 +2047,7 @@ export default function AdminPanel() {
                       handleResolveDispute(
                         selectedDisputeEvidence.milestoneId,
                         'REFUND',
-                        'Dispute resolved in favor of student claim'
+                        disputeResolutionNote || 'Dispute resolved in favor of student claim'
                       )
                     }
                   >
@@ -1971,7 +2060,7 @@ export default function AdminPanel() {
                       handleResolveDispute(
                         selectedDisputeEvidence.milestoneId,
                         'RELEASE',
-                        'Dispute dismissed; agency verified valid completion'
+                        disputeResolutionNote || 'Dispute dismissed; agency verified valid completion'
                       )
                     }
                   >
@@ -2057,6 +2146,322 @@ export default function AdminPanel() {
               )}
               <Button variant="ghost" size="sm" onClick={() => setSelectedScamReport(null)}>
                 Dismiss Dialog
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: FEE SUBMISSION DOSSIER */}
+      {selectedFeeSubDossier && (
+        <div className={styles.modalBackdrop} onClick={() => setSelectedFeeSubDossier(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>📋 Fee Package Dossier: {selectedFeeSubDossier.serviceName}</h2>
+              <button
+                className={styles.closeBtn}
+                onClick={() => setSelectedFeeSubDossier(null)}
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Submitting Agency</span>
+                <span className={styles.dossierValue}>
+                  {selectedFeeSubDossier.agencyName} ({selectedFeeSubDossier.agencyId})
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Target Destination Country</span>
+                <span className={styles.dossierValue}>{selectedFeeSubDossier.country}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Service Fee Amount</span>
+                <span className={styles.amount}>৳{selectedFeeSubDossier.amountBdt.toLocaleString('en-IN')} BDT</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Milestone Trigger / Payment Schedule</span>
+                <span className={styles.dossierValue}>{selectedFeeSubDossier.whenCharged}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Refund Policy Guarantee</span>
+                <span
+                  className={styles.dossierValue}
+                  style={{ color: selectedFeeSubDossier.refundable ? 'var(--emerald)' : '#ef4444' }}
+                >
+                  {selectedFeeSubDossier.refundable ? '✅ ' : '❌ '}
+                  {selectedFeeSubDossier.refundPolicy}
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Verification Status</span>
+                <Badge
+                  variant={
+                    selectedFeeSubDossier.status === 'APPROVED'
+                      ? 'verified'
+                      : selectedFeeSubDossier.status === 'REJECTED'
+                      ? 'danger'
+                      : 'pending'
+                  }
+                  size="sm"
+                >
+                  {selectedFeeSubDossier.status}
+                </Badge>
+              </div>
+
+              <div>
+                <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                  Accompanying Proof Documents
+                </strong>
+                <div className={styles.docList}>
+                  {selectedFeeSubDossier.proofDocumentUrls && selectedFeeSubDossier.proofDocumentUrls.length > 0 ? (
+                    selectedFeeSubDossier.proofDocumentUrls.map((url, idx) => (
+                      <div key={idx} className={styles.docItem}>
+                        <span>📄 {url.split('/').pop() || `Document-${idx + 1}.pdf`}</span>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: 'var(--blue-primary)', textDecoration: 'underline' }}
+                        >
+                          View Document ↗
+                        </a>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '6px 0' }}>
+                      Standard consultancy agreement on file.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    display: 'block',
+                    marginBottom: '6px',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  Admin Review Notes & Feedback to Agency:
+                </label>
+                <textarea
+                  rows={3}
+                  value={feeSubFeedback}
+                  onChange={(e) => setFeeSubFeedback(e.target.value)}
+                  placeholder="Enter statutory compliance feedback, milestone adjustment instructions, or approval notes..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '2px solid var(--ink)',
+                    background: 'var(--bg-elevated)',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'inherit',
+                    fontSize: '13px',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              {selectedFeeSubDossier.status === 'PENDING' && (
+                <>
+                  <Button
+                    variant="emerald"
+                    size="sm"
+                    loading={actionLoadingId === selectedFeeSubDossier.id}
+                    onClick={() => handleFeeSubmissionAction(selectedFeeSubDossier.id, 'APPROVED', feeSubFeedback)}
+                  >
+                    Approve & Publish to Directory
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    loading={actionLoadingId === selectedFeeSubDossier.id}
+                    onClick={() =>
+                      handleFeeSubmissionAction(
+                        selectedFeeSubDossier.id,
+                        'REJECTED',
+                        feeSubFeedback || 'Rejected due to non-compliant terms per platform escrow policy.'
+                      )
+                    }
+                  >
+                    Reject with Feedback
+                  </Button>
+                </>
+              )}
+              <Button variant="ghost" size="sm" onClick={() => setSelectedFeeSubDossier(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: USER ACCOUNT & GOVERNANCE DOSSIER */}
+      {selectedUserDossier && (
+        <div className={styles.modalBackdrop} onClick={() => setSelectedUserDossier(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>👤 User Account & Governance: {selectedUserDossier.name}</h2>
+              <button
+                className={styles.closeBtn}
+                onClick={() => setSelectedUserDossier(null)}
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>User ID</span>
+                <span className={styles.dossierValue} style={{ fontFamily: 'monospace' }}>
+                  {selectedUserDossier.id}
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Full Name</span>
+                <span className={styles.dossierValue}>{selectedUserDossier.name}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Email Address</span>
+                <span className={styles.dossierValue}>{selectedUserDossier.email}</span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Registered Phone</span>
+                <span className={styles.dossierValue} style={{ fontFamily: 'monospace' }}>
+                  {selectedUserDossier.phone}
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Current Role</span>
+                <Badge
+                  variant={
+                    selectedUserDossier.role === 'ADMIN'
+                      ? 'danger'
+                      : selectedUserDossier.role === 'AGENCY'
+                      ? 'info'
+                      : selectedUserDossier.role === 'PARENT'
+                      ? 'warning'
+                      : 'ai'
+                  }
+                  size="sm"
+                >
+                  {selectedUserDossier.role}
+                </Badge>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Account Created</span>
+                <span className={styles.dossierValue}>{selectedUserDossier.createdAt}</span>
+              </div>
+
+              {/* RBAC Role Modification */}
+              <div
+                style={{
+                  background: 'var(--bg-elevated)',
+                  padding: '14px',
+                  border: '1.5px solid var(--ink)',
+                  borderRadius: '6px',
+                }}
+              >
+                <strong style={{ display: 'block', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                  🛡️ Manage Role-Based Access Control (RBAC):
+                </strong>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <select
+                    value={userRoleUpdate || selectedUserDossier.role}
+                    onChange={(e) => setUserRoleUpdate(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '5px',
+                      border: '2px solid var(--ink)',
+                      background: 'var(--bg-surface)',
+                      color: 'var(--text-primary)',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                    }}
+                  >
+                    <option value="STUDENT">STUDENT</option>
+                    <option value="PARENT">PARENT</option>
+                    <option value="AGENCY">AGENCY</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                  <Button
+                    size="sm"
+                    variant="emerald"
+                    loading={actionLoadingId === selectedUserDossier.id}
+                    onClick={() =>
+                      handleUpdateUserRole(
+                        selectedUserDossier.id,
+                        userRoleUpdate || selectedUserDossier.role
+                      )
+                    }
+                  >
+                    Update Role
+                  </Button>
+                </div>
+              </div>
+
+              {/* Security & Activity Audit Trail */}
+              <div>
+                <strong
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--text-primary)',
+                    display: 'block',
+                    marginBottom: '6px',
+                  }}
+                >
+                  🔒 Security & Authentication Audit Trail:
+                </strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className={styles.docItem}>
+                    <span>✓ Session authenticated via JWT / Cookie Bearer</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>DHAKA, BD · Active</span>
+                  </div>
+                  <div className={styles.docItem}>
+                    <span>✓ Account verification status</span>
+                    <span style={{ color: selectedUserDossier.isVerified ? 'var(--emerald)' : 'var(--text-muted)' }}>
+                      {selectedUserDossier.isVerified ? 'VERIFIED' : 'PENDING'}
+                    </span>
+                  </div>
+                  {selectedUserDossier.details?.licenseNo && (
+                    <div className={styles.docItem}>
+                      <span>📄 Trade License: {selectedUserDossier.details.licenseNo}</span>
+                      <span style={{ color: 'var(--emerald)' }}>Active</span>
+                    </div>
+                  )}
+                  {selectedUserDossier.details?.linkCode && (
+                    <div className={styles.docItem}>
+                      <span>🔗 Parent-Student Link Code: {selectedUserDossier.details.linkCode}</span>
+                      <span style={{ color: 'var(--blue-primary)' }}>Linked</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              {selectedUserDossier.role?.toUpperCase() === 'AGENCY' && (
+                <Button
+                  size="sm"
+                  variant={selectedUserDossier.isVerified ? 'danger' : 'emerald'}
+                  loading={actionLoadingId === selectedUserDossier.id}
+                  onClick={() => {
+                    handleToggleUserVerify(selectedUserDossier.id, selectedUserDossier.isVerified);
+                    setSelectedUserDossier((prev) => (prev ? { ...prev, isVerified: !prev.isVerified } : null));
+                  }}
+                >
+                  {selectedUserDossier.isVerified ? 'Revoke Agency Verification' : 'Verify Agency License'}
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={() => setSelectedUserDossier(null)}>
+                Close
               </Button>
             </div>
           </div>
