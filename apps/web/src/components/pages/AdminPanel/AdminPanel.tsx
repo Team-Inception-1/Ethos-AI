@@ -323,6 +323,12 @@ export default function AdminPanel() {
           <Badge variant="danger" size="md">
             🛡️ SUPERADMIN ACTIVE
           </Badge>
+          <Badge variant="verified" size="sm">
+            Neon DB Live
+          </Badge>
+          <Badge variant="ai" size="sm">
+            Ledger v2.4
+          </Badge>
           <Button
             size="sm"
             variant="ghost"
