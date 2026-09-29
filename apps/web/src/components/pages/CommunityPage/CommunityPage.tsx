@@ -354,9 +354,11 @@ export default function CommunityPage() {
               className={`${styles.hubTab} ${isActive ? styles.hubTabActive : ''}`}
             >
               <span className={styles.hubTabFlag}>{hub.flag}</span>
-              <span>{hub.country}</span>
-              {isJoined && <span className={styles.hubJoinedDot} title="Joined Community" />}
-              <span className={styles.hubTabBadge}>{hub.memberCount} members</span>
+              <span className={styles.hubTabName}>{hub.country}</span>
+              <span className={styles.hubTabMeta}>
+                {isJoined && <span className={styles.hubJoinedDot} title="Joined Community" />}
+                <span className={styles.hubTabBadge}>{hub.memberCount}</span>
+              </span>
             </button>
           );
         })}
