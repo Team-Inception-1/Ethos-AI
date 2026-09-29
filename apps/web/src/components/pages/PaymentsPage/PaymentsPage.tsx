@@ -269,36 +269,22 @@ export default function PaymentsPage() {
       </div>
 
       {/* Mode Tabs */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid var(--border)', paddingBottom: '8px' }}>
+      <div className={styles.tabBar} role="tablist" aria-label="Escrow views">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'milestones'}
           onClick={() => setActiveTab('milestones')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '6px',
-            border: activeTab === 'milestones' ? '2px solid var(--ink)' : '2px solid transparent',
-            background: activeTab === 'milestones' ? 'var(--blue-primary)' : 'transparent',
-            color: activeTab === 'milestones' ? '#fff' : 'var(--text-secondary)',
-            fontWeight: 800,
-            fontSize: '13px',
-            cursor: 'pointer',
-          }}
+          className={`${styles.modeTab} ${activeTab === 'milestones' ? styles.modeTabActive : ''}`}
         >
           Active Milestones ({milestones.length})
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'ledger'}
           onClick={() => setActiveTab('ledger')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '6px',
-            border: activeTab === 'ledger' ? '2px solid var(--ink)' : '2px solid transparent',
-            background: activeTab === 'ledger' ? 'var(--blue-primary)' : 'transparent',
-            color: activeTab === 'ledger' ? '#fff' : 'var(--text-secondary)',
-            fontWeight: 800,
-            fontSize: '13px',
-            cursor: 'pointer',
-          }}
+          className={`${styles.modeTab} ${activeTab === 'ledger' ? styles.modeTabActive : ''}`}
         >
           Immutable Ledger Trail ({ledgerEntries.length})
         </button>

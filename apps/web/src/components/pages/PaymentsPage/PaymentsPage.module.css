@@ -1,9 +1,75 @@
 .page { display: flex; flex-direction: column; gap: var(--space-6); }
 .header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-4); }
-.summary { display: flex; gap: var(--space-8); }
-.summaryItem { display: flex; flex-direction: column; align-items: flex-end; }
-.summaryVal { font-size: 22px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; color: var(--blue-primary); }
-.summaryLabel { font-size: 11px; color: var(--text-muted); }
+.summary {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.summaryItem {
+  background: var(--bg-surface, #ffffff);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-lg, 12px);
+  padding: 12px 18px;
+  box-shadow: 2.5px 2.5px 0 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  transition: transform var(--transition-fast);
+}
+
+.summaryItem:hover {
+  transform: translate(-1px, -1px);
+}
+
+.summaryVal {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.summaryLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.tabBar {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 8px;
+  overflow-x: auto;
+}
+
+.modeTab {
+  padding: 8px 18px;
+  border-radius: var(--radius-md, 8px);
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.modeTab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.modeTabActive {
+  background: var(--blue-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--ink) !important;
+  box-shadow: 2px 2px 0 0 var(--ink) !important;
+}
+
 .tableCard { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { padding: var(--space-4) var(--space-5); text-align: left; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; border-bottom: var(--border-width) solid var(--border); }
@@ -12,5 +78,3 @@
 .milestoneName { font-weight: 700; }
 .amount { font-weight: 800; font-family: 'Space Grotesk', sans-serif; }
 .date, .ref { font-size: 12px; color: var(--text-muted); }
-.devHint { font-size: 12px; color: var(--text-muted); font-style: italic; }
-.devHint code { background: var(--bg-elevated); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
