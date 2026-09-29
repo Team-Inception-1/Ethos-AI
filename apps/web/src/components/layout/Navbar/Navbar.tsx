@@ -47,8 +47,8 @@ export default function Navbar() {
   };
 
   return (
-    <header className={styles.header}>
-      <nav className={`${styles.nav} container`}>
+    <header className={styles.header} suppressHydrationWarning>
+      <nav className={`${styles.nav} container`} suppressHydrationWarning>
         {/* Logo */}
         <Link href="/" className={styles.logo} aria-label="Ethos AI Home">
           <EthosLogoIcon size={30} />
@@ -76,7 +76,7 @@ export default function Navbar() {
         </ul>
 
         {/* Right Controls */}
-        <div className={styles.controls}>
+        <div className={styles.controls} suppressHydrationWarning>
           {/* Language Toggle */}
           <button
             id="lang-toggle"

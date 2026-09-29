@@ -186,10 +186,10 @@ export default function LandingPage() {
   const ctaReveal = useScrollReveal();
 
   return (
-    <main className={styles.main}>
+    <main className={styles.main} suppressHydrationWarning>
       {/* ── Hero ── */}
-      <section className={styles.hero} aria-label="Hero">
-        <div className={styles.heroBg} aria-hidden="true">
+      <section className={styles.hero} aria-label="Hero" suppressHydrationWarning>
+        <div className={styles.heroBg} aria-hidden="true" suppressHydrationWarning>
           <div className={styles.orb1} />
           <div className={styles.orb2} />
           <div className={styles.orbPurple} />
