@@ -1100,9 +1100,13 @@ export default function AdminPanel() {
                       </Badge>
                     </td>
                     <td>
-                      <Badge variant={u.isVerified ? 'verified' : 'pending'} size="sm">
-                        {u.isVerified ? 'Verified' : 'Pending'}
-                      </Badge>
+                      {u.role?.toUpperCase() === 'AGENCY' ? (
+                        <Badge variant={u.isVerified ? 'verified' : 'pending'} size="sm">
+                          {u.isVerified ? 'Verified' : 'Pending'}
+                        </Badge>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>—</span>
+                      )}
                     </td>
                     <td>
                       {u.details?.linkCode && (
@@ -1122,15 +1126,17 @@ export default function AdminPanel() {
                     <td className={styles.subInfo}>{u.createdAt}</td>
                     <td>
                       <div className={styles.actions}>
-                        <Button
-                          size="sm"
-                          variant={u.isVerified ? 'ghost' : 'emerald'}
-                          disabled={isActionLoading}
-                          loading={isActionLoading}
-                          onClick={() => handleToggleUserVerify(u.id, u.isVerified)}
-                        >
-                          {u.isVerified ? 'Revoke Verify' : 'Verify User'}
-                        </Button>
+                        {u.role?.toUpperCase() === 'AGENCY' && (
+                          <Button
+                            size="sm"
+                            variant={u.isVerified ? 'ghost' : 'emerald'}
+                            disabled={isActionLoading}
+                            loading={isActionLoading}
+                            onClick={() => handleToggleUserVerify(u.id, u.isVerified)}
+                          >
+                            {u.isVerified ? 'Revoke Verify' : 'Verify Agency'}
+                          </Button>
+                        )}
                         {['student', 'parent', 'agency', 'admin'].includes(roleLower) && (
                           <Button
                             size="sm"

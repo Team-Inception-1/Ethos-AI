@@ -959,7 +959,7 @@ class InMemoryDatabase {
         email: u.email,
         phone: u.phone,
         role: u.role,
-        isVerified: u.isVerified,
+        isVerified: u.role === 'AGENCY' ? Boolean(u.isVerified) : false,
         avatarUrl: u.avatarUrl,
         createdAt: (u as any).createdAt || '2025-01-15',
         details: studentProfile ? {

@@ -6,7 +6,7 @@
       "phone": "+8801512345681",
       "name": "Platform Administrator",
       "role": "ADMIN",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
     },
     {
@@ -15,7 +15,7 @@
       "phone": "+8801712345678",
       "name": "Riya Ahmed",
       "role": "STUDENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
     },
     {
@@ -24,7 +24,7 @@
       "phone": "+8801712345671",
       "name": "Tanvir Hasan",
       "role": "STUDENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
     },
     {
@@ -33,7 +33,7 @@
       "phone": "+8801712345672",
       "name": "Sadia Islam",
       "role": "STUDENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150"
     },
     {
@@ -42,7 +42,7 @@
       "phone": "+8801712345673",
       "name": "Abrar Fahim",
       "role": "STUDENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"
     },
     {
@@ -51,7 +51,7 @@
       "phone": "+8801712345674",
       "name": "Mehzabien Chowdhury",
       "role": "STUDENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150"
     },
     {
@@ -60,7 +60,7 @@
       "phone": "+8801812345679",
       "name": "Farhana Ahmed",
       "role": "PARENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150"
     },
     {
@@ -69,7 +69,7 @@
       "phone": "+8801812345671",
       "name": "Mohammad Kamal Hasan",
       "role": "PARENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150"
     },
     {
@@ -78,7 +78,7 @@
       "phone": "+8801812345672",
       "name": "Shahana Islam",
       "role": "PARENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150"
     },
     {
@@ -87,7 +87,7 @@
       "phone": "+8801812345673",
       "name": "Tariqul Islam Fahim",
       "role": "PARENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150"
     },
     {
@@ -96,7 +96,7 @@
       "phone": "+8801812345674",
       "name": "Nargis Sultana Chowdhury",
       "role": "PARENT",
-      "isVerified": true,
+      "isVerified": false,
       "avatarUrl": "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150"
     },
     {

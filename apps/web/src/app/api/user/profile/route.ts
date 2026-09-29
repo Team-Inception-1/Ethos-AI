@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 
 function formatNameFromEmail(email: string): string {
   const local = email.split('@')[0];
@@ -23,6 +24,30 @@ export async function GET(request: Request) {
 
     if (!emailParam && !userIdParam) {
       return NextResponse.json({ error: 'email or userId is required' }, { status: 400 });
+    }
+
+    if (!process.env.DATABASE_URL) {
+      const inMem = db.users.find(
+        (u) =>
+          (emailParam && u.email.toLowerCase() === emailParam) ||
+          (userIdParam && u.id === userIdParam)
+      );
+      if (inMem) {
+        return NextResponse.json({
+          success: true,
+          user: {
+            id: inMem.id,
+            name: inMem.name,
+            email: inMem.email,
+            phone: inMem.phone,
+            role: inMem.role.toLowerCase(),
+            isVerified: inMem.role === 'AGENCY' ? Boolean(inMem.isVerified) : false,
+            avatarUrl: inMem.avatarUrl || '',
+            createdAt: (inMem as any).createdAt || '2025-01-15',
+          },
+        });
+      }
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // 1. Check in prisma.user
