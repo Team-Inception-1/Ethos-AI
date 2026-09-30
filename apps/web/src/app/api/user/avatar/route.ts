@@ -3,12 +3,15 @@ import { uploadAvatarFile } from '@/lib/storage';
 import { db } from '@/lib/db';
 
 import { prisma } from '@/lib/prisma';
+import { requireUser } from '@/lib/auth/authorization';
 
 export async function POST(request: Request) {
   try {
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const userId = (formData.get('userId') as string) || 'usr-student-01';
+    const userId = authorization.user.id;
 
     if (!file) {
       return NextResponse.json({ error: 'No image file provided' }, { status: 400 });
@@ -37,10 +40,8 @@ export async function POST(request: Request) {
 
     // Persist permanently into Neon Postgres public.User
     try {
-      await prisma.user.updateMany({
-        where: {
-          OR: [{ id: userId }, { email: userId.toLowerCase() }],
-        },
+      await prisma.user.update({
+        where: { id: userId },
         data: {
           avatarUrl: result.url,
         },

@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   return NextResponse.json({
-    status: 'ok',
+    status: process.env.NEON_AUTH_BASE_URL && process.env.NEON_AUTH_COOKIE_SECRET ? 'configured' : 'unconfigured',
     provider: 'neon_better_auth',
-    baseUrl: process.env.NEON_AUTH_BASE_URL || 'https://ep-young-term-axk9zwb2.neonauth.c-4.us-east-2.aws.neon.tech/neondb/auth',
+    baseUrl: process.env.NEON_AUTH_BASE_URL || '',
+    demoEnabled: process.env.ENABLE_DEMO_AUTH === 'true',
   });
 }

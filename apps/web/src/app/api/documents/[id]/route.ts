@@ -1,70 +1,33 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { prisma } from '@/lib/prisma';
 import { deleteDocumentFile } from '@/lib/storage';
+import { forbiddenResponse, requireUser } from '@/lib/auth/authorization';
+import { canAccessDocument } from '@/lib/auth/relationships';
+import { apiError, handleApiError } from '@/lib/api/response';
 
-export async function GET(
-  request: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+type Context = { params: Promise<{ id: string }> };
+
+export async function GET(_request: Request, context: Context) {
   try {
-    const { id } = await props.params;
-
-    // Check Prisma DB first
-    const dbDoc = await prisma.document.findUnique({
-      where: { id },
-      include: { documentScan: true },
-    });
-
-    if (dbDoc) {
-      return NextResponse.json({ document: dbDoc });
-    }
-
-    const document = db.getDocumentById(id);
-    if (!document) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
-    }
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
+    const { id } = await context.params;
+    if (!await canAccessDocument(authorization.user, id)) return forbiddenResponse();
+    const document = await prisma.document.findUnique({ where: { id }, include: { documentScan: true } });
     return NextResponse.json({ document });
-  } catch (error) {
-    console.error('Error getting document:', error);
-    return NextResponse.json({ error: 'Failed to retrieve document' }, { status: 500 });
-  }
+  } catch (error) { return handleApiError(error); }
 }
 
-export async function DELETE(
-  request: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, context: Context) {
   try {
-    const { id } = await props.params;
-
-    let storageKey: string | null = null;
-
-    // 1. Delete from PostgreSQL if exists
-    try {
-      const dbDoc = await prisma.document.findUnique({ where: { id } });
-      if (dbDoc) {
-        storageKey = dbDoc.storageKey;
-        await prisma.document.delete({ where: { id } });
-      }
-    } catch (e) {
-      console.warn('[Document DELETE] DB deletion warning:', e);
-    }
-
-    // 2. Delete from in-memory DB if exists
-    const memoryDoc = db.deleteDocument(id);
-    if (memoryDoc?.storageKey) {
-      storageKey = memoryDoc.storageKey;
-    }
-
-    // 3. Delete from Neon Object Storage S3 bucket
-    if (storageKey) {
-      await deleteDocumentFile(storageKey);
-    }
-
-    return NextResponse.json({ success: true, id });
-  } catch (error) {
-    console.error('Error deleting document:', error);
-    return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 });
-  }
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
+    const { id } = await context.params;
+    if (!await canAccessDocument(authorization.user, id, true)) return forbiddenResponse();
+    const document = await prisma.document.findUnique({ where: { id } });
+    if (!document) return apiError('NOT_FOUND', 'Document not found.', 404);
+    await deleteDocumentFile(document.storageKey);
+    await prisma.document.delete({ where: { id } });
+    return NextResponse.json({ data: { id } });
+  } catch (error) { return handleApiError(error); }
 }

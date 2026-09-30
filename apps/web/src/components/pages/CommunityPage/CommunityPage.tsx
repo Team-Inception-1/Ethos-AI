@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import GlassCard from '@/components/ui/GlassCard';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import {
   CommunityService,
@@ -11,7 +11,6 @@ import {
   CommunityPostItem,
   CommunityCommentItem,
   DirectMessageThread,
-  StudentStatusType,
 } from '@/lib/communityClient';
 import styles from './CommunityPage.module.css';
 
@@ -125,10 +124,10 @@ function HubFlagIcon({ code, size = 'sm' }: { code?: string; size?: 'sm' | 'lg' 
 }
 
 export default function CommunityPage() {
-  const { user } = useAuth();
-  const currentUserId = user?.id || 'usr-student-01';
-  const currentUserName = user?.name || 'Riya Ahmed';
-  const currentUserAvatar = user?.avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150';
+  const { user, loading: authLoading } = useAuth();
+  const currentUserId = user?.id || '';
+  const currentUserName = user?.name || 'Not signed in';
+  const currentUserAvatar = user?.avatarUrl || '';
 
   // ── State ──
   const [hubs, setHubs] = useState<CountryHub[]>([]);
@@ -137,6 +136,7 @@ export default function CommunityPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [seniorOnlyFilter, setSeniorOnlyFilter] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [nextPostCursor, setNextPostCursor] = useState<string | null>(null);
   const [posts, setPosts] = useState<CommunityPostItem[]>([]);
   const [seniors, setSeniors] = useState<SeniorMentor[]>([]);
 
@@ -170,6 +170,7 @@ export default function CommunityPage() {
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
 
   // Toast
+  const [loadError, setLoadError] = useState('');
   const [toast, setToast] = useState<string | null>(null);
 
   // New Post Form
@@ -178,8 +179,6 @@ export default function CommunityPage() {
   const [newPostCategory, setNewPostCategory] = useState('Help');
   const [newPostIsAnonymous, setNewPostIsAnonymous] = useState(false);
   const [newPostIsSeniorAsk, setNewPostIsSeniorAsk] = useState(false);
-  const [newPostStatus, setNewPostStatus] = useState<StudentStatusType>('incoming');
-  const [newPostUniversity, setNewPostUniversity] = useState('Prospective Student');
 
   // Show Toast Helper
   const showToast = (msg: string) => {
@@ -187,30 +186,28 @@ export default function CommunityPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Initial Data Load ──
+  // No bundled identities or localStorage memberships are trusted.
   useEffect(() => {
-    const loadedHubs = CommunityService.getHubs();
-    setHubs(loadedHubs);
-    const joined = CommunityService.getJoinedHubIds(currentUserId);
-    setJoinedHubIds(joined);
-    const blocked = CommunityService.getBlockedUsers(currentUserId);
-    setBlockedUsers(blocked);
+    if (!currentUserId) return;
+    let active = true;
+    Promise.all([CommunityService.getHubs(), CommunityService.getJoinedHubIds(currentUserId)]).then(([loadedHubs, joined]) => {
+      if (active) { setHubs(loadedHubs); setJoinedHubIds(joined); }
+    }).catch(() => { if (active) setLoadError('Community could not be loaded. Please retry.'); });
+    return () => { active = false; };
   }, [currentUserId]);
 
-  // Load Posts & Seniors whenever activeHub, category, filter, search, or blocked changes
   useEffect(() => {
-    const fetchedPosts = CommunityService.getPosts({
-      hubId: activeHubId,
-      category: selectedCategory,
-      seniorOnly: seniorOnlyFilter,
-      query: searchQuery,
-      currentUserId,
+    if (!currentUserId) return;
+    let active = true;
+    CommunityService.getPostsPage({ hubId: activeHubId, category: selectedCategory, seniorOnly: seniorOnlyFilter, query: searchQuery }).then(page => {
+      if (active) { setPosts(page.items); setNextPostCursor(page.nextCursor); setLoadError(''); }
+    }).catch(error => {
+      if (active) { setPosts([]); setNextPostCursor(null); setLoadError(error instanceof Error ? error.message : 'Feed could not be loaded.'); }
     });
-    setPosts(fetchedPosts);
-
-    const countrySeniors = CommunityService.getSeniorsByCountry(activeHubId);
-    setSeniors(countrySeniors);
-  }, [activeHubId, selectedCategory, seniorOnlyFilter, searchQuery, currentUserId, blockedUsers]);
+    CommunityService.getSeniorsByCountry(activeHubId).then(items => { if (active) setSeniors(items); })
+      .catch(() => { if (active) setLoadError('Mentors could not be loaded. Please retry.'); });
+    return () => { active = false; };
+  }, [activeHubId, selectedCategory, seniorOnlyFilter, searchQuery, currentUserId, blockedUsers, joinedHubIds]);
 
   // Active Hub Object
   const currentHub = useMemo(() => {
@@ -222,120 +219,76 @@ export default function CommunityPage() {
   }, [joinedHubIds, activeHubId]);
 
   // ── Join / Leave Hub ──
-  const handleToggleJoin = () => {
-    const result = CommunityService.toggleJoinHub(currentUserId, activeHubId);
+  const handleToggleJoin = async () => {
+    try {
+    const result = await CommunityService.toggleJoinHub(currentUserId, activeHubId, isCurrentHubJoined);
+    setHubs(previous => previous.map(hub => hub.id === activeHubId ? { ...hub, memberCount: result.memberCount } : hub));
     setJoinedHubIds(result.joinedHubs);
     showToast(
       result.joined
         ? `Joined ${currentHub?.country} Hub! You are now connected with peers in this country.`
         : `Left ${currentHub?.country} Hub.`
     );
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Membership update failed.'); }
   };
 
-  // ── Likes ──
-  const handleToggleLike = (postId: string) => {
-    const res = CommunityService.toggleLikePost(postId, currentUserId);
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const isLikedNow = p.likedBy.includes(currentUserId);
-          const newLikedBy = isLikedNow
-            ? p.likedBy.filter((id) => id !== currentUserId)
-            : [...p.likedBy, currentUserId];
-          return {
-            ...p,
-            likesCount: res.likesCount,
-            likedBy: newLikedBy,
-          };
-        }
-        return p;
-      })
-    );
+  const handleToggleLike = async (postId: string) => {
+    try {
+      const existing = posts.find(post => post.id === postId);
+      const res = await CommunityService.toggleLikePost(postId, currentUserId, !!existing?.likedBy.includes(currentUserId));
+      setPosts(previous => previous.map(post => post.id === postId ? { ...post, likesCount: res.likesCount, likedBy: res.isLiked ? [currentUserId] : [] } : post));
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Like could not be saved.'); }
+  };
+  const handleLoadMorePosts = async () => {
+    if (!nextPostCursor) return;
+    try {
+      const page = await CommunityService.getPostsPage({ hubId: activeHubId, category: selectedCategory, seniorOnly: seniorOnlyFilter, query: searchQuery, cursor: nextPostCursor });
+      setPosts(previous => [...previous, ...page.items.filter(item => !previous.some(post => post.id === item.id))]);
+      setNextPostCursor(page.nextCursor);
+    } catch (error) { showToast(error instanceof Error ? error.message : 'More posts could not be loaded.'); }
   };
 
   // ── Comments Toggle & Load ──
-  const handleToggleComments = (postId: string) => {
+  const handleToggleComments = async (postId: string) => {
+    try {
     if (expandedCommentsPostId === postId) {
       setExpandedCommentsPostId(null);
     } else {
       setExpandedCommentsPostId(postId);
-      const comments = CommunityService.getComments(postId, currentUserId);
+      const comments = await CommunityService.getComments(postId, currentUserId);
       setPostComments((prev) => ({ ...prev, [postId]: comments }));
     }
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Comments could not be loaded.'); }
   };
 
   // ── Add Comment ──
-  const handleAddComment = (postId: string) => {
-    const text = commentInputs[postId]?.trim();
-    if (!text) return;
-
-    const isAnon = !!commentAnonymous[postId];
-    const isSenior = user?.role === 'student' && user?.isVerified;
-
-    const newComment = CommunityService.addComment({
-      postId,
-      content: text,
-      authorId: currentUserId,
-      authorName: currentUserName,
-      authorAvatar: currentUserAvatar,
-      isAnonymous: isAnon,
-      authorStatus: 'incoming',
-      authorUniversity: isAnon ? 'Community Student' : 'Incoming Student',
-      authorVerified: !!user?.isVerified,
-      isSeniorAnswer: !!isSenior,
-    });
-
-    setPostComments((prev) => ({
-      ...prev,
-      [postId]: [...(prev[postId] || []), newComment],
-    }));
-
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p))
-    );
-
-    setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
-    showToast('Comment published successfully!');
+  const handleAddComment = async (postId: string) => {
+    const text = commentInputs[postId]?.trim(); if (!text) return;
+    try {
+      const saved = await CommunityService.addComment({ postId, content: text, isAnonymous: !!commentAnonymous[postId] });
+      setPostComments(previous => ({ ...previous, [postId]: [...(previous[postId] || []), saved] }));
+      setPosts(previous => previous.map(post => post.id === postId ? { ...post, commentsCount: post.commentsCount + 1 } : post));
+      setCommentInputs(previous => ({ ...previous, [postId]: '' }));
+      showToast('Comment saved successfully.');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Comment could not be saved.'); }
   };
 
   // ── Create Post ──
-  const handleCreatePost = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPostTitle.trim() || !newPostContent.trim()) {
-      alert('Please provide both a title and content.');
-      return;
-    }
-
-    const created = CommunityService.createPost({
-      countryId: activeHubId,
-      country: currentHub?.country || 'Germany',
-      category: newPostCategory,
-      title: newPostTitle,
-      content: newPostContent,
-      authorId: currentUserId,
-      authorName: currentUserName,
-      authorAvatar: currentUserAvatar,
-      isAnonymous: newPostIsAnonymous,
-      authorStatus: newPostStatus,
-      authorUniversity: newPostUniversity,
-      authorVerified: !!user?.isVerified,
-      isSeniorAsk: newPostIsSeniorAsk,
-    });
-
-    setPosts((prev) => [created, ...prev]);
-    setIsCreateModalOpen(false);
-    setNewPostTitle('');
-    setNewPostContent('');
-    setNewPostIsAnonymous(false);
-    setNewPostIsSeniorAsk(false);
-
-    showToast(
-      `Post published in ${currentHub?.country} Hub! Strictly visible to students in this group.`
-    );
+  const handleCreatePost = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newPostTitle.trim() || !newPostContent.trim()) { showToast('Provide a title and content.'); return; }
+    try {
+      const saved = await CommunityService.createPost({ countryId: activeHubId, category: newPostCategory, title: newPostTitle,
+        content: newPostContent, isAnonymous: newPostIsAnonymous, isSeniorAsk: newPostIsSeniorAsk });
+      setPosts(previous => [saved, ...previous]); setIsCreateModalOpen(false);
+      setHubs(previous => previous.map(hub => hub.id === activeHubId ? { ...hub, postCount: hub.postCount + 1 } : hub));
+      setNewPostTitle(''); setNewPostContent(''); setNewPostIsAnonymous(false); setNewPostIsSeniorAsk(false);
+      showToast('Post saved in ' + currentHub?.country + ' Hub.');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Post could not be saved.'); }
   };
 
   // ── 1-to-1 Direct Messaging ──
-  const handleOpenDm = (target: {
+  const handleOpenDm = async (target: {
     id: string;
     name: string;
     avatar?: string;
@@ -343,20 +296,23 @@ export default function CommunityPage() {
     status?: string;
     isVerified?: boolean;
   }) => {
+    try {
     if (target.id === currentUserId) {
       alert('You cannot message yourself.');
       return;
     }
     setDmTarget(target);
-    const thread = CommunityService.getDirectThread(currentUserId, target.id);
+    const thread = await CommunityService.getDirectThread(currentUserId, target.id);
     setActiveDmThread(thread);
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Message thread could not be opened.'); }
   };
 
-  const handleSendDm = (e: React.FormEvent) => {
+  const handleSendDm = async (e: React.FormEvent) => {
+    try {
     e.preventDefault();
     if (!dmTarget || !dmInput.trim()) return;
 
-    const newMsg = CommunityService.sendDirectMessage(
+    const newMsg = await CommunityService.sendDirectMessage(
       currentUserId,
       dmTarget.id,
       currentUserId,
@@ -366,6 +322,7 @@ export default function CommunityPage() {
 
     setActiveDmThread((prev) => (prev ? { ...prev, messages: [...prev.messages, newMsg] } : null));
     setDmInput('');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Message could not be saved.'); }
   };
 
   // ── Report ──
@@ -375,11 +332,12 @@ export default function CommunityPage() {
     setReportDetails('');
   };
 
-  const handleSubmitReport = (e: React.FormEvent) => {
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    try {
     e.preventDefault();
     if (!reportTarget) return;
 
-    CommunityService.reportItem({
+    await CommunityService.reportItem({
       reporterId: currentUserId,
       targetType: reportTarget.type,
       targetId: reportTarget.id,
@@ -388,30 +346,40 @@ export default function CommunityPage() {
     });
 
     setReportTarget(null);
-    showToast('Report submitted. Our moderation team has been notified.');
+    showToast('Report submitted. Our moderation team can review it.');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Report could not be saved.'); }
   };
 
   // ── Block User ──
-  const handleBlockUser = (userId: string, userName: string) => {
+  const handleBlockUser = async (userId: string, userName: string) => {
+    try {
     if (userId === currentUserId) return;
     const confirmBlock = window.confirm(
       `Block ${userName}? All posts, comments, and messages from this user will be hidden from your feed.`
     );
     if (!confirmBlock) return;
 
-    const updated = CommunityService.blockUser(currentUserId, userId);
+    const updated = await CommunityService.blockUser(currentUserId, userId);
     setBlockedUsers(updated);
     showToast(`${userName} has been blocked.`);
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Block could not be saved.'); }
   };
 
-  const handleUnblockUser = (userId: string) => {
-    const updated = CommunityService.unblockUser(currentUserId, userId);
+  const handleUnblockUser = async (userId: string) => {
+    try {
+    const updated = await CommunityService.unblockUser(currentUserId, userId);
     setBlockedUsers(updated);
     showToast('User unblocked.');
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Unblock could not be saved.'); }
   };
 
+  const visiblePosts = posts.filter(post => post.countryId === activeHubId);
+  if (authLoading) return <div className={styles.page}>Loading your session…</div>;
+  if (!user) return <div className={styles.page}>Sign in to access the Student Network Hub.</div>;
+
   return (
-    <div className={styles.page} suppressHydrationWarning>
+    <div className={styles.page}>
+      {loadError && <p role="alert">{loadError}</p>}
       {/* ── Page Header ── */}
       <div className={styles.header}>
         <div>
@@ -424,7 +392,7 @@ export default function CommunityPage() {
 
         {/* Current Student Identity Card */}
         <div className={styles.userBadgeCard} title="Your current community profile">
-          <img src={currentUserAvatar} alt={currentUserName} className={styles.userAvatar} />
+          <Image unoptimized width={48} height={48} src={currentUserAvatar || '/icon.svg'} alt={currentUserName} className={styles.userAvatar} />
           <div className={styles.userInfo}>
             <span className={styles.userName}>{currentUserName}</span>
             <span className={styles.userStatusText}>
@@ -434,6 +402,7 @@ export default function CommunityPage() {
         </div>
       </div>
 
+      {nextPostCursor && <Button onClick={handleLoadMorePosts}>Load more discussions</Button>}
       {/* ── Country Hub Tabs ── */}
       <div className={styles.hubTabsContainer} role="tablist" aria-label="Country communities">
         {hubs.map((hub) => {
@@ -524,7 +493,7 @@ export default function CommunityPage() {
           within <strong>{currentHub?.country} Hub</strong>. Posts published here do not leak into other country groups.
         </div>
         <span style={{ fontSize: '11px', opacity: 0.8 }}>
-          {posts.length} discussions in this hub
+          {visiblePosts.length} discussions in this hub
         </span>
       </div>
 
@@ -579,7 +548,7 @@ export default function CommunityPage() {
       <div className={styles.mainGrid}>
         {/* Left Column: Feed */}
         <div className={styles.feedList}>
-          {posts.length === 0 ? (
+          {visiblePosts.length === 0 ? (
             <div className={styles.emptyFeed}>
               <h3>No discussions found in {currentHub?.country} Hub</h3>
               <p style={{ marginTop: '8px', fontSize: '13px' }}>
@@ -596,7 +565,7 @@ export default function CommunityPage() {
               </div>
             </div>
           ) : (
-            posts.map((post) => {
+            visiblePosts.map((post) => {
               const isLiked = post.likedBy?.includes(currentUserId);
               const isCommentsOpen = expandedCommentsPostId === post.id;
               const comments = postComments[post.id] || [];
@@ -618,7 +587,7 @@ export default function CommunityPage() {
                           🕵️‍♂️
                         </div>
                       ) : (
-                        <img
+                        <Image unoptimized width={48} height={48}
                           src={post.authorAvatar || currentUserAvatar}
                           alt={post.authorName}
                           className={styles.authorAvatar}
@@ -874,7 +843,7 @@ export default function CommunityPage() {
               seniors.map((snr) => (
                 <div key={snr.id} className={styles.seniorItem}>
                   <div className={styles.seniorItemTop}>
-                    <img src={snr.avatar} alt={snr.name} className={styles.seniorAvatar} />
+                    <Image unoptimized width={48} height={48} src={snr.avatar} alt={snr.name} className={styles.seniorAvatar} />
                     <div className={styles.seniorMeta}>
                       <span className={styles.seniorName}>{snr.name}</span>
                       <span className={styles.seniorUni}>{snr.university}</span>
@@ -1027,29 +996,7 @@ export default function CommunityPage() {
                   </select>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Your Academic Status</label>
-                  <select
-                    value={newPostStatus}
-                    onChange={(e) => setNewPostStatus(e.target.value as StudentStatusType)}
-                    className={styles.formSelect}
-                  >
-                    <option value="incoming">✈️ Incoming Student (Offer / Visa stage)</option>
-                    <option value="current">🎓 Current Student (Enrolled abroad)</option>
-                    <option value="alumni">🏛️ Alumni / Graduate</option>
-                  </select>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Target or Current University</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. TU Munich, U of Toronto, Manchester"
-                    value={newPostUniversity}
-                    onChange={(e) => setNewPostUniversity(e.target.value)}
-                    className={styles.formInput}
-                  />
-                </div>
+                <p>Your academic status and verification come from your approved hub membership.</p>
 
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Details & Question *</label>
@@ -1115,7 +1062,7 @@ export default function CommunityPage() {
           >
             <div className={styles.modalHeader}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img
+                <Image unoptimized width={48} height={48}
                   src={dmTarget.avatar || currentUserAvatar}
                   alt={dmTarget.name}
                   style={{ width: '38px', height: '38px', borderRadius: '50%', border: '2px solid var(--border)' }}
