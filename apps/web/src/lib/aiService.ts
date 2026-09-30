@@ -921,25 +921,22 @@ export interface TARAGuideResponse {
 export async function searchProfessors(
   payload: ProfessorSearchRequest
 ): Promise<ProfessorSearchResponse> {
-  try {
-    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (resp.ok) {
-      return await resp.json();
-    }
-    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
-  } catch (err) {
-    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
-      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
-    }
-    console.warn('AI microservice scholar search unreachable, falling back to offline:', err);
-  }
-
-  const { searchProfessorsOffline } = await import('./scholarOfflineEngine');
-  return searchProfessorsOffline(payload);
+  const params = new URLSearchParams({ limit: String(payload.limit ?? 20) });
+  if (payload.query) params.set('query', payload.query);
+  if (payload.countries?.[0]) params.set('country', payload.countries[0]);
+  const resp = await fetch(`/api/scholar/verified-catalog?${params}`, { cache: 'no-store' });
+  if (!resp.ok) throw new AiServiceError(await parseErrorDetail(resp), resp.status);
+  const body = await resp.json();
+  const results = body.data.results as ProfessorProfile[];
+  return {
+    total: body.data.total,
+    page: 1,
+    limit: payload.limit ?? 20,
+    professors: results,
+    domains_available: [...new Set(results.map((row) => row.primary_domain))],
+    countries_available: [...new Set(results.map((row) => row.country))],
+    tiers_available: ['Agency submitted / Admin verified'],
+  };
 }
 
 /** POST /api/ai/scholar/generate-email — synthesizes cold email with offline failover. */
@@ -1188,29 +1185,16 @@ export async function deconstructPaper(
   return deconstructPaperOffline(payload);
 }
 
-/** POST /api/ai/scholar/live-search — queries OpenAlex global academic repository. */
+/** Queries the agency-submitted, administrator-verified Neon catalog. */
 export async function liveSearchAcademic(
   payload: LiveAcademicSearchRequest
 ): Promise<LiveAcademicSearchResponse> {
-  try {
-    const resp = await fetch(`${AI_SERVICE_URL}/api/ai/scholar/live-search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (resp.ok) {
-      return await resp.json();
-    }
-    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
-  } catch (err) {
-    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
-      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
-    }
-    console.warn('AI microservice live-search unreachable, falling back to offline:', err);
-  }
-
-  const { searchOpenAlexOffline } = await import('./scholarOfflineEngine');
-  return searchOpenAlexOffline(payload.query, payload.limit, payload.entity_type);
+  const params = new URLSearchParams({ query: payload.query, limit: String(payload.limit ?? 12) });
+  if (payload.country) params.set('country', payload.country);
+  const resp = await fetch(`/api/scholar/verified-catalog?${params}`, { cache: 'no-store' });
+  if (!resp.ok) throw new AiServiceError(await parseErrorDetail(resp), resp.status);
+  const body = await resp.json();
+  return body.data as LiveAcademicSearchResponse;
 }
 
 // ---------------------------------------------------------------------------

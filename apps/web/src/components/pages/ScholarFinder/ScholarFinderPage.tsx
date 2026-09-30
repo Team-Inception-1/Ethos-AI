@@ -920,7 +920,7 @@ export default function ScholarFinderPage() {
               {lang === 'en' ? 'Verified R1/U15 Labs' : 'ভেরিফায়েড আর১/ইউ১৫ ল্যাব'}
             </Badge>
             <Badge variant="ai" size="sm">
-              {lang === 'en' ? 'OpenAlex Global Deep Search' : 'ওপেনঅ্যালেক্স গ্লোবাল লাইভ'}
+              {lang === 'en' ? 'Verified University Catalog' : 'যাচাইকৃত বিশ্ববিদ্যালয় ক্যাটালগ'}
             </Badge>
           </div>
           <p className={styles.pageSubtitle}>
@@ -977,7 +977,7 @@ export default function ScholarFinderPage() {
         <div className={styles.statCard}>
           <div className={styles.statIconBox}>🌐</div>
           <div className={styles.statInfo}>
-            <div className={styles.statVal}>OpenAlex Live</div>
+            <div className={styles.statVal}>Neon Verified</div>
             <div className={styles.statLabel}>
               {lang === 'en' ? 'Global Deep Search Ready' : 'গ্লোবাল পেপার ও ফ্যাকাল্টি সার্চ'}
             </div>
@@ -1046,7 +1046,7 @@ export default function ScholarFinderPage() {
               onClick={() => setSearchMode('live')}
             >
               <span>🌐</span>
-              <span>{lang === 'en' ? 'Live Academic Deep Search (OpenAlex)' : 'গ্লোবাল লাইভ সার্চ (OpenAlex)'}</span>
+              <span>{lang === 'en' ? 'Agency + Admin Verified Database' : 'এজেন্সি + অ্যাডমিন যাচাইকৃত ডেটাবেস'}</span>
             </button>
           </div>
 
