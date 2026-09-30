@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs';
 import path from 'path';
 
@@ -14,6 +14,23 @@ export interface StorageObjectItem {
   url: string;
   sizeBytes: number;
   lastModified?: Date;
+}
+
+/** Read a DB-selected document key; never fetch an arbitrary URL. */
+export async function readDocumentFile(storageKey: string): Promise<Uint8Array> {
+  if (!storageKey.startsWith('documents/') || storageKey.split('/').some(part => !part || part === '.' || part === '..') || storageKey.includes('\\')) {
+    throw new Error('Invalid document storage key.');
+  }
+  const s3 = getS3Client();
+  if (s3) {
+    const object = await s3.send(new GetObjectCommand({ Bucket: 'documents', Key: storageKey }));
+    if (!object.Body || (object.ContentLength ?? 0) > 10 * 1024 * 1024) throw new Error('Document unavailable or too large.');
+    return object.Body.transformToByteArray();
+  }
+  if (process.env.NODE_ENV === 'production') throw new Error('Private storage is not configured.');
+  const localPath = path.join(process.cwd(), 'public', 'uploads', path.basename(storageKey));
+  if (fs.statSync(localPath).size > 10 * 1024 * 1024) throw new Error('Document too large.');
+  return new Uint8Array(await fs.promises.readFile(localPath));
 }
 
 /**

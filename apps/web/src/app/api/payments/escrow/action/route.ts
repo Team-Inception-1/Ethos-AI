@@ -1,51 +1,24 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { POST as pay } from '@/app/api/escrow/pay/route';
+import { POST as release } from '@/app/api/escrow/release/route';
+import { POST as dispute } from '@/app/api/escrow/dispute/route';
+import { requireRole } from '@/lib/auth/authorization';
+import { apiError, handleApiError } from '@/lib/api/response';
+import { z } from 'zod';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { action, milestoneId, actorId = 'usr-student-01', provider = 'BKASH', reason = '', note = '' } = body;
-
-    if (!action || !milestoneId) {
-      return NextResponse.json(
-        { error: 'action and milestoneId are required' },
-        { status: 400 }
-      );
-    }
-
-    if (action === 'deposit') {
-      const result = db.depositEscrow({
-        milestoneId,
-        actorId,
-        provider,
-      });
-      return NextResponse.json({ success: true, ...result });
-    }
-
-    if (action === 'release') {
-      const result = db.releaseEscrow({
-        milestoneId,
-        actorId,
-        note,
-      });
-      return NextResponse.json({ success: true, ...result });
-    }
-
-    if (action === 'dispute') {
-      const result = db.disputeEscrow({
-        milestoneId,
-        actorId,
-        reason: reason || 'Dispute raised by student for milestone non-performance',
-      });
-      return NextResponse.json({ success: true, ...result });
-    }
-
-    return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
-  } catch (error: any) {
-    console.error('Error executing escrow action:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to process escrow action' },
-      { status: 500 }
-    );
-  }
+    const authorization = await requireRole(['STUDENT', 'ADMIN']);
+    if (authorization.response) return authorization.response;
+    const body = z.object({
+      action: z.enum(['deposit', 'release', 'dispute']), milestoneId: z.string().min(1),
+      provider: z.enum(['SSLCOMMERZ', 'BKASH', 'NAGAD']).optional(),
+      note: z.string().max(2000).optional(), reason: z.string().max(2000).optional(),
+    }).parse(await request.json());
+    const actionRequest = new Request(request.url, { method: 'POST',
+      headers: request.headers, body: JSON.stringify(body) });
+    if (body.action === 'deposit') return pay(actionRequest);
+    if (body.action === 'release') return release(actionRequest);
+    if (body.action === 'dispute') return dispute(actionRequest);
+    return apiError('INVALID_ACTION', 'Unsupported escrow action.', 400);
+  } catch (error) { return handleApiError(error); }
 }

@@ -40,12 +40,6 @@ const AgencyIcon = () => (
   </svg>
 );
 
-const AdminIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-  </svg>
-);
-
 const EyeIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -74,7 +68,7 @@ const roles: { id: UserRole; label: string; labelBn: string; icon: React.ReactNo
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
-  const { user, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail, updateProfile } = useAuth();
+  const { loading, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail, refreshSession, requestSignInOtp, neonAuthStatus } = useAuth();
 
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [role, setRole] = useState<UserRole>('student');
@@ -88,13 +82,6 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [errorMsg, setErrorMsg] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-
-  React.useEffect(() => {
-    if (mode === 'login') {
-      setEmail('riya@example.com');
-      setPassword('student123');
-    }
-  }, [mode]);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -121,11 +108,14 @@ export default function AuthPage({ mode }: AuthPageProps) {
         setErrorMsg('Please fill in all required fields.');
         return;
       }
-      register({ name: fullName, email, phone, role, password });
-      setStep('otp');
+      setIsVerifying(true);
+      const sent = await register({ name: fullName, email, phone, role, password });
+      setIsVerifying(false);
+      if (sent) setStep('otp');
+      else setErrorMsg('Registration or verification email failed. Please retry.');
     } else {
       if (!email.trim() || !password.trim()) {
-        setErrorMsg('Please enter both your email/phone and password.');
+        setErrorMsg('Please enter your email and password.');
         return;
       }
       setIsVerifying(true);
@@ -137,28 +127,11 @@ export default function AuthPage({ mode }: AuthPageProps) {
           return;
         }
 
-        // Determine destination based on authenticated user's role
-        let destRole: UserRole = 'student';
-        const clean = email.trim().toLowerCase();
-        if (clean.includes('admin') || clean === 'admin@ethosai.bd') {
-          destRole = 'admin';
-        } else if (clean.includes('globaledu') || clean === 'contact@globaledu.bd') {
-          destRole = 'agency';
-        } else if (clean.includes('farhana') || clean === 'farhana@example.com') {
-          destRole = 'parent';
-        } else if (user?.role) {
-          destRole = user.role;
-        }
-
-        if (destRole === 'agency') {
-          router.push('/agency/dashboard');
-        } else if (destRole === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
-      } catch (err: any) {
-        setErrorMsg(err.message || 'Authentication error. Please try again.');
+        const current = await refreshSession();
+        if (!current) { setErrorMsg('Your session could not be restored. Please sign in again.'); return; }
+        router.push(current.role === 'agency' ? '/agency/dashboard' : current.role === 'admin' ? '/admin' : '/dashboard');
+      } catch (err) {
+        setErrorMsg(err instanceof Error ? err.message : 'Authentication error. Please try again.');
       } finally {
         setIsVerifying(false);
       }
@@ -170,8 +143,11 @@ export default function AuthPage({ mode }: AuthPageProps) {
       setErrorMsg('Please enter your email to receive an OTP.');
       return;
     }
-    await login(email, password);
-    setStep('otp');
+    setIsVerifying(true);
+    const sent = await requestSignInOtp(email);
+    setIsVerifying(false);
+    if (sent) setStep('otp');
+    else setErrorMsg('The sign-in code could not be sent. Please retry.');
   };
 
   const handleOtpChange = (i: number, val: string) => {
@@ -188,8 +164,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
   const handleVerify = async () => {
     const code = otp.join('');
-    if (code.length < 4) {
-      setErrorMsg('Please enter a valid 4-6 digit OTP code.');
+    if (code.length !== 6) {
+      setErrorMsg('Please enter a valid 6 digit OTP code.');
       return;
     }
     setIsVerifying(true);
@@ -197,24 +173,9 @@ export default function AuthPage({ mode }: AuthPageProps) {
     try {
       const success = await verifyOtp(code);
       if (success) {
-        let authRole = user?.role;
-        if (!authRole) {
-          try {
-            const stored = localStorage.getItem('ethos_auth_user');
-            if (stored) {
-              authRole = JSON.parse(stored)?.role;
-            }
-          } catch {
-            // ignore
-          }
-        }
-        if (authRole === 'agency') {
-          router.push('/agency/dashboard');
-        } else if (authRole === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
+        const current = await refreshSession();
+        if (!current) { setErrorMsg('Your session could not be restored. Please sign in again.'); return; }
+        router.push(current.role === 'agency' ? '/agency/dashboard' : current.role === 'admin' ? '/admin' : '/dashboard');
       } else {
         setErrorMsg('Invalid verification code. Please check your email and try again.');
       }
@@ -446,7 +407,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     </Link>
                   )}
                 </div>
-                <Button type="submit" size="lg" fullWidth glow disabled={isVerifying}>
+                <Button type="submit" size="lg" fullWidth glow disabled={loading || isVerifying}>
                   {mode === 'login'
                     ? (isVerifying
                         ? (lang === 'en' ? 'Verifying Credentials…' : 'যাচাই করা হচ্ছে…')
@@ -458,6 +419,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     type="button"
                     className={styles.otpSwitchLink}
                     onClick={handleLoginViaOtp}
+                    disabled={loading || isVerifying}
                   >
                     🔒 {lang === 'en' ? 'Or sign in with email OTP' : 'অথবা ইমেল OTP দিয়ে সাইন ইন করুন'}
                   </button>
@@ -465,7 +427,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
               </form>
 
               {/* Subtle Collapsible Credentials Guide for Reviewers */}
-              {mode === 'login' && (
+              {mode === 'login' && neonAuthStatus.demoEnabled && (
                 <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
                   <details style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     <summary style={{ cursor: 'pointer', fontWeight: 700, userSelect: 'none' }}>
@@ -558,7 +520,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
               </div>
 
               <div className={styles.demoOtpHint}>
-                💡 <strong>Demo Shortcut:</strong> Enter any 6-digit code (e.g. <code>123456</code>) to verify instantly.
+                Enter the six-digit code delivered by Neon Auth. Codes expire and have a limited number of attempts.
               </div>
 
               <Button size="lg" fullWidth glow onClick={handleVerify} disabled={isVerifying}>

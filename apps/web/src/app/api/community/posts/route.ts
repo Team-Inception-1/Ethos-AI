@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import communityData from '@/data/communityData.json';
+import { requireUser, requireRole } from '@/lib/auth/authorization';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/community/posts?hubId=...&category=...&seniorOnly=...&q=...
@@ -7,13 +9,15 @@ import communityData from '@/data/communityData.json';
  */
 export async function GET(request: Request) {
   try {
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
     const { searchParams } = new URL(request.url);
     const hubId = searchParams.get('hubId') || 'hub-germany';
     const category = searchParams.get('category');
     const seniorOnly = searchParams.get('seniorOnly') === 'true';
     const query = searchParams.get('q')?.toLowerCase().trim();
 
-    let posts = (communityData.posts as any[]).filter((p) => p.countryId === hubId);
+    let posts = communityData.posts.filter((p) => p.countryId === hubId);
 
     if (category && category !== 'All') {
       posts = posts.filter((p) => p.category?.toLowerCase() === category.toLowerCase());
@@ -38,9 +42,9 @@ export async function GET(request: Request) {
       total: posts.length,
       posts,
     });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { error: error?.message || 'Failed to fetch community posts' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch community posts' },
       { status: 500 }
     );
   }
@@ -52,8 +56,11 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
+    const authorization = await requireRole(['STUDENT']);
+    if (authorization.response) return authorization.response;
+    const author = await prisma.user.findUnique({ where: { id: authorization.user.id }, select: { name: true, avatarUrl: true } });
     const body = await request.json();
-    const { countryId, country, title, content, category, authorId, authorName, authorAvatar, isAnonymous, authorStatus, authorUniversity, authorVerified, isSeniorAsk } = body;
+    const { countryId, country, title, content, category, isAnonymous, isSeniorAsk } = body;
 
     if (!countryId || !title || !content) {
       return NextResponse.json(
@@ -69,13 +76,13 @@ export async function POST(request: Request) {
       category: category || 'Help',
       title: title.trim(),
       content: content.trim(),
-      authorId: authorId || 'usr-student-01',
-      authorName: isAnonymous ? 'Anonymous Student' : (authorName || 'Riya Ahmed'),
-      authorAvatar: isAnonymous ? '' : (authorAvatar || ''),
+      authorId: isAnonymous ? undefined : authorization.user.id,
+      authorName: isAnonymous ? 'Anonymous Student' : (author?.name || ''),
+      authorAvatar: isAnonymous ? '' : (author?.avatarUrl || ''),
       isAnonymous: !!isAnonymous,
-      authorStatus: authorStatus || 'incoming',
-      authorUniversity: authorUniversity || 'Prospective Student',
-      authorVerified: !!authorVerified,
+      authorStatus: 'incoming',
+      authorUniversity: '',
+      authorVerified: authorization.user.isVerified,
       isSeniorAsk: !!isSeniorAsk,
       likesCount: 0,
       likedBy: [],
@@ -85,9 +92,9 @@ export async function POST(request: Request) {
     };
 
     return NextResponse.json({ post: newPost }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { error: error?.message || 'Failed to create post' },
+      { error: error instanceof Error ? error.message : 'Failed to create post' },
       { status: 500 }
     );
   }

@@ -1,69 +1,49 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { createHash } from 'node:crypto';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import { forbiddenResponse, requireUser } from '@/lib/auth/authorization';
+import { applicationAccessWhere, canAccessDocument } from '@/lib/auth/relationships';
+import { handleApiError } from '@/lib/api/response';
 
-/**
- * GET /api/chat/threads/[id]/messages
- * Fetches message history for a specific thread.
- */
-export async function GET(
-  request: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+type Context = { params: Promise<{ id: string }> };
+
+export async function GET(_request: Request, context: Context) {
   try {
-    const { id } = await props.params;
-    const messages = db.getMessagesByThread(id);
-    const thread = db.getThreadById(id);
-
-    return NextResponse.json({
-      threadId: id,
-      thread,
-      messages,
-      total: messages.length,
-    });
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch thread messages' },
-      { status: 500 }
-    );
-  }
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
+    const { id } = await context.params;
+    const thread = await prisma.chatThread.findFirst({ where: {
+      id, application: applicationAccessWhere(authorization.user),
+    }, select: { id: true, applicationId: true, agencyId: true } });
+    if (!thread) return forbiddenResponse();
+    const messages = await prisma.chatMessage.findMany({ where: { threadId: id }, orderBy: { sentAt: 'asc' }, take: 200 });
+    return NextResponse.json({ threadId: id, thread, messages, total: messages.length });
+  } catch (error) { return handleApiError(error); }
 }
 
-/**
- * POST /api/chat/threads/[id]/messages
- * Sends a message in a specific chat thread.
- * Body: { senderId: string, senderRole: string, body: string, attachmentDocId?: string }
- */
-export async function POST(
-  request: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, context: Context) {
   try {
-    const { id: threadId } = await props.params;
-    const body = await request.json();
-    const { senderId, senderRole, body: msgBody, attachmentDocId } = body;
-
-    if (!senderId || !msgBody?.trim()) {
-      return NextResponse.json(
-        { error: 'senderId and message body are required' },
-        { status: 400 }
-      );
-    }
-
-    const message = db.createChatMessage({
-      threadId,
-      senderId,
-      senderRole: (senderRole || 'STUDENT') as 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN',
-      body: msgBody.trim(),
-      attachmentDocId,
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
+    const { id } = await context.params;
+    const thread = await prisma.chatThread.findFirst({ where: {
+      id, application: applicationAccessWhere(authorization.user),
+    }, select: { id: true } });
+    if (!thread) return forbiddenResponse();
+    const body = z.object({
+      body: z.string().trim().min(1).max(10000), attachmentDocId: z.string().min(1).optional(),
+    }).parse(await request.json());
+    if (body.attachmentDocId && !await canAccessDocument(authorization.user, body.attachmentDocId)) return forbiddenResponse();
+    const sentAt = new Date();
+    const message = await prisma.$transaction(async tx => {
+      const created = await tx.chatMessage.create({ data: {
+        ...body, threadId: id, senderId: authorization.user.id, senderRole: authorization.user.role, sentAt,
+        msgHash: createHash('sha256').update(JSON.stringify([id, authorization.user.id, sentAt, body])).digest('hex'),
+      } });
+      await tx.chatThread.update({ where: { id }, data: { updatedAt: sentAt } });
+      return created;
     });
-
     return NextResponse.json({ message }, { status: 201 });
-  } catch (error) {
-    console.error('Error sending message:', error);
-    return NextResponse.json(
-      { error: 'Failed to send message' },
-      { status: 500 }
-    );
-  }
+  } catch (error) { return handleApiError(error); }
 }

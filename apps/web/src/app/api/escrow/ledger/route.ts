@@ -1,45 +1,22 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { formatPoishaToBDT } from '@/lib/escrowStateMachine';
+import { prisma } from '@/lib/prisma';
+import { forbiddenResponse, requireUser } from '@/lib/auth/authorization';
+import { applicationAccessWhere } from '@/lib/auth/relationships';
+import { handleApiError } from '@/lib/api/response';
 
-/**
- * GET /api/escrow/ledger
- * Returns the append-only cryptographic ledger and integrity verification status
- */
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const milestoneId = searchParams.get('milestoneId');
-    const simulateTamper = searchParams.get('simulateTamperEntryId');
-
-    if (simulateTamper) {
-      db.simulateLedgerTamper(simulateTamper, '999999999');
-    }
-
-    let entries = db.getLedgerEntries();
-    if (milestoneId) {
-      entries = entries.filter((e) => e.milestoneId === milestoneId);
-    }
-
-    const verification = db.verifyLedgerIntegrity();
-
-    const enrichedEntries = entries.map((entry, idx) => ({
-      ...entry,
-      index: idx,
-      amountFormatted: formatPoishaToBDT(entry.amountPoisha),
-      txHashShort: `${entry.txHash.slice(0, 8)}...${entry.txHash.slice(-8)}`,
-    }));
-
-    return NextResponse.json({
-      ledgerCount: entries.length,
-      auditVerification: verification,
-      entries: enrichedEntries,
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
+    const params = new URL(request.url).searchParams;
+    // A read endpoint must never alter the financial ledger.
+    if (params.has('simulateTamperEntryId')) return forbiddenResponse();
+    const milestoneId = params.get('milestoneId') ?? undefined;
+    const entries = await prisma.ledgerEntry.findMany({
+      where: { milestoneId, milestone: { application: applicationAccessWhere(authorization.user) } },
+      orderBy: { timestamp: 'desc' }, take: 200,
     });
-  } catch (error: any) {
-    console.error('Error in GET /api/escrow/ledger:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Failed to fetch ledger audit trail' },
-      { status: 500 }
-    );
-  }
+    return NextResponse.json({ ledgerCount: entries.length,
+      entries: entries.map(entry => ({ ...entry, amountPoisha: entry.amountPoisha.toString() })) });
+  } catch (error) { return handleApiError(error); }
 }

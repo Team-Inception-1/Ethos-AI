@@ -1,54 +1,44 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import { requireUser, forbiddenResponse } from '@/lib/auth/authorization';
+import { applicationAccessWhere } from '@/lib/auth/relationships';
+import { handleApiError } from '@/lib/api/response';
 
-/**
- * GET /api/chat/threads
- * Returns all active chat threads for the current user.
- * Query params:
- *   - userId (optional, defaults to demo student 'usr-student-01')
- *   - role (optional, 'STUDENT' | 'AGENCY' | 'PARENT')
- */
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || 'usr-student-01';
-    const role = searchParams.get('role') || 'STUDENT';
-
-    const threads = db.getChatThreads(userId, role);
-    return NextResponse.json({ threads });
-  } catch (error) {
-    console.error('Error fetching chat threads:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch chat threads' },
-      { status: 500 }
-    );
-  }
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
+    const threads = await prisma.chatThread.findMany({
+      where: { application: applicationAccessWhere(authorization.user) },
+      include: { application: { include: { student: { select: { name: true } } } },
+        agency: { select: { name: true } }, messages: { orderBy: { sentAt: 'desc' }, take: 1 } },
+      orderBy: { updatedAt: 'desc' }, take: 100,
+    });
+    return NextResponse.json({ threads: threads.map(thread => ({
+      id: thread.id, applicationId: thread.applicationId, agencyId: thread.agencyId,
+      agencyName: thread.agency.name, studentName: thread.application.student.name,
+      targetUniversity: thread.application.targetUniversity, targetCountry: thread.application.targetCountry,
+      createdAt: thread.createdAt, updatedAt: thread.updatedAt,
+      lastMessage: thread.messages[0] ? { text: thread.messages[0].body, time: thread.messages[0].sentAt,
+        senderRole: thread.messages[0].senderRole } : null,
+    })) });
+  } catch (error) { return handleApiError(error); }
 }
 
-/**
- * POST /api/chat/threads
- * Creates or retrieves a chat thread for an application.
- * Body: { applicationId: string, agencyId: string }
- */
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { applicationId, agencyId } = body;
-
-    if (!applicationId || !agencyId) {
-      return NextResponse.json(
-        { error: 'applicationId and agencyId are required' },
-        { status: 400 }
-      );
-    }
-
-    const thread = db.createChatThread(applicationId, agencyId);
+    const authorization = await requireUser();
+    if (authorization.response) return authorization.response;
+    const { applicationId } = z.object({ applicationId: z.string().min(1) }).parse(await request.json());
+    const application = await prisma.application.findFirst({
+      where: { AND: [{ id: applicationId }, applicationAccessWhere(authorization.user)] },
+      select: { id: true, agencyId: true },
+    });
+    if (!application) return forbiddenResponse();
+    const thread = await prisma.chatThread.upsert({
+      where: { applicationId }, create: { applicationId, agencyId: application.agencyId }, update: {},
+    });
     return NextResponse.json({ thread }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating chat thread:', error);
-    return NextResponse.json(
-      { error: 'Failed to create chat thread' },
-      { status: 500 }
-    );
-  }
+  } catch (error) { return handleApiError(error); }
 }
