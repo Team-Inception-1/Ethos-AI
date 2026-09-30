@@ -1,7 +1,9 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Image from 'next/image';
+import { useBrowserSearch } from '@/lib/browser-preferences';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { EthosLogoIcon } from '@/components/ui/EthosLogo/EthosLogo';
 import styles from './Sidebar.module.css';
@@ -14,6 +16,14 @@ interface NavItem {
   badge?: string;
   section?: string; // optional group label before this item
 }
+
+const LogoutIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+    <polyline points="16 17 21 12 16 7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
 
 const DashboardIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,11 +55,6 @@ const PaymentsIcon = () => (
   </svg>
 );
 
-const AIToolsIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>
-);
 
 const CounselorIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -176,7 +181,6 @@ const getNavItems = (role?: string): NavItem[] => {
           label: 'Applicant Inbox',
           labelBn: 'আবেদনকারী চ্যাট',
           icon: <ChatIcon />,
-          badge: '4',
         },
         {
           href: '/agency/profile',
@@ -382,7 +386,6 @@ const getNavItems = (role?: string): NavItem[] => {
           label: 'Chat',
           labelBn: 'চ্যাট',
           icon: <ChatIcon />,
-          badge: '3',
         },
         {
           href: '/dashboard/profile',
@@ -399,50 +402,32 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ lang = 'en' }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [imgError, setImgError] = useState(false);
-  const [currentSearch, setCurrentSearch] = useState('');
-  const [mounted, setMounted] = useState(false);
+  const collapsed = false;
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
+  const currentSearch = useBrowserSearch();
+  const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  React.useEffect(() => {
-    setImgError(false);
-  }, [user?.avatarUrl]);
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      router.push('/login');
+    }
+  };
 
-  React.useEffect(() => {
-    setMounted(true);
-    setCurrentSearch(window.location.search);
-
-    const updateSearch = () => {
-      setCurrentSearch(window.location.search);
-    };
-
-    window.addEventListener('popstate', updateSearch);
-    const interval = setInterval(updateSearch, 200);
-
-    return () => {
-      window.removeEventListener('popstate', updateSearch);
-      clearInterval(interval);
-    };
-  }, [pathname]);
 
   // If URL path is /agency/* or /admin/*, enforce appropriate role navigation immediately
-  const effectiveRole =
-    pathname?.startsWith('/agency') ? 'agency' :
-    pathname?.startsWith('/admin') ? 'admin' :
-    (user?.role?.toLowerCase() || 'student');
+  const effectiveRole = user?.role?.toLowerCase() || 'student';
   const navItems = getNavItems(effectiveRole);
 
   let userName = user?.name;
   if (!userName) {
-    userName = effectiveRole === 'agency' 
-      ? 'Global Edu BD' 
-      : effectiveRole === 'admin' 
-      ? 'Platform Administrator' 
-      : effectiveRole === 'parent' 
-      ? 'Parent User' 
-      : 'Student User';
+    userName = 'Your account';
   } else if (userName.includes('@')) {
     const local = userName.split('@')[0].replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim();
     userName = local ? local.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : userName;
@@ -478,20 +463,10 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
             );
 
             if (hrefQuery) {
-              if (mounted) {
-                if (currentSearch) {
-                  isActive = pathname === hrefBase && currentSearch.includes(hrefQuery);
-                } else {
-                  // Default tab active state when no query param is in URL:
-                  isActive = pathname === hrefBase && hrefQuery === 'tab=agencies';
-                }
-              } else {
-                // Server and initial hydration match (guaranteed deterministic!)
-                isActive = pathname === hrefBase && hrefQuery === 'tab=agencies';
-              }
+              isActive = pathname === hrefBase && (currentSearch ? currentSearch.includes(hrefQuery) : hrefQuery === 'tab=agencies');
             } else if (item.href === '/agency/dashboard' && effectiveRole === 'agency') {
               // Dashboard root: only active when no tab query present
-              isActive = pathname === '/agency/dashboard' && (!mounted || !currentSearch.includes('tab='));
+              isActive = pathname === '/agency/dashboard' && !currentSearch.includes('tab=');
             } else {
               isActive = pathnameMatches;
             }
@@ -523,27 +498,49 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
       </nav>
 
 
-      {/* Profile snippet */}
-      {!collapsed && (
-        <div className={styles.profile} suppressHydrationWarning>
-          <div className={styles.avatar} aria-hidden="true" suppressHydrationWarning>
-            {user?.avatarUrl && !imgError ? (
-              <img
-                src={user.avatarUrl}
-                alt={userName}
-                onError={() => setImgError(true)}
-                className={styles.avatarImg}
-              />
-            ) : (
-              initial
-            )}
+      {/* Footer / Profile & Logout */}
+      <div className={styles.footerSection}>
+        {!collapsed && (
+          <div className={styles.profile} suppressHydrationWarning>
+            <div className={styles.avatar} aria-hidden="true" suppressHydrationWarning>
+              {user?.avatarUrl && user.avatarUrl !== failedAvatar ? (
+                <Image unoptimized width={40} height={40}
+                  src={user.avatarUrl}
+                  alt={userName}
+                  onError={() => setFailedAvatar(user.avatarUrl || null)}
+                  className={styles.avatarImg}
+                />
+              ) : (
+                initial
+              )}
+            </div>
+            <div className={styles.profileInfo} suppressHydrationWarning>
+              <div className={styles.profileName} suppressHydrationWarning>{userName}</div>
+              <div className={styles.profileRole} suppressHydrationWarning>{userRoleDisplay}</div>
+            </div>
           </div>
-          <div className={styles.profileInfo} suppressHydrationWarning>
-            <div className={styles.profileName} suppressHydrationWarning>{userName}</div>
-            <div className={styles.profileRole} suppressHydrationWarning>{userRoleDisplay}</div>
-          </div>
-        </div>
-      )}
+        )}
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className={collapsed ? styles.logoutBtnCollapsed : styles.logoutBtn}
+          title={lang === 'en' ? 'Log Out' : 'লগআউট'}
+          aria-label={lang === 'en' ? 'Log Out' : 'লগআউট'}
+        >
+          <span className={styles.logoutIcon}>
+            <LogoutIcon />
+          </span>
+          {!collapsed && (
+            <span className={styles.logoutLabel}>
+              {loggingOut
+                ? (lang === 'en' ? 'Logging out…' : 'লগআউট হচ্ছে…')
+                : (lang === 'en' ? 'Log Out' : 'লগআউট')}
+            </span>
+          )}
+        </button>
+      </div>
     </aside>
   );
 }

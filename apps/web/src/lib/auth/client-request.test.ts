@@ -18,4 +18,28 @@ describe('typed authentication results', () => {
     expect(await postAuth('/api/auth/email-otp/send-verification-otp', {})).toMatchObject({ success: false, error: { code: 'RATE_LIMITED' } });
     expect(await postAuth('/api/auth/sign-in/email', {})).toMatchObject({ success: false, error: { code: 'NETWORK_ERROR' } });
   });
+  it('posts password reset requests to the correct Neon Auth endpoints', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    vi.stubGlobal('fetch', fetcher);
+
+    const forgotResult = await postAuth('/api/auth/forget-password/email-otp', { email: 'student@example.test' });
+    expect(forgotResult.success).toBe(true);
+    expect(fetcher).toHaveBeenNthCalledWith(1, '/api/auth/forget-password/email-otp', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ email: 'student@example.test' }),
+    }));
+
+    const resetResult = await postAuth('/api/auth/email-otp/reset-password', {
+      email: 'student@example.test',
+      otp: '123456',
+      password: 'new-secure-password',
+    });
+    expect(resetResult.success).toBe(true);
+    expect(fetcher).toHaveBeenNthCalledWith(2, '/api/auth/email-otp/reset-password', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ email: 'student@example.test', otp: '123456', password: 'new-secure-password' }),
+    }));
+  });
 });

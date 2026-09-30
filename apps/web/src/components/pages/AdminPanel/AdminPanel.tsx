@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { useAuth } from '@/context/AuthContext';
 import styles from './AdminPanel.module.css';
+import { browserApi, errorMessage } from '@/lib/platform/browser';
 
 interface AdminStats {
   agencies: { total: number; verified: number; pending: number; rejected: number };
@@ -76,7 +76,7 @@ interface UserItem {
   isVerified: boolean;
   avatarUrl?: string;
   createdAt: string;
-  details?: any;
+  details?: { linkCode?: string; licenseNo?: string; agencyName?: string; licenseStatus?: string; targetCountries?: string[]; targetField?: string; budgetRange?: string; riskScore?: number } | null;
   linkedAccountsCount: number;
 }
 
@@ -177,7 +177,6 @@ const TAB_REVERSE_MAP: Record<TabType, string> = {
 };
 
 export default function AdminPanel() {
-  const { user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -186,7 +185,7 @@ export default function AdminPanel() {
 
   const setActiveTab = (tab: TabType) => {
     const slug = TAB_REVERSE_MAP[tab] || 'agencies';
-    router.push(`/admin?tab=${slug}`, { scroll: false } as any);
+    router.push(`/admin?tab=${slug}`, { scroll: false });
   };
 
   const [loading, setLoading] = useState(true);
@@ -246,35 +245,29 @@ export default function AdminPanel() {
     try {
       setLoading(true);
       const [ovRes, agRes, dpRes, scRes, usRes, ldRes, bmRes, ctRes, fsRes] = await Promise.all([
-        fetch('/api/admin/overview').then((r) => r.json()).catch(() => null),
-        fetch('/api/admin/agencies').then((r) => r.json()).catch(() => null),
-        fetch('/api/admin/disputes').then((r) => r.json()).catch(() => null),
-        fetch('/api/admin/scam-alerts').then((r) => r.json()).catch(() => null),
-        fetch('/api/admin/users').then((r) => r.json()).catch(() => null),
-        fetch('/api/escrow/ledger').then((r) => r.json()).catch(() => null),
-        fetch('/api/provenance/benchmarks').then((r) => r.json()).catch(() => null),
-        fetch('/api/provenance/catalogs').then((r) => r.json()).catch(() => null),
-        fetch('/api/admin/fee-submissions').then((r) => r.json()).catch(() => null),
+        browserApi<{ stats: AdminStats }>('/api/admin/overview'),
+        browserApi<{ agencies: AgencyItem[] }>('/api/admin/agencies'),
+        browserApi<{ disputes: DisputeItem[] }>('/api/admin/disputes'),
+        browserApi<{ alerts: ScamAlertItem[] }>('/api/admin/scam-alerts'),
+        browserApi<{ users: UserItem[] }>('/api/admin/users'),
+        browserApi<{ entries: LedgerItem[] }>('/api/escrow/ledger'),
+        browserApi<{ benchmarks: CountryBenchmarkItem[] }>('/api/provenance/benchmarks'),
+        browserApi<{ catalogs: CourseCatalogItem[] }>('/api/provenance/catalogs'),
+        browserApi<{ submissions: FeeSubmissionItem[] }>('/api/admin/fee-submissions'),
       ]);
-
-      if (ovRes?.stats) setStats(ovRes.stats);
-      if (agRes?.agencies) setAgencies(agRes.agencies);
-      if (dpRes?.disputes) setDisputes(dpRes.disputes);
-      if (scRes?.alerts) setScamAlerts(scRes.alerts);
-      if (usRes?.users) setUsersList(usRes.users);
-      if (ldRes?.entries) setLedgerEntries(ldRes.entries);
-      if (bmRes?.benchmarks) setBenchmarks(bmRes.benchmarks);
-      if (ctRes?.catalogs) setCourseCatalogs(ctRes.catalogs);
-      if (fsRes?.submissions) setFeeSubmissions(fsRes.submissions);
+      setStats(ovRes.stats); setAgencies(agRes.agencies); setDisputes(dpRes.disputes);
+      setScamAlerts(scRes.alerts); setUsersList(usRes.users); setLedgerEntries(ldRes.entries);
+      setBenchmarks(bmRes.benchmarks); setCourseCatalogs(ctRes.catalogs); setFeeSubmissions(fsRes.submissions);
     } catch (err) {
-      console.error('Failed to load admin dashboard data:', err);
+      setFeedback(errorMessage(err, 'Unable to load admin dashboard. Refresh to retry.'));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
+    const timeoutId = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [fetchData]);
 
   // Support legacy hash links by migrating them to query params
@@ -282,7 +275,7 @@ export default function AdminPanel() {
     if (typeof window === 'undefined') return;
     const h = window.location.hash.replace('#', '').toLowerCase();
     if (h && TAB_MAP[h]) {
-      router.replace(`/admin?tab=${TAB_REVERSE_MAP[TAB_MAP[h]]}`, { scroll: false } as any);
+      router.replace(`/admin?tab=${TAB_REVERSE_MAP[TAB_MAP[h]]}`, { scroll: false });
     }
   }, [router]);
 
@@ -300,12 +293,12 @@ export default function AdminPanel() {
         }),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to review fee submission');
+      if (!res.ok || !data.success) throw new Error(errorMessage(data.error, 'Failed to review fee submission'));
       showToast(data.message || `Submission was ${action.toLowerCase()}.`);
       setSelectedFeeSubDossier(null);
       await fetchData();
-    } catch (err: any) {
-      showToast(`Error: ${err.message}`);
+    } catch (err) {
+      showToast(`Error: ${errorMessage(err)}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -322,7 +315,7 @@ export default function AdminPanel() {
         body: JSON.stringify(newCatalogForm),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to save catalog');
+      if (!res.ok || !data.success) throw new Error(errorMessage(data.error, 'Failed to save catalog'));
       showToast(`Course catalog for ${newCatalogForm.universityName} verified and published.`);
       setShowAddCatalogModal(false);
       setNewCatalogForm({
@@ -337,8 +330,8 @@ export default function AdminPanel() {
         officialSourceTitle: '',
       });
       await fetchData();
-    } catch (err: any) {
-      showToast(`Error: ${err.message}`);
+    } catch (err) {
+      showToast(`Error: ${errorMessage(err)}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -351,16 +344,14 @@ export default function AdminPanel() {
       const res = await fetch('/api/provenance/benchmarks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: benchmarkId, isVerified: approve, verifiedByAdminId: user?.id || 'admin' }),
+        body: JSON.stringify({ id: benchmarkId, isVerified: approve }),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to update benchmark');
-      setBenchmarks(prev =>
-        prev.map(b => b.id === benchmarkId ? { ...b, isVerified: approve } : b)
-      );
+      if (!res.ok || !data.success) throw new Error(errorMessage(data.error, 'Failed to update benchmark'));
+      await fetchData();
       showToast(approve ? '✓ Benchmark approved & published to students.' : '✕ Benchmark rejected.');
-    } catch (err: any) {
-      showToast(`Error: ${err.message}`);
+    } catch (err) {
+      showToast(`Error: ${errorMessage(err)}`);
     } finally {
       setActionLoadingId(null);
     }
@@ -390,7 +381,7 @@ export default function AdminPanel() {
           .then((d) => d.stats && setStats(d.stats))
           .catch(() => {});
       } else {
-        showToast(`✕ Error: ${data.error || 'Failed to update agency'}`);
+        showToast(`✕ Error: ${errorMessage(data.error, 'Failed to update agency')}`);
       }
     } catch {
       showToast('✕ Network error processing agency verification');
@@ -414,12 +405,12 @@ export default function AdminPanel() {
         setDisputes((prev) =>
           prev.map((d) => (d.milestoneId === milestoneId ? { ...d, status: nextStatus } : d))
         );
-        showToast(`✓ Escrow dispute resolved: ${action === 'REFUND' ? 'Refunded to student' : 'Released to agency'}`);
+        showToast(data.sandbox ? 'Sandbox dispute recorded. No real funds moved.' : (data.message || 'Dispute resolution recorded.'));
         setSelectedDisputeEvidence(null);
         // Refresh stats and ledger
         fetchData();
       } else {
-        showToast(`✕ Error: ${data.error || 'Failed to resolve dispute'}`);
+        showToast(`✕ Error: ${errorMessage(data.error, 'Failed to resolve dispute')}`);
       }
     } catch {
       showToast('✕ Network error resolving dispute');
@@ -446,7 +437,7 @@ export default function AdminPanel() {
         setSelectedScamReport(null);
         fetchData();
       } else {
-        showToast(`✕ Error: ${data.error || 'Failed to apply action'}`);
+        showToast(`✕ Error: ${errorMessage(data.error, 'Failed to apply action')}`);
       }
     } catch {
       showToast('✕ Network error executing scam alert action');
@@ -472,7 +463,7 @@ export default function AdminPanel() {
         );
         showToast(`✓ User verification status changed: ${nextStatus ? 'Verified' : 'Pending'}`);
       } else {
-        showToast(`✕ Error: ${data.error || 'Failed to update user'}`);
+        showToast(`✕ Error: ${errorMessage(data.error, 'Failed to update user')}`);
       }
     } catch {
       showToast('✕ Network error toggling user status');
@@ -500,7 +491,7 @@ export default function AdminPanel() {
         }
         showToast(`✓ User role updated to ${newRole}`);
       } else {
-        showToast(`✕ Error: ${data.error || 'Failed to update user role'}`);
+        showToast(`✕ Error: ${errorMessage(data.error, 'Failed to update user role')}`);
       }
     } catch {
       showToast('✕ Network error updating user role');
@@ -1303,16 +1294,16 @@ export default function AdminPanel() {
             <tbody>
               {filteredUsers.map((u) => {
                 const isActionLoading = actionLoadingId === u.id;
-                const roleLower = u.role.toLowerCase();
-
                 return (
                   <tr key={u.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         {u.avatarUrl ? (
-                          <img
+                          <Image
                             src={u.avatarUrl}
                             alt={u.name}
+                            width={32}
+                            height={32}
                             style={{
                               width: '32px',
                               height: '32px',
@@ -1438,7 +1429,7 @@ export default function AdminPanel() {
             <div className={styles.vaultCard}>
               <div className={styles.vaultLabel}>🔒 Currently Held in Vault</div>
               <div className={styles.vaultValue} style={{ color: 'var(--blue-primary)' }}>
-                ৳{(stats?.escrow.held ?? 25000).toLocaleString('en-IN')}
+                ৳{(stats?.escrow.held ?? 0).toLocaleString('en-IN')}
               </div>
               <div className={styles.vaultSub}>Locked safely for active student applications</div>
             </div>
@@ -1452,14 +1443,14 @@ export default function AdminPanel() {
             <div className={styles.vaultCard}>
               <div className={styles.vaultLabel}>✅ Successfully Released</div>
               <div className={styles.vaultValue} style={{ color: '#10b981' }}>
-                ৳{(stats?.escrow.released ?? 15000).toLocaleString('en-IN')}
+                ৳{(stats?.escrow.released ?? 0).toLocaleString('en-IN')}
               </div>
               <div className={styles.vaultSub}>Transferred on verified milestone completion</div>
             </div>
             <div className={styles.vaultCard}>
               <div className={styles.vaultLabel}>⏳ Pending Student Deposits</div>
               <div className={styles.vaultValue} style={{ color: '#f59e0b' }}>
-                ৳{(stats?.escrow.pending ?? 30000).toLocaleString('en-IN')}
+                ৳{(stats?.escrow.pending ?? 0).toLocaleString('en-IN')}
               </div>
               <div className={styles.vaultSub}>Awaiting gateway confirmation</div>
             </div>
@@ -1477,7 +1468,7 @@ export default function AdminPanel() {
               />
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
-              ⛓️ SHA-256 cryptographic chain validated across all state transactions
+              Ledger hashes are recorded for integrity review.
             </div>
           </div>
 
@@ -2444,8 +2435,7 @@ export default function AdminPanel() {
                 </strong>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div className={styles.docItem}>
-                    <span>✓ Session authenticated via JWT / Cookie Bearer</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>DHAKA, BD · Active</span>
+                    <span>Session history is not available in this dossier.</span>
                   </div>
                   <div className={styles.docItem}>
                     <span>✓ Account verification status</span>
@@ -2476,7 +2466,6 @@ export default function AdminPanel() {
                   loading={actionLoadingId === selectedUserDossier.id}
                   onClick={() => {
                     handleToggleUserVerify(selectedUserDossier.id, selectedUserDossier.isVerified);
-                    setSelectedUserDossier((prev) => (prev ? { ...prev, isVerified: !prev.isVerified } : null));
                   }}
                 >
                   {selectedUserDossier.isVerified ? 'Revoke Agency Verification' : 'Verify Agency License'}

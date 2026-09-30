@@ -14,7 +14,7 @@ from app.services.vision_ocr import extract_text_google_vision_sync
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(app)
+    return TestClient(app, headers={"Authorization": "Bearer offline-test-token"})
 
 
 def generate_sample_pdf(text_lines: list[str]) -> bytes:

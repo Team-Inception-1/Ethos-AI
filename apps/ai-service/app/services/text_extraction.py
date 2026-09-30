@@ -16,6 +16,11 @@ import logging
 import re
 from typing import Any
 import unicodedata
+from fastapi import HTTPException
+
+MAX_DOCUMENT_PAGES = 30
+MAX_EXTRACTED_CHARS = 100_000
+MAX_IMAGE_PIXELS = 20_000_000
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +87,8 @@ def extract_text(filename: str, content: bytes, normalize: bool = False) -> str:
 
     if ext in _TEXT_EXTENSIONS:
         raw_text = content.decode("utf-8", errors="replace")
+        if len(raw_text) > MAX_EXTRACTED_CHARS:
+            raise HTTPException(status_code=413, detail="Document text exceeds 100,000 characters.")
         return normalize_text(raw_text) if normalize else raw_text
 
     if ext in _PDF_EXTENSIONS:
@@ -117,12 +124,18 @@ def _extract_pdf_text(content: bytes) -> str:
         from pypdf import PdfReader
 
         reader = PdfReader(io.BytesIO(content))
+        if len(reader.pages) > MAX_DOCUMENT_PAGES:
+            raise HTTPException(status_code=413, detail="PDF exceeds 30 pages.")
         for page in reader.pages:
             page_text = (page.extract_text() or "").strip()
             if page_text:
                 text_parts.append(page_text)
+                if sum(map(len, text_parts)) > MAX_EXTRACTED_CHARS:
+                    raise HTTPException(status_code=413, detail="Document text exceeds 100,000 characters.")
             else:
                 needs_ocr = True
+    except HTTPException:
+        raise
     except Exception:
         logger.exception("pypdf text extraction failed; will attempt full-document OCR / text stream recovery")
         needs_ocr = True
@@ -157,7 +170,7 @@ def _ocr_pdf_bytes(content: bytes) -> str:
     images: list[Any] = []
     try:
         from pdf2image import convert_from_bytes
-        images = convert_from_bytes(content)
+        images = convert_from_bytes(content, first_page=1, last_page=MAX_DOCUMENT_PAGES, timeout=30, size=2000)
     except Exception:
         logger.warning("pdf2image conversion failed (poppler-utils may not be installed or file is corrupt)")
 
@@ -177,7 +190,11 @@ def _ocr_image_bytes(content: bytes) -> str:
     try:
         from PIL import Image
         image = Image.open(io.BytesIO(content))
+        if image.width * image.height > MAX_IMAGE_PIXELS:
+            raise HTTPException(status_code=413, detail="Image exceeds 20 megapixels.")
         return _ocr_pil_image_with_fallback(image, raw_bytes=content)
+    except (HTTPException, Image.DecompressionBombError):
+        raise HTTPException(status_code=413, detail="Image dimensions exceed the supported limit.")
     except Exception:
         logger.exception("Opening image bytes failed")
         # Try direct Google Vision with raw bytes if PIL failed
@@ -192,7 +209,7 @@ def _ocr_pil_image_with_fallback(image: Any, raw_bytes: bytes | None = None) -> 
     tesseract_text: str = ""
     try:
         import pytesseract
-        tesseract_text = str(pytesseract.image_to_string(image) or "")
+        tesseract_text = str(pytesseract.image_to_string(image, timeout=20) or "")
     except Exception:
         logger.warning("Tesseract OCR execution failed or Tesseract is not installed locally")
 

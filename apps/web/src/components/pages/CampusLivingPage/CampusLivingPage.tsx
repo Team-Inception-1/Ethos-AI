@@ -1,10 +1,11 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import styles from './CampusLivingPage.module.css';
 import campusData from '@/data/campusLivingData.json';
+import type { benchmarkDto } from '@/lib/platform/provenance';
 
 type ApartmentType = 'oneBedroom' | 'sharedRoom' | 'studio' | 'twoBedroom';
 type CurrencyMode = 'local' | 'bdt';
@@ -27,7 +28,6 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 export default function CampusLivingPage() {
-  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [selectedVarsityId, setSelectedVarsityId] = useState('mit');
@@ -36,11 +36,7 @@ export default function CampusLivingPage() {
   const [aptType, setAptType] = useState<ApartmentType>('oneBedroom');
   const [budgetMode, setBudgetMode] = useState<BudgetMode>('balanced');
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('local');
-  const [countryBenchmark, setCountryBenchmark] = useState<any>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [countryBenchmark, setCountryBenchmark] = useState<ReturnType<typeof benchmarkDto> | null>(null);
 
   // Filtered universities based on search & region
   const filteredUniversities = useMemo(() => {
@@ -91,7 +87,7 @@ export default function CampusLivingPage() {
     varsity: typeof activeVarsity,
     mode: BudgetMode = budgetMode
   ) => {
-    const rent = (area.rent as any)[aptType] || area.rent.oneBedroom;
+    const rent = area.rent[aptType] || area.rent.oneBedroom;
     const baseUtilities = withSpouse ? area.utilitiesMonthly.spouse : area.utilitiesMonthly.single;
     const baseFoodRaw = area.foodGroceries.cookingAtHome + area.foodGroceries.diningOut;
     const baseFood = withSpouse ? Math.round(baseFoodRaw * area.foodGroceries.spouseMultiplier) : baseFoodRaw;
@@ -152,15 +148,18 @@ export default function CampusLivingPage() {
   const currentCosts = calculateCosts(activeArea, activeVarsity);
 
   React.useEffect(() => {
+    let cancelled = false;
     if (activeVarsity?.country) {
       fetch(`/api/provenance/benchmarks?country=${encodeURIComponent(activeVarsity.country)}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
-          if (data?.benchmark) setCountryBenchmark(data.benchmark);
+          if (cancelled) return;
+          if (data?.benchmark?.isVerified) setCountryBenchmark(data.benchmark);
           else setCountryBenchmark(null);
         })
-        .catch(() => setCountryBenchmark(null));
+        .catch(() => { if (!cancelled) setCountryBenchmark(null); });
     }
+    return () => { cancelled = true; };
   }, [activeVarsity?.country]);
 
   const formatPrice = (val: number) => {
@@ -171,16 +170,6 @@ export default function CampusLivingPage() {
     return `${activeVarsity.currencySymbol}${val.toLocaleString()}`;
   };
 
-  if (!mounted) {
-    return (
-      <div className={styles.page} style={{ minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} suppressHydrationWarning>
-        <div style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 }}>
-          Loading off-campus living calculator...
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.page} suppressHydrationWarning>
       {/* Header */}
@@ -188,8 +177,7 @@ export default function CampusLivingPage() {
         <div>
           <h1 className={styles.headerTitle}>Off-Campus Housing &amp; Living Expenses</h1>
           <p className={styles.headerSubtitle}>
-            Cannot get a dorm seat? Search your applied university to see real-life apartment rental rates,
-            transit passes, and monthly living costs across nearby neighborhoods (for single students and couples).
+            Explore illustrative housing and living-cost scenarios for nearby neighborhoods. These estimates and exchange rates are static planning examples; confirm current prices before making financial decisions.
           </p>
         </div>
         <div className={styles.controlsBar}>
@@ -246,7 +234,7 @@ export default function CampusLivingPage() {
                 ))
               ) : (
                 <div className={styles.searchDropdownEmpty}>
-                  No universities found for "{searchQuery}". Try "MIT", "Stanford", "Toronto", "Oxford", "Melbourne", etc.
+                  No universities found for &quot;{searchQuery}&quot;. Try MIT, Stanford, Toronto, Oxford, or Melbourne.
                 </div>
               )}
             </div>
@@ -351,7 +339,7 @@ export default function CampusLivingPage() {
                   type="button"
                   className={`${styles.budgetModeBtn} ${budgetMode === 'balanced' ? styles.budgetModeBtnActive : ''}`}
                   onClick={() => setBudgetMode('balanced')}
-                  title="Standard median market baseline"
+                  title="Illustrative baseline"
                 >
                   Balanced (Median)
                 </button>
@@ -366,7 +354,7 @@ export default function CampusLivingPage() {
               </div>
               <div className={styles.budgetModeHelp}>
                 {budgetMode === 'frugal' && '🥗 Lean budget: 100% home cooking, strict energy savings, shared utilities.'}
-                {budgetMode === 'balanced' && '⚖️ Standard median baseline aggregated across university off-campus surveys.'}
+                {budgetMode === 'balanced' && '⚖️ Illustrative baseline from the example dataset.'}
                 {budgetMode === 'conservative' && '🛡️ Highly Recommended: Accounts for peak winter heating surges (Nov–March), price inflation & emergency funds.'}
               </div>
             </div>
@@ -381,30 +369,28 @@ export default function CampusLivingPage() {
         {/* Right Content Area: Neighborhood Details */}
         <section>
           {/* Official Claimable Financial Solvency Benchmark (Germany Blocked Account, Canada GIC, etc.) */}
-          {countryBenchmark && (
+          {countryBenchmark?.isVerified && countryBenchmark.country.toLowerCase() === activeVarsity.country.toLowerCase() && (
             <GlassCard padding="md" style={{ marginBottom: '1.25rem', border: '2px solid var(--emerald)', background: 'var(--glass-bg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ flex: '1 1 320px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '18px' }}>🏛️</span>
                     <strong style={{ fontSize: '15px', color: 'var(--text-primary)' }}>
-                      {countryBenchmark.country} Official Visa Solvency Standard: {countryBenchmark.requirementType.replace(/_/g, ' ')}
+                      {countryBenchmark.country} Published Visa Funding Benchmark: {countryBenchmark.requirementType.replace(/_/g, ' ')}
                     </strong>
                     <Badge variant="verified" size="sm">Admin Verified</Badge>
-                    <Badge variant="info" size="sm">Agency Certified</Badge>
                   </div>
                   <p style={{ margin: '0 0 10px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Mandatory government proof of funds required for student visa: <strong>৳{countryBenchmark.blockedAccountOrGicBdt.toLocaleString('en-IN')} BDT</strong>
+                    Published proof-of-funds estimate (check the official source for current requirements): <strong>৳{countryBenchmark.blockedAccountOrGicBdt.toLocaleString('en-IN')} BDT</strong>
                     {countryBenchmark.currency !== 'BDT' && ` (approx. ${countryBenchmark.currency} ${(countryBenchmark.blockedAccountOrGicBdt / countryBenchmark.exchangeRateBdt).toLocaleString(undefined, { maximumFractionDigits: 0 })})`}.
                   </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '12px' }}>
                     <span>📍 <strong>Official Source:</strong> <a href={countryBenchmark.officialGovUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue-primary)', textDecoration: 'underline' }}>{countryBenchmark.officialGovSourceTitle} ↗</a></span>
-                    <span>🏢 <strong>Agency Verification:</strong> Certified by Global Edu BD &amp; licensed consultancies</span>
-                    <span>🔍 <strong>Cross-Validation:</strong> 0.0% variance with official embassy standards</span>
+                    <span><strong>Last reviewed:</strong> {new Date(countryBenchmark.lastAuditedAt).toLocaleDateString('en-GB')}</span>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', minWidth: '150px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Statutory Solvency</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Published Benchmark</div>
                   <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--emerald)', letterSpacing: '-0.02em' }}>
                     ৳{countryBenchmark.blockedAccountOrGicBdt.toLocaleString('en-IN')}
                   </div>
@@ -471,7 +457,7 @@ export default function CampusLivingPage() {
                     : `≈ ৳${currentCosts.totalBDT.toLocaleString('en-IN')} BDT`}
                 </div>
                 <div className={styles.rangeBox}>
-                  <div className={styles.rangeLabel}>Confidence Range (P25 – P75)</div>
+                  <div className={styles.rangeLabel}>Planning Scenario Range</div>
                   <div className={styles.rangeValues}>
                     {formatPrice(currentCosts.rangeMin)} – {formatPrice(currentCosts.rangeMax)} / mo
                   </div>
@@ -499,10 +485,10 @@ export default function CampusLivingPage() {
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>🛡️</span>
-                <span><strong>Database Grounding:</strong> Living costs are benchmarked against official municipal student rental registries &amp; verified by partner consultancies.</span>
+                <span><strong>Planning estimates:</strong> Neighborhood costs are illustrative and have no verified live pricing feed.</span>
               </span>
               <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>
-                ✓ Admin Audited 2026/2027 Rates
+                Static example rates
               </span>
             </div>
 
@@ -685,25 +671,25 @@ export default function CampusLivingPage() {
           {/* Data Provenance & Reliability Audit Box */}
           <div className={styles.auditContainer}>
             <div className={styles.auditHeader}>
-              <span className={styles.auditBadge}>🛡️ Data Provenance &amp; Reliability Verification</span>
-              <span className={styles.auditConfidence}>Confidence Index: 94% (Audited for 2025/2026 Term)</span>
+              <span className={styles.auditBadge}>ℹ️ Data Sources &amp; Limitations</span>
+              <span className={styles.auditConfidence}>Illustrative planning data</span>
             </div>
             <div className={styles.auditSourcesGrid}>
               <div className={styles.auditSourceItem}>
-                <strong>🏛️ Official University Benchmark</strong>
-                <p>Cross-referenced against official {activeVarsity.name} International Student Office (ISO) Cost of Attendance (COA) statements.</p>
+                <strong>🏛️ University Costs</strong>
+                <p>Confirm current cost-of-attendance figures directly with {activeVarsity.name}.</p>
               </div>
               <div className={styles.auditSourceItem}>
-                <strong>🚇 Public Transit Schedules</strong>
-                <p>Strictly pegged to published government transit tariffs ({activeArea.transportation.details.split('(')[0].trim()}).</p>
+                <strong>🚇 Transit Estimates</strong>
+                <p>Check the local operator for current fares and student discounts.</p>
               </div>
               <div className={styles.auditSourceItem}>
-                <strong>📊 Off-Campus Rental Medians</strong>
-                <p>Aggregated from Zillow, PadMapper, and student community lease audits across {activeArea.name} with seasonal winter adjustments.</p>
+                <strong>📊 Rental Examples</strong>
+                <p>The {activeArea.name} figures are examples, not current listings or statistically measured rental medians.</p>
               </div>
               <div className={styles.auditSourceItem}>
-                <strong>🇧🇩 Remittance Conversion Peg</strong>
-                <p>Calculated at current Bangladesh Bank student file interbank rate (1 {activeVarsity.currency} = ৳{activeVarsity.exchangeRateBDT} BDT).</p>
+                <strong>🇧🇩 Exchange Rate Assumption</strong>
+                <p>Calculated using a static example exchange rate (1 {activeVarsity.currency} = ৳{activeVarsity.exchangeRateBDT} BDT).</p>
               </div>
             </div>
           </div>

@@ -49,13 +49,13 @@ async def analyze_offer_letter_text(
 @router.post("/analyze-offer-letter", response_model=AnalyzeOfferLetterResponse)
 async def analyze_offer_letter_file(
     file: UploadFile = File(...),
-    sender_email: str | None = Form(default=None),
-    expected_university: str | None = Form(default=None),
+    sender_email: str | None = Form(default=None, max_length=320),
+    expected_university: str | None = Form(default=None, max_length=500),
     settings: Settings = Depends(get_settings),
     detector: OfferLetterFraudDetector = Depends(get_fraud_detector),
 ) -> AnalyzeOfferLetterResponse:
     """Upload an offer letter (PDF / image / text) to perform full OCR & fraud detection."""
-    content = await file.read()
+    content = await file.read(settings.max_upload_bytes + 1)
 
     if not content:
         raise HTTPException(

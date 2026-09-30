@@ -1,1 +1,182 @@
 
+on:
+  push:
+    branches: [main, repair/full-stabilization]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  workflow_dispatch: {}
+
+jobs:
+  stabilization-regressions:
+    name: "Stabilization — Unit / PostgreSQL / Browser smoke"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ethos
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: ethos_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ethos -d ethos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      DATABASE_URL: "postgresql://ethos:test-only@127.0.0.1:5432/ethos_test"
+      NEON_AUTH_BASE_URL: "https://auth.example.test/auth"
+      NEON_AUTH_COOKIE_SECRET: "test-only-cookie-secret-at-least-32-characters"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci --no-audit
+      - run: npm ci --prefix ../.. --no-audit
+      - run: npm run db:generate
+      - name: Deploy migrations to disposable database only
+        run: npx prisma migrate deploy --schema ../../prisma/schema.prisma
+      - name: Idempotent community seed and seed safety tests
+        run: |
+          node ../../prisma/seed-community.test.mjs
+          node --test ../../scripts/migrate-private-documents.test.mjs
+          node ../../prisma/seed-community.mjs
+          node ../../prisma/seed-community.mjs
+      - name: Unit and PostgreSQL integration tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          RUN_DATABASE_TESTS: "true"
+          ENABLE_TEST_AUTH: "true"
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  web-lint-typecheck-build:
+    name: "Web — Lint / Typecheck / Build"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit
+
+      # Prisma schema and seed scripts live at the repository root while the
+      # web application has its own lockfile and node_modules tree.
+      - name: Install root Prisma dependencies
+        run: npm ci --prefix ../.. --no-audit
+
+      - name: Generate Prisma clients for root and web
+        run: npm run db:generate
+
+      # ── Step 1: Lint ─────────────────────────────────────────────────────
+      - name: ESLint — check for code quality violations
+        run: npm run lint
+        continue-on-error: false
+
+      # ── Step 2: TypeScript strict typecheck ──────────────────────────────
+      - name: TypeScript — strict typecheck (no emit)
+        run: npx tsc --noEmit
+        continue-on-error: false
+
+      # ── Step 3: Next.js production build ────────────────────────────────
+      - name: Next.js — production build
+        run: npm run build
+        env:
+          NODE_ENV: production
+          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/ethos_dev"
+
+  escrow-qa-suite:
+    name: "Escrow Reliability & Edge-Case QA (Issue #11 / K-15)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run Escrow API Reliability & Edge-Case QA Suite
+        run: node --experimental-strip-types scripts/test-escrow-api.ts
+        env:
+          NODE_ENV: test
+
+  ai-service-ci:
+    name: "AI Service — Pytest (OCR / Fraud / Agreement / Counselor)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ai-service
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ethos
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: ethos_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ethos -d ethos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies (Tesseract + Poppler for OCR)
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr poppler-utils
+
+      - name: Install and deploy schema to disposable PostgreSQL
+        working-directory: .
+        run: |
+          npm ci --no-audit
+          DATABASE_URL="$TEST_DATABASE_URL" npx prisma migrate deploy --schema prisma/schema.prisma
+        env:
+          TEST_DATABASE_URL: "postgresql://ethos:test-only@127.0.0.1:5432/ethos_test"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run offline AI unit/API test suite (no API key required)
+        run: pytest -v
+        env:
+          TEST_DATABASE_URL: "postgresql://ethos:test-only@127.0.0.1:5432/ethos_test"
+
+      - name: Live Gemini smoke test (runs only when GEMINI_API_KEY secret is set)
+        if: ${{ env.GEMINI_API_KEY != '' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 scripts/smoke_test_gemini.py

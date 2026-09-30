@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends
+from starlette.concurrency import run_in_threadpool
 
 from app.llm.scam_factory import get_scam_llm
 from app.schemas import (
@@ -65,7 +66,7 @@ async def scan_content(
 
     if payload.agency_id and result.flags:
         tags = ", ".join(f.tag for f in result.flags[:5])
-        store.record_event(
+        await run_in_threadpool(store.record_event,
             agency_id=payload.agency_id,
             source="scan",
             weight=_SCAN_SEVERITY_WEIGHT[result.severity],
@@ -76,7 +77,7 @@ async def scan_content(
 
 
 @router.get("/agencies/{agency_id}/risk-score", response_model=AgencyRiskScore)
-async def get_agency_risk_score(
+def get_agency_risk_score(
     agency_id: str,
     store: AgencyRiskStore = Depends(get_risk_store),
 ) -> AgencyRiskScore:
@@ -84,7 +85,7 @@ async def get_agency_risk_score(
 
 
 @router.post("/agencies/{agency_id}/risk-events", response_model=AgencyRiskScore)
-async def record_agency_risk_event(
+def record_agency_risk_event(
     agency_id: str,
     payload: RecordRiskEventRequest,
     store: AgencyRiskStore = Depends(get_risk_store),

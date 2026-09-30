@@ -10,6 +10,7 @@ so callers/tests can tell the difference.
 from __future__ import annotations
 
 from app.config import Settings, get_settings
+from fastapi import HTTPException
 
 from .base import AgreementLLM
 from .fake_provider import FakeAgreementLLM
@@ -38,4 +39,6 @@ def get_agreement_llm(settings: Settings | None = None) -> AgreementLLM:
 def _build(settings: Settings) -> AgreementLLM:
     if settings.llm_configured and settings.gemini_api_key:
         return GeminiAgreementLLM(api_key=settings.gemini_api_key, model=settings.gemini_model)
-    return FakeAgreementLLM()
+    if settings.deterministic_allowed:
+        return FakeAgreementLLM()
+    raise HTTPException(status_code=503, detail="AI provider is not configured.")

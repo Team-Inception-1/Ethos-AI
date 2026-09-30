@@ -1,7 +1,6 @@
 # 🎓 Ethos AI — The Future of Study-Abroad Consulting
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6)](https://www.typescriptlang.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688)](https://fastapi.tiangolo.com/)
@@ -29,17 +28,17 @@ In Bangladesh, over 70,000–90,000 students apply abroad annually without a man
 ```mermaid
 graph TD
     subgraph Client Layer
-        Web[Next.js 15 App Router Web Client<br/>Student, Parent, Agency & Admin Portals]
+        Web[Next.js 16 App Router<br/>UI and authenticated route handlers]
     end
 
     subgraph API & Services Layer
-        API[Node.js / Express Core Backend<br/>Auth, RBAC, Directory, Applications, Escrow]
+        API[Next.js Route Handlers<br/>Auth, RBAC, Directory, Applications, Escrow]
         AISvc[FastAPI AI Microservice<br/>OCR Engine, Document Fraud Check, Clause Extraction]
     end
 
     subgraph Storage & Persistence
         DB[(PostgreSQL Database<br/>Users, Agencies, Applications, Milestones, Ledger)]
-        Storage[S3-Compatible Object Store<br/>Encrypted Documents & PDF Receipts]
+        Storage[S3-Compatible Private Object Store<br/>Documents]
     end
 
     Web -->|REST / JSON & Cookies| API
@@ -97,11 +96,9 @@ See full details in [**`docs/KANBAN.md`**](docs/KANBAN.md) and the [GitHub Proje
 
 | Domain | Technology | Description |
 |---|---|---|
-| **Frontend** | **Next.js 15 (App Router), React 19, Vanilla CSS Modules** | Bold Neubrutalism UI, Dark/Light mode, SEO-optimized directory |
-| **Backend API** | **Node.js, Express / NestJS, TypeScript** | REST API, JWT auth, RBAC middleware, Escrow business logic |
-| **AI / OCR** | **FastAPI (Python 3.11), Tesseract OCR, PyMuPDF** | Offer letter verification, clause analysis, risk heuristic models |
+| **Web and API** | **Next.js 16 App Router, React 19, TypeScript** | UI, Neon Auth sessions, route handlers, RBAC, Prisma repositories |
+| **AI / OCR** | **FastAPI (Python 3.12), Tesseract OCR, PyMuPDF** | Offer letter verification, clause analysis, and authenticated risk services |
 | **Database** | **PostgreSQL 16, Prisma ORM** | Relational data persistence with strict foreign key integrity |
-| **Caching & Jobs** | **Redis, BullMQ** | Rate limiting, async document scanning jobs |
 | **Styling** | **Custom CSS Design Tokens** | Neubrutalism (hard shadows, thick borders, flat color), CSS variables, zero runtime CSS bloat |
 
 ---

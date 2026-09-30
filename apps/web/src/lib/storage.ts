@@ -1,6 +1,9 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs';
+import { randomUUID } from 'node:crypto';
+import { validateDocumentBytes } from './documents/private-storage';
 import path from 'path';
+import { uploadPrivateDocument, readPrivateDocument, deletePrivateDocument } from './documents/private-storage';
 
 export interface StorageUploadResult {
   key: string;
@@ -18,6 +21,7 @@ export interface StorageObjectItem {
 
 /** Read a DB-selected document key; never fetch an arbitrary URL. */
 export async function readDocumentFile(storageKey: string): Promise<Uint8Array> {
+  if (storageKey.startsWith('private-documents/')) return readPrivateDocument(storageKey);
   if (!storageKey.startsWith('documents/') || storageKey.split('/').some(part => !part || part === '.' || part === '..') || storageKey.includes('\\')) {
     throw new Error('Invalid document storage key.');
   }
@@ -60,70 +64,26 @@ function getS3Client(): S3Client | null {
 
 /**
  * Storage adapter for Ethos AI.
- * Uploads to Neon S3 Object Storage bucket 'documents' with seamless local fallback.
+ * New documents use the verified private bucket. Legacy objects are read-only
+ * compatibility data until their separately verified migration is completed.
  */
 export async function uploadDocumentFile(
   buffer: Buffer,
-  fileName: string,
+  _fileName: string,
   mimeType: string,
-  ownerId: string = 'usr-student-01'
+  ownerId: string
 ): Promise<StorageUploadResult> {
-  const timestamp = Date.now();
-  const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const objectKey = `documents/${ownerId}/${timestamp}_${sanitizedName}`;
-
-  // 1. Ensure local copy in public/uploads for instant local demo preview/offline fallback
-  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-
-  const localFilePath = path.join(uploadsDir, `${timestamp}_${sanitizedName}`);
-  fs.writeFileSync(localFilePath, buffer);
-  const localUrl = `/uploads/${timestamp}_${sanitizedName}`;
-
-  // 2. Upload to Neon Object Storage
-  const s3 = getS3Client();
-  const bucketName = 'documents';
-
-  if (s3) {
-    try {
-      const command = new PutObjectCommand({
-        Bucket: bucketName,
-        Key: objectKey,
-        Body: buffer,
-        ContentType: mimeType || 'application/octet-stream',
-      });
-      await s3.send(command);
-      console.log(`[Neon Object Storage] Successfully uploaded ${fileName} to bucket ${bucketName} (key: ${objectKey})`);
-
-      const endpoint = process.env.AWS_ENDPOINT_URL_S3!.replace(/\/$/, '');
-      const s3Url = `${endpoint}/${bucketName}/${objectKey}`;
-
-      return {
-        key: objectKey,
-        url: s3Url,
-        sizeBytes: buffer.length,
-        provider: 'neon-s3',
-      };
-    } catch (e) {
-      console.warn('[Neon Object Storage] S3 upload error, falling back to local file storage:', e);
-    }
-  }
-
-  return {
-    key: objectKey,
-    url: localUrl,
-    sizeBytes: buffer.length,
-    provider: 'local',
-  };
+  return uploadPrivateDocument(buffer, mimeType, ownerId);
 }
 
 /**
  * Deletes an object from Neon Object Storage and local storage.
  */
 export async function deleteDocumentFile(storageKey: string): Promise<boolean> {
+  if (storageKey.startsWith('private-documents/')) return deletePrivateDocument(storageKey);
+  if (!storageKey.startsWith('documents/') || storageKey.includes('\\') || storageKey.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('Invalid document key.');
   const s3 = getS3Client();
+  if (!s3 && process.env.NODE_ENV === 'production') throw new Error('Private storage is not configured.');
   if (s3 && storageKey.startsWith('documents/')) {
     try {
       await s3.send(
@@ -133,9 +93,7 @@ export async function deleteDocumentFile(storageKey: string): Promise<boolean> {
         })
       );
       console.log(`[Neon Object Storage] Deleted object ${storageKey}`);
-    } catch (e) {
-      console.warn('[Neon Object Storage] Could not delete from S3:', e);
-    }
+    } catch { throw new Error('Document deletion failed.'); }
   }
 
   // Remove local file if present
@@ -191,57 +149,15 @@ export async function listDocumentFiles(prefix: string = 'documents/'): Promise<
  */
 export async function uploadAvatarFile(
   buffer: Buffer,
-  fileName: string,
+  _fileName: string,
   mimeType: string,
-  userId: string = 'usr-current'
+  userId: string
 ): Promise<StorageUploadResult> {
-  const timestamp = Date.now();
-  const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const objectKey = `avatars/${userId}/${timestamp}_${sanitizedName}`;
-
-  // 1. Ensure local copy in public/uploads/avatars for offline/fallback access
-  const avatarsDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-  if (!fs.existsSync(avatarsDir)) {
-    fs.mkdirSync(avatarsDir, { recursive: true });
-  }
-
-  const localFilePath = path.join(avatarsDir, `${timestamp}_${sanitizedName}`);
-  fs.writeFileSync(localFilePath, buffer);
-  const localUrl = `/uploads/avatars/${timestamp}_${sanitizedName}`;
-
-  // 2. Upload to Neon Object Storage bucket 'documents' (public_read)
+  if (!/^[a-zA-Z0-9_-]{1,128}$/.test(userId) || !['image/jpeg', 'image/png'].includes(mimeType) || buffer.length > 5 * 1024 * 1024 || !validateDocumentBytes(buffer, mimeType)) throw new Error('Invalid avatar image.');
   const s3 = getS3Client();
-  const bucketName = 'documents';
-
-  if (s3) {
-    try {
-      const command = new PutObjectCommand({
-        Bucket: bucketName,
-        Key: objectKey,
-        Body: buffer,
-        ContentType: mimeType || 'image/jpeg',
-      });
-      await s3.send(command);
-      console.log(`[Neon Object Storage] Successfully uploaded avatar for ${userId} (key: ${objectKey})`);
-
-      const endpoint = process.env.AWS_ENDPOINT_URL_S3!.replace(/\/$/, '');
-      const s3Url = `${endpoint}/${bucketName}/${objectKey}`;
-
-      return {
-        key: objectKey,
-        url: s3Url,
-        sizeBytes: buffer.length,
-        provider: 'neon-s3',
-      };
-    } catch (e) {
-      console.warn('[Neon Object Storage] Avatar S3 upload error, using local storage fallback:', e);
-    }
-  }
-
-  return {
-    key: objectKey,
-    url: localUrl,
-    sizeBytes: buffer.length,
-    provider: 'local',
-  };
+  if (!s3) throw new Error('Avatar storage is not configured.');
+  const objectKey = `avatars/${userId}/${randomUUID()}.${mimeType === 'image/png' ? 'png' : 'jpg'}`;
+  await s3.send(new PutObjectCommand({ Bucket: 'documents', Key: objectKey, Body: buffer, ContentType: mimeType }));
+  const endpoint = process.env.AWS_ENDPOINT_URL_S3!.replace(/\/$/, '');
+  return { key: objectKey, url: `${endpoint}/documents/${objectKey}`, sizeBytes: buffer.length, provider: 'neon-s3' };
 }

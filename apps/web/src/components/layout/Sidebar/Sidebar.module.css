@@ -186,14 +186,23 @@
   color: var(--text-secondary);
 }
 
-/* ── Profile Section ── */
+/* ── Footer / Logout Section ── */
+.footerSection {
+  margin-top: auto;
+  border-top: var(--border-width) solid var(--ink);
+  padding-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  position: relative;
+  z-index: 1;
+}
+
 .profile {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border-top: var(--border-width) solid var(--ink);
-  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-2);
   position: relative;
   z-index: 1;
 }
@@ -239,6 +248,90 @@
 .profileRole {
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 9px var(--space-3);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--ink);
+  background: var(--bg-surface, #ffffff);
+  color: #dc2626;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 0 var(--ink);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+  min-height: 40px;
+}
+
+.logoutBtn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--ink);
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.logoutBtn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--ink);
+}
+
+.logoutBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.logoutIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.logoutLabel {
+  flex: 1;
+  text-align: left;
+}
+
+.logoutBtnCollapsed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--ink);
+  background: var(--bg-surface, #ffffff);
+  color: #dc2626;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 0 var(--ink);
+  margin: 0 auto;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.logoutBtnCollapsed:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--ink);
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.logoutBtnCollapsed:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--ink);
+}
+
+.logoutBtnCollapsed:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ── Responsive ── */

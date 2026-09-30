@@ -193,4 +193,3 @@ export class CommunityService {
   static async blockUser(userId: string, targetId: string): Promise<string[]> { void userId; return request('blocks', z.array(z.string()), 'POST', { targetId }); }
   static async unblockUser(userId: string, targetId: string): Promise<string[]> { void userId; return request('blocks', z.array(z.string()), 'DELETE', { targetId }); }
 }
-

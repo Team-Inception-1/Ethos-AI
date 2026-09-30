@@ -23,3 +23,9 @@ Thumbs.db
 # Browser-test artifacts
 test-results/
 playwright-report/
+
+# Local verification environments and reports
+.venv-ai-validation/
+__pycache__/
+.pytest_cache/
+.lint-*.json

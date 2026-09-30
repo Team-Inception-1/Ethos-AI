@@ -6,15 +6,11 @@
  *   - Issue #23 (K-22): Module 5.10 Scam Alert System
  * per Issue #25 (K-24)'s objective — no mocked AI response data.
  *
- * Base URL is `NEXT_PUBLIC_AI_SERVICE_URL` — must be reachable from the
- * BROWSER (this file runs client-side), not just from the Next.js server.
+ * Browser requests use the authenticated, same-origin Next.js gateway.
  */
 
-const AI_SERVICE_URL =
-  process.env.NEXT_PUBLIC_AI_SERVICE_URL?.replace(/\/$/, '') ||
-  (typeof window !== 'undefined' && window.location.hostname
-    ? `http://${window.location.hostname}:8001`
-    : 'http://localhost:8001');
+import { OFFLINE_DEMO_ENABLED as OFFLINE_DEMO } from './ai/demo';
+const AI_SERVICE_URL = '';
 
 export class AiServiceError extends Error {
   status?: number;
@@ -245,7 +241,11 @@ export async function analyzeOfferLetterFile(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('[aiService] Live AI service unreachable, running deterministic fallback:', err);
   }
   return fallbackOfferLetterAnalysis(file.name, undefined, opts);
@@ -270,7 +270,11 @@ export async function analyzeOfferLetterText(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('[aiService] Live AI service unreachable, running deterministic fallback:', err);
   }
   return fallbackOfferLetterAnalysis('sample_letter.txt', text, opts);
@@ -333,7 +337,11 @@ export async function analyzeAgreementFile(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('[aiService] Live AI service unreachable, running deterministic fallback:', err);
   }
   return fallbackAgreementAnalysis(file.name);
@@ -358,7 +366,11 @@ export async function analyzeAgreementText(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('[aiService] Live AI service unreachable, running deterministic fallback:', err);
   }
   return fallbackAgreementAnalysis('agreement_text', agreementText);
@@ -442,32 +454,13 @@ export async function getAgencyRiskScore(agencyId: string): Promise<AgencyRiskSc
 
 /**
  * Fetch risk scores for multiple agencies in parallel. Any individual
- * failure falls back to a clean 0-score entry for that agency rather than
- * failing the whole batch — one flaky agency shouldn't blank the whole
- * Directory grid.
+ * failure omits that agency. Missing data must never imply a clean score.
  */
 export async function getAgencyRiskScores(
   agencyIds: string[]
 ): Promise<Record<string, AgencyRiskScore>> {
-  const results = await Promise.all(
-    agencyIds.map(async (id) => {
-      try {
-        return [id, await getAgencyRiskScore(id)] as const;
-      } catch {
-        return [
-          id,
-          {
-            agency_id: id,
-            risk_score: 0,
-            flag_count: 0,
-            last_updated: new Date().toISOString(),
-            recent_events: [],
-          } as AgencyRiskScore,
-        ] as const;
-      }
-    })
-  );
-  return Object.fromEntries(results);
+  const results = await Promise.allSettled(agencyIds.map(async id => [id, await getAgencyRiskScore(id)] as const));
+  return Object.fromEntries(results.flatMap(result => result.status === 'fulfilled' ? [result.value] : []));
 }
 
 // ---------------------------------------------------------------------------
@@ -627,7 +620,11 @@ export async function evaluateCounselorProfile(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice unreachable, activating zero-downtime offline counselor engine:', err);
   }
 
@@ -649,7 +646,11 @@ export async function discoverLiveUniversities(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('Live university discovery request failed, falling back to offline evaluator:', err);
   }
   const { evaluateOfflineProfile } = await import('./counselorOfflineEngine');
@@ -669,7 +670,11 @@ export async function sendCounselorChatMessage(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice chat unreachable, falling back to offline conversational engine:', err);
   }
 
@@ -727,7 +732,11 @@ export async function auditSOP(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice SOP audit unreachable, falling back to offline:', err);
   }
 
@@ -900,7 +909,11 @@ export async function searchProfessors(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice scholar search unreachable, falling back to offline:', err);
   }
 
@@ -921,7 +934,11 @@ export async function generateColdEmail(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice email generation unreachable, falling back to offline:', err);
   }
 
@@ -942,7 +959,11 @@ export async function prepareInterview(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice interview prep unreachable, falling back to offline:', err);
   }
 
@@ -957,7 +978,11 @@ export async function getTARAGuide(): Promise<TARAGuideResponse> {
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice funding guide unreachable, falling back to offline:', err);
   }
 
@@ -1055,7 +1080,11 @@ export async function parseCVFile(file: File): Promise<CVParseResponse> {
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice CV parse file unreachable, falling back to offline:', err);
   }
 
@@ -1076,7 +1105,11 @@ export async function parseCVText(raw_text: string): Promise<CVParseResponse> {
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice CV parse text unreachable, falling back to offline:', err);
   }
 
@@ -1097,7 +1130,11 @@ export async function matchProfile(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice match-profile unreachable, falling back to offline:', err);
   }
 
@@ -1118,7 +1155,11 @@ export async function deconstructPaper(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice deconstruct-paper unreachable, falling back to offline:', err);
   }
 
@@ -1139,7 +1180,11 @@ export async function liveSearchAcademic(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice live-search unreachable, falling back to offline:', err);
   }
 
@@ -1177,7 +1222,7 @@ export interface TARAStrategyResponse {
 
 export interface TARAAdvisorQuestionRequest {
   question: string;
-  student_context?: Record<string, any>;
+  student_context?: Record<string, unknown>;
 }
 
 export interface TARAAdvisorQuestionResponse {
@@ -1200,7 +1245,11 @@ export async function evaluateTARAStrategy(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice tara-strategy unreachable, falling back to offline:', err);
   }
 
@@ -1221,7 +1270,11 @@ export async function askTARAAdvisor(
     if (resp.ok) {
       return await resp.json();
     }
+    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
   } catch (err) {
+    if (!OFFLINE_DEMO || (err instanceof AiServiceError && [401, 403].includes(err.status ?? 0))) {
+      throw err instanceof AiServiceError ? err : new AiServiceError('AI analysis is temporarily unavailable.', 503);
+    }
     console.warn('AI microservice tara-advisor unreachable, falling back to offline:', err);
   }
 

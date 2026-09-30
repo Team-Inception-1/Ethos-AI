@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useLanguage } from '@/lib/browser-preferences';
 import { useSearchParams, useRouter } from 'next/navigation';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
@@ -12,6 +13,7 @@ import {
   AgencyDetail,
 } from '@/data/agencies';
 import styles from './ComparePage.module.css';
+import { OFFLINE_DEMO_ENABLED } from '@/lib/ai/demo';
 
 const rows = [
   { label: 'Verification', key: 'verified',  render: (v: boolean) => <Badge variant={v ? 'verified' : 'pending'}>{v ? 'Verified' : 'Pending'}</Badge> },
@@ -28,22 +30,8 @@ export default function ComparePage() {
   const router = useRouter();
 
   const [analysisOpen, setAnalysisOpen] = useState(false);
-  const [lang, setLang] = useState<'en' | 'bn'>('en');
+  const [lang, setLang] = useLanguage();
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('ethos-lang') as 'en' | 'bn';
-      if (saved === 'en' || saved === 'bn') setLang(saved);
-    } catch {}
-    const handleLangChange = (e: Event) => {
-      const customEvent = e as CustomEvent<'en' | 'bn'>;
-      if (customEvent.detail === 'en' || customEvent.detail === 'bn') {
-        setLang(customEvent.detail);
-      }
-    };
-    window.addEventListener('ethos-lang-change', handleLangChange);
-    return () => window.removeEventListener('ethos-lang-change', handleLangChange);
-  }, []);
 
   // Parse `ids` parameter from URL query (e.g. ?ids=agt-003,agt-004,agt-006)
   const idsParam = searchParams.get('ids') || searchParams.get('agency');
@@ -136,6 +124,20 @@ export default function ComparePage() {
     }
   };
 
+  if (!OFFLINE_DEMO_ENABLED) {
+    return (
+      <main className={styles.page} style={{ paddingTop: 'var(--topbar-height)' }}>
+        <div className={`${styles.inner} container`}>
+          <GlassCard>
+            <h1>Agency Comparison</h1>
+            <p>Live agency comparison is unavailable because no production-verified agency source is connected. Static sample agencies are shown only when explicit offline-demo mode is enabled.</p>
+            <Link href="/directory"><Button variant="outline">Back to Directory</Button></Link>
+          </GlassCard>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className={styles.page} style={{ paddingTop: 'var(--topbar-height)' }} suppressHydrationWarning>
       <div className={`${styles.inner} container`}>
@@ -144,7 +146,7 @@ export default function ComparePage() {
             <div>
               <h1>Agency Comparison</h1>
               <p className={styles.subtitle}>
-                Side-by-side comparison of {agencies.length} {agencies.length === 1 ? 'agency' : 'agencies'}
+                Offline demo · side-by-side comparison of {agencies.length} illustrative {agencies.length === 1 ? 'agency' : 'agencies'}
               </p>
             </div>
             <div className={styles.headerActions}>
@@ -262,12 +264,12 @@ export default function ComparePage() {
               <span>🛡️</span>
               <span>
                 {lang === 'en'
-                  ? 'All service fee limits and mandatory refund guarantees are audited by Ethos AI against trade licenses (DNCC/DSCC/Ministry of Education) & Escrow contracts.'
-                  : 'সকল সার্ভিস ফি ও রিফান্ড নীতিমালা সিটি কর্পোরেশন ও শিক্ষা মন্ত্রণালয়ের ট্রেড লাইসেন্স অনুযায়ী ইথোস এডমিন কর্তৃক অডিটকৃত।'}
+                  ? 'Offline-demo sample data only. Names, licenses, fees, ratings, success rates, and refund terms are illustrative—not live or production-verified. Confirm them with official sources.'
+                  : 'শুধু অফলাইন-ডেমোর নমুনা তথ্য। নাম, লাইসেন্স, ফি, রেটিং, সাফল্যের হার ও রিফান্ড শর্ত লাইভ বা প্রোডাকশন-যাচাইকৃত নয়; অফিসিয়াল উৎসে নিশ্চিত করুন।'}
               </span>
             </span>
             <Badge variant="verified" size="sm">
-              ✓ {lang === 'en' ? 'Legally Audited Rates' : 'যাচাইকৃত রেট'}
+              🧪 {lang === 'en' ? 'Illustrative Demo Data' : 'নমুনা ডেমো তথ্য'}
             </Badge>
           </div>
         </GlassCard>
@@ -293,7 +295,7 @@ export default function ComparePage() {
                     {lang === 'en' ? 'Agency Comparative Analysis & Top Pick' : 'এজেন্সি তুলনামূলক বিশ্লেষণ ও সেরা নির্বাচন'}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    {lang === 'en' ? `Based on ${agencies.length} compared agencies • 100% verified audit` : `${agencies.length}টি তুলনাকৃত এজেন্সির ভিত্তিতে • ১০০% যাচাইকৃত অডিট`}
+                    {lang === 'en' ? `Offline demo based on ${agencies.length} illustrative records • not a live audit` : `${agencies.length}টি নমুনা রেকর্ডের অফলাইন ডেমো • লাইভ অডিট নয়`}
                   </div>
                 </div>
               </div>
@@ -302,7 +304,7 @@ export default function ComparePage() {
                 <button
                   type="button"
                   className={styles.langBtn}
-                  onClick={() => setLang(l => (l === 'en' ? 'bn' : 'en'))}
+                  onClick={() => setLang(lang === 'en' ? 'bn' : 'en')}
                   title="Switch Language"
                   aria-label="Switch Language between English and Bangla"
                 >
@@ -419,13 +421,13 @@ export default function ComparePage() {
                   <div className={styles.auditRow}>
                     <span className={styles.auditLabel}>{lang === 'en' ? 'Trade License & Legal Status' : 'ট্রেড লাইসেন্স ও আইনি স্থিতি'}</span>
                     <span className={`${styles.auditVal} ${styles.verifiedTag}`}>
-                      ✓ {bestAgency.verified ? (lang === 'en' ? 'Government Verified (DNCC Active)' : 'সরকারি যাচাইকৃত (ডিএনসিসি সক্রিয়)') : (lang === 'en' ? 'Verification In Progress' : 'যাচাইকরণ প্রক্রিয়াধীন')}
+                      🧪 {bestAgency.verified ? (lang === 'en' ? 'Sample status: verified' : 'নমুনা স্ট্যাটাস: যাচাইকৃত') : (lang === 'en' ? 'Sample status: pending' : 'নমুনা স্ট্যাটাস: অপেক্ষমাণ')}
                     </span>
                   </div>
                   <div className={styles.auditRow}>
                     <span className={styles.auditLabel}>{lang === 'en' ? 'Ethos Milestone Escrow Support' : 'এথোস মাইলস্টোন এসক্রো সাপোর্ট'}</span>
                     <span className={`${styles.auditVal} ${styles.verifiedTag}`}>
-                      ✓ {lang === 'en' ? '100% Locked until verified visa' : '১০০% সুরক্ষিত (ভিসা না হওয়া পর্যন্ত টাকা লক)'}
+                      🧪 {lang === 'en' ? 'Illustrative escrow term' : 'নমুনা এসক্রো শর্ত'}
                     </span>
                   </div>
                   <div className={styles.auditRow}>
@@ -434,7 +436,7 @@ export default function ComparePage() {
                   </div>
                   <div className={styles.auditRow}>
                     <span className={styles.auditLabel}>{lang === 'en' ? 'Counselor Background Verification' : 'কাউন্সিলর ব্যাকগ্রাউন্ড অডিট'}</span>
-                    <span className={styles.auditVal}>✓ {lang === 'en' ? 'Certified by ICEF / British Council' : 'ICEF / ব্রিটিশ কাউন্সিল সার্টিফাইড'}</span>
+                    <span className={styles.auditVal}>🧪 {lang === 'en' ? 'Certification not live-verified' : 'সার্টিফিকেশন লাইভ যাচাইকৃত নয়'}</span>
                   </div>
                 </div>
               </div>

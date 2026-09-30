@@ -1,63 +1,38 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/authorization';
+import { apiError } from '@/lib/api/response';
+import { feeDto } from '@/lib/platform/fees';
+import { moneyBdt, parseFeeStatus, platformError, publicUrl, shortText, success, toPoisha } from '@/lib/platform/http';
 
+const submissionSchema = z.object({
+  country: shortText, serviceName: shortText, amountBdt: moneyBdt,
+  whenCharged: shortText, refundable: z.boolean().default(true),
+  refundPolicy: z.string().trim().min(1).max(10000), proofDocumentUrls: z.array(publicUrl).min(1).max(10),
+});
 export async function GET(request: Request) {
   try {
-    const authorization = await requireRole(['AGENCY']);
-    if (authorization.response) return authorization.response;
-    const { searchParams } = new URL(request.url);
-    const agency = db.getAgencies().find((candidate) => candidate.ownerUserId === authorization.user.id);
-    if (!agency) return NextResponse.json({ success: false, error: 'No agency profile is linked to this account.' }, { status: 404 });
-    const agencyId = agency.id;
-    const status = searchParams.get('status') || undefined;
-
-    const submissions = db.getAgencyFeeSubmissions(agencyId, status);
-    return NextResponse.json({ success: true, count: submissions.length, submissions });
-  } catch (error: any) {
-    console.error('Error in GET /api/agency/fee-submissions:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to fetch fee submissions' }, { status: 500 });
-  }
+    const auth = await requireRole(['AGENCY']);
+    if (auth.response) return auth.response;
+    const agency = await prisma.agency.findUnique({ where: { ownerUserId: auth.user.id }, select: { id: true } });
+    if (!agency) return apiError('NOT_FOUND', 'No agency profile is linked to this account.', 404);
+    const status = parseFeeStatus(new URL(request.url).searchParams.get('status'));
+    const rows = await prisma.agencyFeeSubmission.findMany({ where: { agencyId: agency.id, status },
+      include: { agency: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 200 });
+    const submissions = rows.map(feeDto);
+    return success({ submissions, count: submissions.length });
+  } catch (error) { return platformError(error); }
 }
-
 export async function POST(request: Request) {
   try {
-    const authorization = await requireRole(['AGENCY']);
-    if (authorization.response) return authorization.response;
-    const body = await request.json();
-    const { serviceName, country, amountBdt, whenCharged, refundPolicy, proofDocumentUrls } = body;
-
-    if (!serviceName || !country || amountBdt === undefined || !whenCharged) {
-      return NextResponse.json(
-        { success: false, error: 'serviceName, country, amountBdt, and whenCharged are required' },
-        { status: 400 }
-      );
-    }
-
-    const agency = db.getAgencies().find((candidate) => candidate.ownerUserId === authorization.user.id);
-    if (!agency) {
-      return NextResponse.json({ success: false, error: 'No agency profile is linked to this account.' }, { status: 404 });
-    }
-
-    const submission = db.createAgencyFeeSubmission({
-      agencyId: agency.id,
-      agencyName: agency.name,
-      country,
-      serviceName,
-      amountBdt: Number(amountBdt),
-      whenCharged,
-      refundable: body.refundable !== undefined ? Boolean(body.refundable) : true,
-      refundPolicy: refundPolicy || 'Full refund if admission milestone is not met per escrow schedule',
-      proofDocumentUrls: Array.isArray(proofDocumentUrls) && proofDocumentUrls.length > 0 ? proofDocumentUrls : ['/uploads/license_proof.pdf'],
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: `Fee package '${submission.serviceName}' submitted for Admin verification.`,
-      submission,
-    });
-  } catch (error: any) {
-    console.error('Error in POST /api/agency/fee-submissions:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to create fee submission' }, { status: 500 });
-  }
+    const auth = await requireRole(['AGENCY']);
+    if (auth.response) return auth.response;
+    const input = submissionSchema.parse(await request.json());
+    const agency = await prisma.agency.findUnique({ where: { ownerUserId: auth.user.id }, select: { id: true } });
+    if (!agency) return apiError('NOT_FOUND', 'No agency profile is linked to this account.', 404);
+    const { amountBdt, ...data } = input;
+    const row = await prisma.agencyFeeSubmission.create({ data: { ...data, agencyId: agency.id,
+      amountPoisha: toPoisha(amountBdt), status: 'PENDING' }, include: { agency: { select: { name: true } } } });
+    return success({ submission: feeDto(row), message: 'Fee package submitted for review.' }, 201);
+  } catch (error) { return platformError(error); }
 }

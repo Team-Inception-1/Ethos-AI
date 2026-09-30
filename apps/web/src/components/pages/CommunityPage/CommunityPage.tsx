@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Image from 'next/image';
@@ -171,6 +171,8 @@ export default function CommunityPage() {
 
   // Toast
   const [loadError, setLoadError] = useState('');
+  const [mutationPending, setMutationPending] = useState(false);
+  const mutationLock = useRef(false);
   const [toast, setToast] = useState<string | null>(null);
 
   // New Post Form
@@ -190,8 +192,8 @@ export default function CommunityPage() {
   useEffect(() => {
     if (!currentUserId) return;
     let active = true;
-    Promise.all([CommunityService.getHubs(), CommunityService.getJoinedHubIds(currentUserId)]).then(([loadedHubs, joined]) => {
-      if (active) { setHubs(loadedHubs); setJoinedHubIds(joined); }
+    Promise.all([CommunityService.getHubs(), CommunityService.getJoinedHubIds(currentUserId), CommunityService.getBlockedUsers(currentUserId)]).then(([loadedHubs, joined, blocked]) => {
+      if (active) { setHubs(loadedHubs); setJoinedHubIds(joined); setBlockedUsers(blocked); }
     }).catch(() => { if (active) setLoadError('Community could not be loaded. Please retry.'); });
     return () => { active = false; };
   }, [currentUserId]);
@@ -209,6 +211,20 @@ export default function CommunityPage() {
     return () => { active = false; };
   }, [activeHubId, selectedCategory, seniorOnlyFilter, searchQuery, currentUserId, blockedUsers, joinedHubIds]);
 
+  const activeDmThreadId = activeDmThread?.id;
+  useEffect(() => {
+    if (!dmTarget || !activeDmThreadId || !currentUserId) return;
+    let active = true;
+    const timer = setInterval(() => {
+      CommunityService.getDirectThread(currentUserId, dmTarget.id).then(thread => {
+        if (active) setActiveDmThread(thread);
+      }).catch(error => {
+        if (active) { setActiveDmThread(null); setLoadError(error instanceof Error ? error.message : 'Messages could not be refreshed.'); }
+      });
+    }, 5000);
+    return () => { active = false; clearInterval(timer); };
+  }, [dmTarget, activeDmThreadId, currentUserId]);
+
   // Active Hub Object
   const currentHub = useMemo(() => {
     return hubs.find((h) => h.id === activeHubId) || hubs[0];
@@ -220,6 +236,8 @@ export default function CommunityPage() {
 
   // ── Join / Leave Hub ──
   const handleToggleJoin = async () => {
+    if (mutationLock.current) return;
+    mutationLock.current = true; setMutationPending(true);
     try {
     const result = await CommunityService.toggleJoinHub(currentUserId, activeHubId, isCurrentHubJoined);
     setHubs(previous => previous.map(hub => hub.id === activeHubId ? { ...hub, memberCount: result.memberCount } : hub));
@@ -230,14 +248,18 @@ export default function CommunityPage() {
         : `Left ${currentHub?.country} Hub.`
     );
     } catch (error) { showToast(error instanceof Error ? error.message : 'Membership update failed.'); }
+    finally { mutationLock.current = false; setMutationPending(false); }
   };
 
   const handleToggleLike = async (postId: string) => {
+    if (mutationLock.current) return;
+    mutationLock.current = true; setMutationPending(true);
     try {
       const existing = posts.find(post => post.id === postId);
       const res = await CommunityService.toggleLikePost(postId, currentUserId, !!existing?.likedBy.includes(currentUserId));
       setPosts(previous => previous.map(post => post.id === postId ? { ...post, likesCount: res.likesCount, likedBy: res.isLiked ? [currentUserId] : [] } : post));
     } catch (error) { showToast(error instanceof Error ? error.message : 'Like could not be saved.'); }
+    finally { mutationLock.current = false; setMutationPending(false); }
   };
   const handleLoadMorePosts = async () => {
     if (!nextPostCursor) return;
@@ -264,6 +286,8 @@ export default function CommunityPage() {
   // ── Add Comment ──
   const handleAddComment = async (postId: string) => {
     const text = commentInputs[postId]?.trim(); if (!text) return;
+    if (mutationLock.current) return;
+    mutationLock.current = true; setMutationPending(true);
     try {
       const saved = await CommunityService.addComment({ postId, content: text, isAnonymous: !!commentAnonymous[postId] });
       setPostComments(previous => ({ ...previous, [postId]: [...(previous[postId] || []), saved] }));
@@ -271,12 +295,15 @@ export default function CommunityPage() {
       setCommentInputs(previous => ({ ...previous, [postId]: '' }));
       showToast('Comment saved successfully.');
     } catch (error) { showToast(error instanceof Error ? error.message : 'Comment could not be saved.'); }
+    finally { mutationLock.current = false; setMutationPending(false); }
   };
 
   // ── Create Post ──
   const handleCreatePost = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newPostTitle.trim() || !newPostContent.trim()) { showToast('Provide a title and content.'); return; }
+    if (mutationLock.current) return;
+    mutationLock.current = true; setMutationPending(true);
     try {
       const saved = await CommunityService.createPost({ countryId: activeHubId, category: newPostCategory, title: newPostTitle,
         content: newPostContent, isAnonymous: newPostIsAnonymous, isSeniorAsk: newPostIsSeniorAsk });
@@ -285,6 +312,7 @@ export default function CommunityPage() {
       setNewPostTitle(''); setNewPostContent(''); setNewPostIsAnonymous(false); setNewPostIsSeniorAsk(false);
       showToast('Post saved in ' + currentHub?.country + ' Hub.');
     } catch (error) { showToast(error instanceof Error ? error.message : 'Post could not be saved.'); }
+    finally { mutationLock.current = false; setMutationPending(false); }
   };
 
   // ── 1-to-1 Direct Messaging ──
@@ -301,13 +329,17 @@ export default function CommunityPage() {
       alert('You cannot message yourself.');
       return;
     }
-    setDmTarget(target);
+    setActiveDmThread(null);
     const thread = await CommunityService.getDirectThread(currentUserId, target.id);
+    setDmTarget(target);
     setActiveDmThread(thread);
     } catch (error) { showToast(error instanceof Error ? error.message : 'Message thread could not be opened.'); }
   };
 
   const handleSendDm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mutationLock.current) return;
+    mutationLock.current = true; setMutationPending(true);
     try {
     e.preventDefault();
     if (!dmTarget || !dmInput.trim()) return;
@@ -323,6 +355,7 @@ export default function CommunityPage() {
     setActiveDmThread((prev) => (prev ? { ...prev, messages: [...prev.messages, newMsg] } : null));
     setDmInput('');
     } catch (error) { showToast(error instanceof Error ? error.message : 'Message could not be saved.'); }
+    finally { mutationLock.current = false; setMutationPending(false); }
   };
 
   // ── Report ──
@@ -333,6 +366,9 @@ export default function CommunityPage() {
   };
 
   const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mutationLock.current) return;
+    mutationLock.current = true; setMutationPending(true);
     try {
     e.preventDefault();
     if (!reportTarget) return;
@@ -348,10 +384,13 @@ export default function CommunityPage() {
     setReportTarget(null);
     showToast('Report submitted. Our moderation team can review it.');
     } catch (error) { showToast(error instanceof Error ? error.message : 'Report could not be saved.'); }
+    finally { mutationLock.current = false; setMutationPending(false); }
   };
 
   // ── Block User ──
   const handleBlockUser = async (userId: string, userName: string) => {
+    if (mutationLock.current) return;
+    mutationLock.current = true; setMutationPending(true);
     try {
     if (userId === currentUserId) return;
     const confirmBlock = window.confirm(
@@ -361,16 +400,23 @@ export default function CommunityPage() {
 
     const updated = await CommunityService.blockUser(currentUserId, userId);
     setBlockedUsers(updated);
+    setActiveDmThread(null); setDmTarget(null);
+    setPosts(previous => previous.filter(post => post.authorId !== userId));
+    setPostComments(previous => Object.fromEntries(Object.entries(previous).map(([id, comments]) => [id, comments.filter(comment => comment.authorId !== userId)])));
     showToast(`${userName} has been blocked.`);
     } catch (error) { showToast(error instanceof Error ? error.message : 'Block could not be saved.'); }
+    finally { mutationLock.current = false; setMutationPending(false); }
   };
 
   const handleUnblockUser = async (userId: string) => {
+    if (mutationLock.current) return;
+    mutationLock.current = true; setMutationPending(true);
     try {
     const updated = await CommunityService.unblockUser(currentUserId, userId);
     setBlockedUsers(updated);
     showToast('User unblocked.');
     } catch (error) { showToast(error instanceof Error ? error.message : 'Unblock could not be saved.'); }
+    finally { mutationLock.current = false; setMutationPending(false); }
   };
 
   const visiblePosts = posts.filter(post => post.countryId === activeHubId);
@@ -402,7 +448,7 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      {nextPostCursor && <Button onClick={handleLoadMorePosts}>Load more discussions</Button>}
+      {nextPostCursor && <Button disabled={mutationPending} onClick={handleLoadMorePosts}>Load more discussions</Button>}
       {/* ── Country Hub Tabs ── */}
       <div className={styles.hubTabsContainer} role="tablist" aria-label="Country communities">
         {hubs.map((hub) => {
@@ -411,7 +457,7 @@ export default function CommunityPage() {
           const tabLabel = hub.countryCode === 'GB' ? 'UK' : hub.countryCode === 'US' ? 'USA' : hub.country;
 
           return (
-            <button
+            <button disabled={mutationPending}
               key={hub.id}
               role="tab"
               aria-selected={isActive}
@@ -453,7 +499,7 @@ export default function CommunityPage() {
             </div>
 
             <div className={styles.bannerStats}>
-              <Button
+              <Button disabled={mutationPending}
                 variant={isCurrentHubJoined ? 'emerald' : 'primary'}
                 size="sm"
                 onClick={handleToggleJoin}
@@ -511,7 +557,7 @@ export default function CommunityPage() {
             />
           </div>
 
-          <Button
+          <Button disabled={mutationPending}
             variant="primary"
             size="md"
             icon="✏️"
@@ -555,7 +601,7 @@ export default function CommunityPage() {
                 Be the first to ask a question or share advice for students traveling to {currentHub?.country}!
               </p>
               <div style={{ marginTop: '16px' }}>
-                <Button
+                <Button disabled={mutationPending}
                   variant="primary"
                   size="sm"
                   onClick={() => setIsCreateModalOpen(true)}
@@ -702,7 +748,7 @@ export default function CommunityPage() {
 
                     {/* 1-to-1 Message Author (if not anonymous and not self) */}
                     {!post.isAnonymous && post.authorId !== currentUserId && (
-                      <Button
+                      <Button disabled={mutationPending}
                         variant="ghost"
                         size="sm"
                         icon="✉️"
@@ -808,7 +854,7 @@ export default function CommunityPage() {
                             variant="primary"
                             size="sm"
                             onClick={() => handleAddComment(post.id)}
-                            disabled={!commentInputs[post.id]?.trim()}
+                            disabled={mutationPending || !commentInputs[post.id]?.trim()}
                           >
                             Post Reply
                           </Button>
@@ -861,7 +907,7 @@ export default function CommunityPage() {
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       🏆 Helped {snr.helpedCount} students
                     </span>
-                    <Button
+                    <Button disabled={mutationPending}
                       variant="ghost"
                       size="sm"
                       icon="💬"
@@ -1036,7 +1082,7 @@ export default function CommunityPage() {
               </div>
 
               <div className={styles.modalFooter}>
-                <Button
+                <Button disabled={mutationPending}
                   type="button"
                   variant="ghost"
                   onClick={() => setIsCreateModalOpen(false)}
@@ -1117,7 +1163,7 @@ export default function CommunityPage() {
                   onChange={(e) => setDmInput(e.target.value)}
                   className={styles.formInput}
                 />
-                <Button type="submit" variant="primary" disabled={!dmInput.trim()}>
+                <Button type="submit" variant="primary" disabled={mutationPending || !dmInput.trim()}>
                   Send
                 </Button>
               </form>

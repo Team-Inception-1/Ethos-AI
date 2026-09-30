@@ -46,18 +46,20 @@ async def analyze_agreement_text(
 @router.post("/analyze-agreement", response_model=AnalyzeAgreementResponse)
 async def analyze_agreement_file(
     file: UploadFile = File(...),
-    declared_pricing: str = Form(default="[]"),
-    language: str = Form(default="en"),
+    declared_pricing: str = Form(default="[]", max_length=100_000),
+    language: str = Form(default="en", pattern="^(en|bn)$"),
     settings: Settings = Depends(get_settings),
     service: AgreementAnalysisService = Depends(get_analysis_service),
 ) -> AnalyzeAgreementResponse:
-    content = await file.read()
+    content = await file.read(settings.max_upload_bytes + 1)
 
     if len(content) > settings.max_upload_bytes:
         raise HTTPException(status_code=413, detail="File too large (max 20MB).")
 
     try:
         pricing_raw = json.loads(declared_pricing)
+        if not isinstance(pricing_raw, list) or len(pricing_raw) > 200:
+            raise ValueError("Expected at most 200 pricing items")
         pricing = [DeclaredFee(**item) for item in pricing_raw]
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=f"Invalid declared_pricing: {exc}") from exc

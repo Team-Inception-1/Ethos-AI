@@ -18,6 +18,8 @@ interface AuthContextValue {
   signUp: (data: Registration) => Promise<AuthResult>;
   verifyOtp: (code: string) => Promise<AuthResult<User>>; resendOtp: () => Promise<AuthResult>;
   requestSignInOtp: (email: string) => Promise<AuthResult>;
+  requestPasswordResetOtp: (email: string) => Promise<AuthResult>;
+  resetPasswordWithOtp: (email: string, otp: string, newPassword: string) => Promise<AuthResult>;
   signOut: () => Promise<AuthResult>; logout: () => Promise<AuthResult>; refreshSession: () => Promise<User | null>;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   linkStudent: (identifier: string) => { success: boolean; message: string };
@@ -156,6 +158,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return sendOtp(email.trim().toLowerCase(), 'sign-in');
   };
 
+  const requestPasswordResetOtp = async (email: string): Promise<AuthResult> => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return authFailure('EMAIL_REQUIRED', 'Enter your email first.');
+    setPendingRegistration(null);
+    registrationPassword.current = null;
+    const result = await postAuth('/api/auth/forget-password/email-otp', { email: trimmed });
+    if (result.success) {
+      setOtpEmail(trimmed);
+      setOtpSent(true);
+      setOtpCountdown(60);
+    }
+    return result;
+  };
+
+  const resetPasswordWithOtp = async (email: string, otp: string, newPassword: string): Promise<AuthResult> => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return authFailure('EMAIL_REQUIRED', 'Enter your email first.');
+    if (!/^\d{6}$/.test(otp)) return authFailure('INVALID_OTP', 'Enter a six-digit code.');
+    if (!newPassword || newPassword.length < 8) {
+      return authFailure('PASSWORD_TOO_SHORT', 'Password must be at least 8 characters long.');
+    }
+    return postAuth('/api/auth/email-otp/reset-password', {
+      email: trimmed,
+      otp,
+      password: newPassword,
+    });
+  };
+
   const signOut = async (): Promise<AuthResult> => {
     const result = await postAuth('/api/auth/sign-out', {});
     if (result.success) {
@@ -180,6 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user, loading, isAuthenticated: !!user, pendingRegistration, otpSent, otpCountdown, otpEmail,
     linkedStudents: [], linkedParents: [], neonAuthStatus, signInWithPassword, signUp, verifyOtp, resendOtp,
     signOut, logout: signOut, refreshSession, updateProfile, checkNeonAuth, requestSignInOtp,
+    requestPasswordResetOtp, resetPasswordWithOtp,
     linkStudent: () => ({ success: false, message: 'Guardian linking requires a server-approved relationship.' }),
     unlinkStudent: () => {},
   }}>{children}</AuthContext.Provider>;

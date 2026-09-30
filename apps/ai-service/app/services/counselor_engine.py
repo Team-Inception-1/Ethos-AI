@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import logging
 import math
+from fastapi import HTTPException
+from app.config import get_settings
 from typing import Any
 
 from app.schemas import (
@@ -493,7 +495,10 @@ async def evaluate_counselor_profile_with_live(
 ) -> CounselorEvaluationResponse:
     """Evaluates student profile and optionally augments with live Google Search Grounded universities."""
     base_response = evaluate_counselor_profile(req)
+    demo = get_settings().deterministic_allowed
     if not req.enable_live_discovery:
+        if not demo:
+            raise HTTPException(status_code=503, detail="Live university discovery is required.")
         return base_response
 
     try:
@@ -501,13 +506,17 @@ async def evaluate_counselor_profile_with_live(
 
         live_recs, _ = await discover_live_universities_gemini(req, limit=8)
         if not live_recs:
+            if not demo:
+                raise HTTPException(status_code=503, detail="Live university discovery is unavailable.")
             return base_response
 
         # Deduplicate against catalog items by lowercase name
-        existing_names = {r.university_name.lower().strip() for r in base_response.recommendations}
-        merged_recs = list(base_response.recommendations)
+        existing_names = {r.university_name.lower().strip() for r in base_response.recommendations} if demo else set()
+        merged_recs = list(base_response.recommendations) if demo else []
 
         for l_rec in live_recs:
+            if not demo:
+                l_rec.verified_agency = None
             if l_rec.university_name.lower().strip() not in existing_names:
                 existing_names.add(l_rec.university_name.lower().strip())
                 merged_recs.append(l_rec)
@@ -526,7 +535,11 @@ async def evaluate_counselor_profile_with_live(
             safe_count=safe_cnt,
             live_discovery_active=True,
         )
+    except HTTPException:
+        raise
     except Exception as exc:
+        if not demo:
+            raise HTTPException(status_code=503, detail="Live university discovery is unavailable.") from exc
         logging.getLogger(__name__).warning(
             f"Live university discovery failed during evaluation, returning baseline catalog: {exc}"
         )

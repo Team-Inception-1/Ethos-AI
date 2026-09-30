@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import GlassCard from '@/components/ui/GlassCard';
+import React, { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
@@ -39,23 +39,14 @@ const RiskHighIcon = () => (
   </svg>
 );
 
-// Agency directory listing metadata (name, rating, countries, fees) is not
-// yet backed by a real core-API listing endpoint (that's a separate,
-// non-AI backend concern) — this stays as representative demo data. The
-// `risk` field, however, is fetched LIVE from the AI microservice's
-// Module 5.10 scam-alert risk store below (see `aiService.ts`), per
-// Issue #25's DoD: "Directory/Agency profile risk badges pull from the
-// K-22 scam-alert riskScore instead of static data."
-const AGENCIES = [
-  { id: 'agt-001', name: 'Global Edu BD',      verified: true,  rating: 4.8, reviews: 234, countries: ['CAN', 'GBR', 'AUS'], success: 94, feeMin: 25000, feeMax: 80000 },
-  { id: 'agt-002', name: 'Dream Abroad Ltd',   verified: true,  rating: 4.6, reviews: 187, countries: ['USA', 'DEU', 'NLD'], success: 89, feeMin: 30000, feeMax: 100000 },
-  { id: 'agt-003', name: 'EduPath Global',     verified: true,  rating: 4.5, reviews: 103, countries: ['CAN', 'NZL', 'SWE'], success: 91, feeMin: 20000, feeMax: 70000 },
-  { id: 'agt-004', name: 'Skyline Consultancy',verified: false, rating: 3.2, reviews: 45,  countries: ['GBR', 'IRL'],        success: 62, feeMin: 15000, feeMax: 60000 },
-  { id: 'agt-005', name: 'StudyBridge BD',     verified: true,  rating: 4.7, reviews: 312, countries: ['CAN', 'AUS', 'USA'], success: 96, feeMin: 35000, feeMax: 90000 },
-  { id: 'agt-006', name: 'AbraodX Partners',   verified: true,  rating: 4.3, reviews: 78,  countries: ['DEU', 'SWE', 'FIN'], success: 85, feeMin: 22000, feeMax: 65000 },
-];
-
-const AGENCY_IDS = AGENCIES.map(a => a.id);
+type DirectoryAgency = {
+  id: string; name: string; verified: boolean; rating: number; reviews: number;
+  countries: string[]; success: number; feeMin: number; feeMax: number;
+};
+type PublicAgency = {
+  id: string; name: string; licenseStatus: string; rating: number; reviewCount: number;
+  countriesServed: string[]; successRate: number; feeMinPoisha: string; feeMaxPoisha: string;
+};
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -83,74 +74,54 @@ const COUNTRY_MAP: Record<string, string[]> = {
 };
 
 export default function DirectoryPage() {
+  return <Suspense fallback={<p>Loading agency directory…</p>}><DirectoryContent /></Suspense>;
+}
+
+function DirectoryContent() {
+  const params = useSearchParams();
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sortBy, setSortBy]             = useState('rating');
-  const [compare, setCompare]           = useState<string[]>([]);
+  const [compare, setCompare]           = useState<string[]>(() => (params.get('compare') ?? '').split(',').filter(Boolean).slice(0, 4));
   const [search, setSearch]             = useState('');
-  const [countryFilter, setCountryFilter] = useState<string | null>(null);
+  const [countryCleared, setCountryCleared] = useState(false);
+  const countryFilter = countryCleared ? null : params.get('country');
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
-  // Live risk scores from the AI microservice (Module 5.10 / Issue #23),
-  // keyed by agency id. `null` = still loading (initial fetch in flight);
-  // once resolved this is always a fully-populated map (per-agency fetch
-  // failures degrade to a clean 0-score entry inside `getAgencyRiskScores`,
-  // never to a missing key) — see `lib/aiService.ts`.
   const [riskScores, setRiskScores] = useState<Record<string, AgencyRiskScore> | null>(null);
-  const [riskError, setRiskError]   = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const c = params.get('country');
-      if (c) setCountryFilter(c);
-      const cmp = params.get('compare');
-      if (cmp) {
-        setCompare(cmp.split(',').map(s => s.trim()).filter(Boolean));
-      }
-    }
-  }, []);
+  const [riskError, setRiskError] = useState<string | null>(null);
+  const [agenciesList, setAgenciesList] = useState<DirectoryAgency[]>([]);
+  const [directoryError, setDirectoryError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    getAgencyRiskScores(AGENCY_IDS)
-      .then(scores => {
-        if (!cancelled) setRiskScores(scores);
-      })
-      .catch(() => {
+    async function load() {
+      try {
+        const response = await fetch('/api/agencies');
+        if (!response.ok) throw new Error('Directory unavailable');
+        const data: { agencies: PublicAgency[] } = await response.json();
+        const agencies = data.agencies.map(a => ({
+          id: a.id, name: a.name, verified: a.licenseStatus === 'VERIFIED', rating: a.rating,
+          reviews: a.reviewCount, countries: a.countriesServed, success: a.successRate,
+          feeMin: Number(a.feeMinPoisha) / 100, feeMax: Number(a.feeMaxPoisha) / 100,
+        }));
+        if (cancelled) return;
+        setAgenciesList(agencies);
+        setLoading(false);
+        const scores = await getAgencyRiskScores(agencies.map(a => a.id));
+        if (cancelled) return;
+        setRiskScores(scores);
+        if (Object.keys(scores).length < agencies.length) setRiskError('Some risk scores are unavailable. Sign in to access risk analysis.');
+      } catch {
         if (!cancelled) {
-          setRiskError('Could not reach the AI risk service — showing agencies without live risk scores.');
-          setRiskScores({}); // stop showing the loading skeleton; badges fall back to 0
+          setDirectoryError('The agency directory is temporarily unavailable. Please try again later.');
+          setLoading(false);
         }
-      });
+      }
+    }
+    void load();
     return () => { cancelled = true; };
   }, []);
-
-  const [agenciesList, setAgenciesList] = useState(AGENCIES);
-
-  useEffect(() => {
-    fetch('/api/admin/agencies')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.agencies && Array.isArray(d.agencies)) {
-          setAgenciesList(
-            d.agencies.map((a: any) => ({
-              id: a.id,
-              name: a.name,
-              verified: a.licenseStatus === 'VERIFIED',
-              rating: a.rating,
-              reviews: a.reviewCount,
-              countries: a.countriesServed,
-              success: a.successRate,
-              feeMin: Number(a.feeMinPoisha) / 100,
-              feeMax: Number(a.feeMaxPoisha) / 100,
-            }))
-          );
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const getRisk = (agencyId: string): number => riskScores?.[agencyId]?.risk_score ?? 0;
 
   const filtered = agenciesList
     .filter(a => !verifiedOnly || a.verified)
@@ -182,14 +153,14 @@ export default function DirectoryPage() {
         <div className={styles.pageHeader}>
           <div>
             <h1 className={styles.title}>Verified Agency Directory</h1>
-            <p className={styles.subtitle}>{filtered.length} agencies found — all verified by Ethos AI</p>
+            <p className={styles.subtitle}>{filtered.length} published agencies found</p>
             {countryFilter && (
               <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Badge variant="verified" size="sm">📍 Filtered for: {countryFilter}</Badge>
                 <button
                   type="button"
                   onClick={() => {
-                    setCountryFilter(null);
+                    setCountryCleared(true);
                     window.history.replaceState({}, '', '/directory');
                   }}
                   style={{
@@ -214,6 +185,9 @@ export default function DirectoryPage() {
           )}
         </div>
 
+        {directoryError && <p role="alert">{directoryError}</p>}
+        {loading && <p role="status">Loading agency directory…</p>}
+        {!loading && !directoryError && filtered.length === 0 && <p>No published agencies match your filters.</p>}
         {riskError && (
           <div className={styles.riskErrorToast} role="alert">
             ⚠ {riskError}
@@ -268,7 +242,7 @@ export default function DirectoryPage() {
                 onChange={e => setSortBy(e.target.value)}
               >
                 <option value="rating">Highest Rating</option>
-                <option value="success">Success Rate</option>
+                <option value="success">Reported Success Rate</option>
               </select>
             </div>
 
@@ -325,7 +299,9 @@ export default function DirectoryPage() {
                     <div className={styles.riskBadgeSkeleton} aria-label="Loading risk score" />
                   ) : (
                     (() => {
-                      const risk = getRisk(a.id);
+                      const score = riskScores[a.id];
+                      if (!score || score.flag_count === 0) return <Badge variant="pending" size="sm">{score ? 'Not yet assessed' : 'Risk unavailable'}</Badge>;
+                      const risk = score.risk_score;
                       return (
                         <div
                           className={`${styles.riskBadge} ${risk < 30 ? styles.riskLow : risk < 60 ? styles.riskMed : styles.riskHigh}`}
@@ -343,7 +319,7 @@ export default function DirectoryPage() {
                 {/* Rating */}
                 <div>
                   <StarRating rating={a.rating} />
-                  <div className={styles.reviewCount}>{a.reviews} verified reviews</div>
+                  <div className={styles.reviewCount}>{a.reviews} reviews</div>
                 </div>
 
                 {/* Countries */}

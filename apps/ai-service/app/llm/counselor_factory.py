@@ -7,6 +7,7 @@ otherwise defaults to `FakeCounselorProvider` for deterministic offline testing 
 from __future__ import annotations
 
 from app.config import Settings, get_settings
+from fastapi import HTTPException
 from .counselor_base import CounselorLLM
 from .fake_counselor_provider import FakeCounselorProvider
 from .gemini_counselor_provider import GeminiCounselorLLM
@@ -32,4 +33,6 @@ def get_counselor_llm(settings: Settings | None = None) -> CounselorLLM:
 def _build(settings: Settings) -> CounselorLLM:
     if settings.llm_configured and settings.gemini_api_key:
         return GeminiCounselorLLM(api_key=settings.gemini_api_key, model=settings.gemini_model)
-    return FakeCounselorProvider()
+    if settings.deterministic_allowed:
+        return FakeCounselorProvider()
+    raise HTTPException(status_code=503, detail="AI provider is not configured.")

@@ -1,103 +1,68 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
 import { getAuthenticatedUser, requireRole } from '@/lib/auth/authorization';
+import { apiError } from '@/lib/api/response';
+import { catalogDto } from '@/lib/platform/provenance';
+import { identifier, moneyBdt, platformError, publicUrl, shortText, success, toPoisha } from '@/lib/platform/http';
 
 export async function GET(request: Request) {
   try {
     const user = await getAuthenticatedUser();
-    const canReview = user?.role === 'ADMIN';
-    const { searchParams } = new URL(request.url);
-    const country = searchParams.get('country') || undefined;
-    const university = searchParams.get('university') || undefined;
-    const id = searchParams.get('id');
-
-    if (id) {
-      const catalog = db.getUniversityCourseCatalogById(id);
-      if (!catalog) {
-        return NextResponse.json({ success: false, error: `Course catalog '${id}' not found` }, { status: 404 });
-      }
-      if ((!catalog.isVerified || catalog.status !== 'VERIFIED') && !canReview) {
-        return NextResponse.json({ success: false, error: 'Course catalog is pending verification.' }, { status: 404 });
-      }
-      return NextResponse.json({ success: true, catalog });
+    const query = z.object({ id: identifier.optional(), country: shortText.optional(), university: shortText.optional() })
+      .parse(Object.fromEntries(new URL(request.url).searchParams));
+    const visibility = user?.role === 'ADMIN' ? {} : { isVerified: true, status: 'VERIFIED' as const };
+    const rows = await prisma.universityCourseCatalog.findMany({ where: { ...visibility,
+      id: query.id, country: query.country ? { equals: query.country, mode: 'insensitive' } : undefined,
+      universityName: query.university ? { contains: query.university, mode: 'insensitive' } : undefined,
+    }, include: { benchmark: { select: { countryCode: true } } }, orderBy: { universityName: 'asc' }, take: 500 });
+    if (query.id) {
+      if (!rows[0]) return apiError('NOT_FOUND', 'Published catalog not found.', 404);
+      return success({ catalog: catalogDto(rows[0]) });
     }
-
-    const catalogs = db
-      .getUniversityCourseCatalogs(country, university)
-      .filter((catalog) => canReview || (catalog.isVerified && catalog.status === 'VERIFIED'));
-    return NextResponse.json({ success: true, count: catalogs.length, catalogs });
-  } catch (error: any) {
-    console.error('Error in GET /api/provenance/catalogs:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to fetch course catalogs' }, { status: 500 });
-  }
+    const catalogs = rows.map(catalogDto);
+    return success({ catalogs, count: catalogs.length });
+  } catch (error) { return platformError(error); }
 }
-
 export async function POST(request: Request) {
   try {
-    const authorization = await requireRole(['ADMIN']);
-    if (authorization.response) return authorization.response;
-    const body = await request.json();
-    const { universityName, country, programName, annualTuitionLocal, currency, officialCatalogUrl, officialSourceTitle } = body;
-
-    if (!universityName || !country || !programName || !officialCatalogUrl || !currency) {
-      return NextResponse.json(
-        { success: false, error: 'universityName, country, programName, officialCatalogUrl, and currency are required' },
-        { status: 400 }
-      );
+    const auth = await requireRole(['ADMIN']);
+    if (auth.response) return auth.response;
+    const { id, ...input } = z.object({ id: identifier.optional(), universityName: shortText, country: shortText,
+      degreeLevel: z.enum(['Bachelor', 'Master', 'PhD']), programName: shortText, annualTuitionLocal: moneyBdt,
+      currency: z.string().regex(/^[A-Z]{3}$/), officialCatalogUrl: publicUrl, officialSourceTitle: shortText,
+      intakeYear: z.string().trim().min(4).max(20).optional(),
+    }).parse(await request.json());
+    const benchmark = await prisma.countryCostBenchmark.findFirst({ where: {
+      country: { equals: input.country, mode: 'insensitive' }, currency: input.currency, isVerified: true,
+    } });
+    if (!benchmark) return apiError('BENCHMARK_REQUIRED', 'A verified benchmark with matching currency is required.', 409);
+    const tuitionBdt = input.annualTuitionLocal * benchmark.exchangeRateBdt;
+    if (!Number.isFinite(tuitionBdt) || tuitionBdt > 1_000_000_000) {
+      return apiError('INVALID_AMOUNT', 'Converted tuition exceeds the supported amount.', 400);
     }
-
-    // Benchmark exchange lookup for conversion to BDT
-    const benchmark = db.getCountryCostBenchmark(country);
-    const exchangeRate = benchmark ? benchmark.exchangeRateBdt : 120.0;
-    const tuitionLocalNum = Number(annualTuitionLocal) || 0;
-    const annualTuitionBdt = Math.round(tuitionLocalNum * exchangeRate);
-
-    const catalog = db.upsertUniversityCourseCatalog({
-      ...body,
-      annualTuitionLocal: tuitionLocalNum,
-      annualTuitionBdt,
-      currency: currency.toUpperCase(),
-      officialCatalogUrl,
-      officialSourceTitle: officialSourceTitle || `${universityName} Official Fee Schedule`,
-      isVerified: true,
-      status: 'VERIFIED',
-      verifiedByAdminId: authorization.user.id,
-      lastAuditedAt: new Date().toISOString(),
+    const data = { ...input, benchmarkId: benchmark.id, annualTuitionPoisha: toPoisha(tuitionBdt),
+      isVerified: true, status: 'VERIFIED' as const, verifiedByAdminId: auth.user.id, lastAuditedAt: new Date() };
+    const row = await prisma.$transaction(async tx => {
+      const saved = id ? await tx.universityCourseCatalog.update({ where: { id }, data,
+        include: { benchmark: { select: { countryCode: true } } } })
+        : await tx.universityCourseCatalog.create({ data, include: { benchmark: { select: { countryCode: true } } } });
+      await tx.governanceAudit.create({ data: { actorId: auth.user.id, action: 'CATALOG_VERIFIED',
+        entityType: 'UniversityCourseCatalog', entityId: saved.id } });
+      return saved;
     });
-
-    return NextResponse.json({
-      success: true,
-      message: `Official course catalog for ${catalog.universityName} verified and saved.`,
-      catalog,
-    });
-  } catch (error: any) {
-    console.error('Error in POST /api/provenance/catalogs:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to save course catalog' }, { status: 500 });
-  }
+    return success({ catalog: catalogDto(row), message: 'Course catalog saved.' }, id ? 200 : 201);
+  } catch (error) { return platformError(error); }
 }
-
 export async function DELETE(request: Request) {
   try {
-    const authorization = await requireRole(['ADMIN']);
-    if (authorization.response) return authorization.response;
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json({ success: false, error: 'Catalog ID is required' }, { status: 400 });
-    }
-
-    const deleted = db.deleteUniversityCourseCatalog(id);
-    if (!deleted) {
-      return NextResponse.json({ success: false, error: `Course catalog '${id}' not found` }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: `Course catalog '${deleted.programName}' at ${deleted.universityName} deleted.`,
+    const auth = await requireRole(['ADMIN']);
+    if (auth.response) return auth.response;
+    const id = identifier.parse(new URL(request.url).searchParams.get('id'));
+    await prisma.$transaction(async tx => {
+      await tx.universityCourseCatalog.delete({ where: { id } });
+      await tx.governanceAudit.create({ data: { actorId: auth.user.id, action: 'CATALOG_DELETED',
+        entityType: 'UniversityCourseCatalog', entityId: id } });
     });
-  } catch (error: any) {
-    console.error('Error in DELETE /api/provenance/catalogs:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to delete course catalog' }, { status: 500 });
-  }
+    return success({ message: 'Course catalog deleted.' });
+  } catch (error) { return platformError(error); }
 }

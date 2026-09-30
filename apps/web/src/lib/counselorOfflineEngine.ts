@@ -14,6 +14,7 @@ import type {
   CounselorChatResponse,
 } from './aiService';
 import { VerifiedKnowledgeEngine } from './verifiedKnowledgeStore';
+import { OFFLINE_DEMO_ENABLED } from './ai/demo';
 
 const OFFLINE_CATALOG: Array<{
   id: string;
@@ -246,6 +247,7 @@ const RATES_TO_BDT: Record<string, number> = {
 export function evaluateOfflineProfile(
   req: CounselorEvaluationRequest
 ): CounselorEvaluationResponse {
+  if (!OFFLINE_DEMO_ENABLED) throw new Error('Offline counselor examples are disabled.');
   const normGpa =
     req.max_gpa === 5.0
       ? Math.round((Math.min(5.0, req.gpa) / 5.0) * 4.0 * 100) / 100
@@ -478,6 +480,7 @@ export function sendOfflineChatMessage(
   profile?: CounselorEvaluationRequest | null,
   lang: string = 'en'
 ): CounselorChatResponse {
+  if (!OFFLINE_DEMO_ENABLED) throw new Error('Offline counselor examples are disabled.');
   const lastMsg = messages[messages.length - 1]?.content || '';
   const isBn = lang === 'bn' || /[\u0980-\u09FF]/.test(lastMsg);
   const qLower = lastMsg.toLowerCase();
@@ -535,6 +538,7 @@ export function auditSOPOffline(payload: {
   target_country?: string | null;
   target_program?: string | null;
 }): import('./aiService').SOPAuditResponse {
+  if (!OFFLINE_DEMO_ENABLED) throw new Error('Offline counselor examples are disabled.');
   const sopLower = payload.sop_text.toLowerCase();
   const clichePhrases = [
     'since childhood', 'from a young age', 'passionate about',

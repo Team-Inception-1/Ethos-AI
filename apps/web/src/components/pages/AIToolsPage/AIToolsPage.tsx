@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useMemo, useEffect, Suspense } from 'react';
-import Link from 'next/link';
+import React, { useRef, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -51,13 +50,9 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
     return initialTool;
   }, [paramTool, initialTool]);
 
-  const [activeTab, setActiveTab] = useState<'all' | 'fraud' | 'agreement'>(defaultTool);
-
-  useEffect(() => {
-    if (defaultTool) {
-      setActiveTab(defaultTool);
-    }
-  }, [defaultTool]);
+  const [selection, setSelection] = useState({ source: defaultTool, tab: defaultTool });
+  const activeTab = selection.source === defaultTool ? selection.tab : defaultTool;
+  const setActiveTab = (tab: 'all' | 'fraud' | 'agreement') => setSelection({ source: defaultTool, tab });
 
   // Document Fraud Checker State
   const [docResult, setDocResult]                 = useState<AnalyzeOfferLetterResponse | null>(null);
@@ -80,6 +75,7 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
   // Handle Document Fraud Check
   const handleDocFile = async (file: File) => {
     setDocError(null);
+    setDocResult(null);
 
     const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
     if (!ACCEPTED_EXTENSIONS.includes(ext)) {
@@ -99,8 +95,8 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
         expectedUniversity: expectedUni.trim() || undefined,
       });
       setDocResult(result);
-    } catch (err: any) {
-      setDocError(err?.message || 'Could not verify document. Please try again.');
+    } catch (err) {
+      setDocError(err instanceof Error ? err.message : 'Could not verify document. Please try again.');
       setDocFileName(null);
     } finally {
       setDocLoading(false);
@@ -123,35 +119,41 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
 
   // Quick Test Sample Offer Letters
   const testSampleOffer = async (isGenuine: boolean) => {
+    if (process.env.NODE_ENV === 'production') return;
     setDocError(null);
+    setDocResult(null);
     setDocLoading(true);
+    try {
     if (isGenuine) {
-      setDocFileName('Offer_Letter_U_of_Toronto_Fall2026.pdf');
+      setDocFileName('sample-offer.txt');
       setExpectedUni('University of Toronto');
       setSenderEmail('admissions@utoronto.ca');
-      const fakeFile = new File(['University of Toronto official letter'], 'Offer_Letter_U_of_Toronto.pdf', { type: 'application/pdf' });
+      const fakeFile = new File(['Example text only: University of Toronto admission offer. Not an authentic university document.'], 'sample-offer.txt', { type: 'text/plain' });
       const res = await analyzeOfferLetterFile(fakeFile, {
         expectedUniversity: 'University of Toronto',
         senderEmail: 'admissions@utoronto.ca',
       });
       setDocResult(res);
     } else {
-      setDocFileName('Forged_Bedfordshire_Offer_SkylineConsultancy.pdf');
+      setDocFileName('sample-suspicious-offer.txt');
       setExpectedUni('University of Bedfordshire');
       setSenderEmail('admissions.bedfordshire@protonmail.com');
-      const fakeFile = new File(['Forged letter content'], 'Forged_Bedfordshire_Letter.pdf', { type: 'application/pdf' });
+      const fakeFile = new File(['Example suspicious offer: pay the agent immediately using a personal account.'], 'sample-suspicious-offer.txt', { type: 'text/plain' });
       const res = await analyzeOfferLetterFile(fakeFile, {
         expectedUniversity: 'University of Bedfordshire',
         senderEmail: 'admissions.bedfordshire@protonmail.com',
       });
       setDocResult(res);
     }
-    setDocLoading(false);
+    } catch (err) {
+      setDocError(err instanceof Error ? err.message : 'Sample analysis failed.');
+    } finally { setDocLoading(false); }
   };
 
   // Handle Agreement Analysis
   const handleAgreementFile = async (file: File) => {
     setAgreementError(null);
+    setAgreementResult(null);
 
     const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
     if (!ACCEPTED_EXTENSIONS.includes(ext)) {
@@ -168,8 +170,8 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
     try {
       const result = await analyzeAgreementFile(file);
       setAgreementResult(result);
-    } catch (err: any) {
-      setAgreementError(err?.message || 'Could not reach analysis engine. Please try again.');
+    } catch (err) {
+      setAgreementError(err instanceof Error ? err.message : 'Could not reach analysis engine. Please try again.');
       setAgreementFileName(null);
     } finally {
       setAgreementLoading(false);
@@ -192,20 +194,25 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
 
   // Quick Test Sample Agreements
   const testSampleAgreement = async (isCompliant: boolean) => {
+    if (process.env.NODE_ENV === 'production') return;
     setAgreementError(null);
+    setAgreementResult(null);
     setAgreementLoading(true);
+    try {
     if (isCompliant) {
-      setAgreementFileName('Standard_Ethos_Escrow_Agreement.pdf');
-      const fakeFile = new File(['Standard escrow agreement terms'], 'Standard_Ethos_Agreement.pdf', { type: 'application/pdf' });
+      setAgreementFileName('sample-agreement.txt');
+      const fakeFile = new File(['Example agreement: milestone payments held in escrow. Unperformed services are refundable.'], 'sample-agreement.txt', { type: 'text/plain' });
       const res = await analyzeAgreementFile(fakeFile);
       setAgreementResult(res);
     } else {
-      setAgreementFileName('Predatory_100pct_Advance_ApexStudy.pdf');
-      const fakeFile = new File(['Predatory non-refundable deposit terms'], 'Predatory_ApexStudy_Agreement.pdf', { type: 'application/pdf' });
+      setAgreementFileName('sample-risky-agreement.txt');
+      const fakeFile = new File(['Example agreement: pay 100% in advance. All fees non-refundable. Agency may change fees at any time.'], 'sample-risky-agreement.txt', { type: 'text/plain' });
       const res = await analyzeAgreementFile(fakeFile);
       setAgreementResult(res);
     }
-    setAgreementLoading(false);
+    } catch (err) {
+      setAgreementError(err instanceof Error ? err.message : 'Sample analysis failed.');
+    } finally { setAgreementLoading(false); }
   };
 
   const agreementGauge = agreementResult ? AGREEMENT_GAUGE[agreementResult.verdict] : null;
@@ -318,10 +325,10 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
       </div>
 
       {/* ─── Reference Sample Loader ─── */}
-      <div className={styles.samplesBar}>
+      {process.env.NODE_ENV !== 'production' && <div className={styles.samplesBar}>
         <span className={styles.samplesLabel}>
           <span>📄</span>
-          <span>Load Reference Sample:</span>
+          <span>Analyze Example Text:</span>
         </span>
         <button
           type="button"
@@ -331,7 +338,7 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
             testSampleOffer(true);
           }}
         >
-          Univ. of Toronto (Genuine)
+          Example University Offer
         </button>
         <button
           type="button"
@@ -363,7 +370,7 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
         >
           Non-Compliant Agreement
         </button>
-      </div>
+      </div>}
 
       <div className={activeTab === 'all' ? styles.grid : styles.singleColumn}>
         {/* Document Fraud Checker — LIVE, Module 5.8 / K-21 */}

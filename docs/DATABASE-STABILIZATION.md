@@ -13,7 +13,7 @@ approved preserving existing columns and creating an accurate baseline. The
 former SQL is archived in `prisma/baseline/original-init.sql`; the initial migration
 now reproduces the live 19 application tables, excluding the unmanaged
 `playing_with_neon` example table. There was no pre-existing migration history.
-Both migrations are recorded as applied on the validation branch only. No
+Both migrations are recorded as applied on validation and production. No
 `db push`, reset, drop, truncation or destructive reconciliation is permitted.
 
 `20260930130000_add_platform_models` contains only the 12 missing platform
@@ -26,7 +26,13 @@ On an empty disposable database, normal `prisma migrate deploy` applies both
 migrations. On existing Neon, verify the corrected baseline, then mark only the
 initial migration applied using `prisma migrate resolve --applied 20250101000000_init`.
 Deploy the additive migration normally; never replay create-table baseline SQL
-on existing tables. Production deployment follows validated community tests.
+on existing tables. Production deployment completed after the real isolated-Neon
+registration/community workflow and all six browser smoke flows passed. The
+accurate baseline was marked applied; the additive migration was deployed using
+Prisma Migrate. All 19 original table row counts are unchanged, including the
+20 existing users and four existing document records. Migration status is up to
+date. Production seed ran twice and produced six country hubs without demo
+users, posts, comments, or fictional verified mentors.
 
 Run `node prisma/seed-community.mjs` with an explicit `DATABASE_URL` and matching
 `COMMUNITY_SEED_ALLOWED_HOST`. CI may use local `ethos_test` without that host
@@ -42,5 +48,13 @@ and browser flows on the validation branch. Keep the backup until rollout is
 accepted. Rollback means reverting application code and retaining additive
 tables; deleting tables or restoring production over newer user data needs a
 separate reviewed recovery decision.
+
+The separately approved document-object migration preserved all four document
+records and file bytes, changed their pointers to verified private copies, and
+removed only the four verified public source objects. Recovery information is
+in the ignored local migration manifest and the retained pre-migration branch.
+Deploy the repair application's private-key reader with this change; the old
+reader does not support the new storage namespace. Retain the backup and review
+its object-storage access policy before final production acceptance.
 
 Prisma baselining guidance: https://www.prisma.io/docs/orm/prisma-migrate/workflows/baselining

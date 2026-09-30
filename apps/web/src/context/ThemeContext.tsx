@@ -1,5 +1,6 @@
 'use client';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
+import { useStoredTheme } from '@/lib/browser-preferences';
 
 type Theme = 'dark' | 'light';
 
@@ -14,22 +15,14 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useStoredTheme();
 
   useEffect(() => {
-    const stored = localStorage.getItem('ethos-theme') as Theme | null;
-    const preferred = stored ?? 'dark';
-    setTheme(preferred);
-    document.documentElement.setAttribute('data-theme', preferred);
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => {
-      const next: Theme = prev === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('ethos-theme', next);
-      document.documentElement.setAttribute('data-theme', next);
-      return next;
-    });
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   return (

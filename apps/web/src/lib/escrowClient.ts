@@ -100,13 +100,13 @@ export async function payMilestone(params: {
     const res = await fetch('/api/escrow/pay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...params, simulateInstantHold: true }),
+      body: JSON.stringify(params),
     });
     const data = await res.json();
-    if (!res.ok) return { success: false, status: 'ERROR', error: data.error || 'Payment failed' };
+    if (!res.ok) return { success: false, status: 'ERROR', error: data.error?.message || 'Payment failed' };
     return data;
-  } catch (err: any) {
-    return { success: false, status: 'ERROR', error: err?.message || 'Network error' };
+  } catch (err) {
+    return { success: false, status: 'ERROR', error: err instanceof Error ? err.message : 'Network error' };
   }
 }
 
@@ -124,10 +124,10 @@ export async function releaseMilestone(params: {
       body: JSON.stringify(params),
     });
     const data = await res.json();
-    if (!res.ok) return { success: false, status: 'ERROR', error: data.error };
+    if (!res.ok) return { success: false, status: 'ERROR', error: data.error?.message || 'Release failed' };
     return data;
-  } catch (err: any) {
-    return { success: false, status: 'ERROR', error: err?.message || 'Network error' };
+  } catch (err) {
+    return { success: false, status: 'ERROR', error: err instanceof Error ? err.message : 'Network error' };
   }
 }
 
@@ -145,10 +145,10 @@ export async function disputeMilestone(params: {
       body: JSON.stringify(params),
     });
     const data = await res.json();
-    if (!res.ok) return { success: false, status: 'ERROR', error: data.error };
+    if (!res.ok) return { success: false, status: 'ERROR', error: data.error?.message || 'Dispute failed' };
     return data;
-  } catch (err: any) {
-    return { success: false, status: 'ERROR', error: err?.message || 'Network error' };
+  } catch (err) {
+    return { success: false, status: 'ERROR', error: err instanceof Error ? err.message : 'Network error' };
   }
 }
 
@@ -166,10 +166,10 @@ export async function refundMilestone(params: {
       body: JSON.stringify(params),
     });
     const data = await res.json();
-    if (!res.ok) return { success: false, status: 'ERROR', error: data.error };
+    if (!res.ok) return { success: false, status: 'ERROR', error: data.error?.message || 'Refund failed' };
     return data;
-  } catch (err: any) {
-    return { success: false, status: 'ERROR', error: err?.message || 'Network error' };
+  } catch (err) {
+    return { success: false, status: 'ERROR', error: err instanceof Error ? err.message : 'Network error' };
   }
 }
 

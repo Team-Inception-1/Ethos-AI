@@ -32,7 +32,7 @@ def override_scam_deps():
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    return TestClient(app, headers={"Authorization": "Bearer offline-test-token"})
 
 
 def test_scan_content_endpoint_happy_path(client):

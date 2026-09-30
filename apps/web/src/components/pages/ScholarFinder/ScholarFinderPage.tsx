@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { z } from 'zod';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -12,7 +12,6 @@ import {
   prepareInterview,
   getTARAGuide,
   parseCVFile,
-  parseCVText,
   matchProfile,
   deconstructPaper,
   liveSearchAcademic,
@@ -25,10 +24,7 @@ import {
   type CVParsedData,
   type ProfessorMatchScore,
   type PaperDeconstructResponse,
-  type TARAStrategyRequest,
   type TARAStrategyResponse,
-  type TARAAdvisorQuestionRequest,
-  type TARAAdvisorQuestionResponse,
 } from '@/lib/aiService';
 import styles from './ScholarFinderPage.module.css';
 
@@ -43,6 +39,11 @@ interface PipelineItem {
   draftedEmail?: string;
   notes?: string;
 }
+
+const pipelineSchema = z.array(z.object({ id: z.string(), profId: z.string(), profName: z.string(),
+  university: z.string(), labName: z.string(), stage: z.enum(['shortlisted', 'drafted', 'contacted', 'interviewing']),
+  sentAt: z.string().optional(), draftedEmail: z.string().optional(), notes: z.string().optional(),
+}));
 
 const DOMAIN_OPTIONS = [
   'All',
@@ -164,6 +165,8 @@ export default function ScholarFinderPage() {
   // Search Results
   const [professors, setProfessors] = useState<ProfessorProfile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const searchSequence = useRef(0);
   const [selectedProf, setSelectedProf] = useState<ProfessorProfile | null>(null);
 
   // Feature 1: CV Upload & Matchmaker State
@@ -257,14 +260,16 @@ export default function ScholarFinderPage() {
 
   // Load initial pipeline, guide, and run baseline TARA evaluation
   useEffect(() => {
+    const timer = setTimeout(() => {
     try {
       const saved = localStorage.getItem('ethos_scholar_pipeline');
       if (saved) {
-        setPipeline(JSON.parse(saved));
+        setPipeline(pipelineSchema.parse(JSON.parse(saved)));
       }
     } catch (e) {
       console.warn('Failed to load pipeline from localStorage', e);
     }
+    }, 0);
 
     getTARAGuide()
       .then((data) => setGuideData(data))
@@ -282,11 +287,13 @@ export default function ScholarFinderPage() {
     })
       .then((res) => setTaraResult(res))
       .catch((e) => console.warn('Initial TARA evaluation error', e));
+    return () => clearTimeout(timer);
   }, []);
 
   // TARA Strategy Evaluation Handler
   const runTARAEvaluation = async () => {
     setTaraLoading(true);
+    setTaraResult(null);
     try {
       const res = await evaluateTARAStrategy({
         degree_goal: taraDegreeGoal,
@@ -370,7 +377,7 @@ export default function ScholarFinderPage() {
     const qText = (questionToAsk || advisorInputText).trim();
     if (!qText || advisorLoading) return;
 
-    const userMsgId = `user-${Date.now()}`;
+    const userMsgId = `user-${crypto.randomUUID()}`;
     const userMsg: AdvisorChatMessage = {
       id: userMsgId,
       role: 'user',
@@ -393,7 +400,7 @@ export default function ScholarFinderPage() {
         },
       });
 
-      const botMsgId = `bot-${Date.now()}`;
+      const botMsgId = `bot-${crypto.randomUUID()}`;
       const botMsg: AdvisorChatMessage = {
         id: botMsgId,
         role: 'assistant',
@@ -408,7 +415,7 @@ export default function ScholarFinderPage() {
     } catch (err) {
       console.error('Failed to ask advisor:', err);
       const errMsg: AdvisorChatMessage = {
-        id: `err-${Date.now()}`,
+        id: `err-${crypto.randomUUID()}`,
         role: 'assistant',
         content:
           lang === 'en'
@@ -437,10 +444,12 @@ export default function ScholarFinderPage() {
     showToast('Advisor conversation reset.');
   };
 
-  const handleCopyPitch = () => {
+  const handleCopyPitch = async () => {
     if (!taraResult?.cold_pitch_paragraph) return;
-    navigator.clipboard.writeText(taraResult.cold_pitch_paragraph);
-    showToast('📋 Tailored RA pitch copied to clipboard!');
+    try {
+      await navigator.clipboard.writeText(taraResult.cold_pitch_paragraph);
+      showToast('📋 Tailored RA pitch copied to clipboard!');
+    } catch { showToast('Could not copy the pitch. Select and copy the text manually.'); }
   };
 
   // Financial Simulator reactive calculation
@@ -455,7 +464,7 @@ export default function ScholarFinderPage() {
     let monthlyRent = 950;
     let monthlyFoodLiving = 550;
     let monthlyHealthInsurance = 180;
-    let summerMonthsCovered = isRA ? 3 : 0;
+    const summerMonthsCovered = isRA ? 3 : 0;
     let summerTip = isRA
       ? '✅ 12-Month Coverage: RAs typically receive 12-month funding directly from faculty grant accounts, including June–August.'
       : '⚠️ 9-Month Gap: TAs are appointed for 9 academic months (Aug–May). June–August requires summer teaching, RA buyout, or CPT industry internship ($7,500–$10,500/mo).';
@@ -607,17 +616,22 @@ export default function ScholarFinderPage() {
 
   // Save pipeline
   const savePipeline = (items: PipelineItem[]) => {
-    setPipeline(items);
     try {
       localStorage.setItem('ethos_scholar_pipeline', JSON.stringify(items));
+      setPipeline(items);
+      return true;
     } catch (e) {
       console.warn('Failed to save pipeline', e);
+      showToast('Could not save your pipeline in this browser.');
+      return false;
     }
   };
 
   // Load professors
-  const runSearch = async () => {
+  const runSearch = useCallback(async () => {
+    const sequence = ++searchSequence.current;
     setLoading(true);
+    setSearchError(null);
     try {
       if (searchMode === 'live') {
         const defaultTopic =
@@ -637,7 +651,10 @@ export default function ScholarFinderPage() {
           limit: 12,
           entity_type: liveEntityType,
         });
+        if (sequence !== searchSequence.current) return;
         setProfessors(res.results);
+        setSelectedProf(res.results[0] ?? null);
+        setSelectedPaperTitle(res.results[0]?.recent_publications[0]?.title ?? '');
         if (res.results.length > 0) {
           setSelectedProf(res.results[0]);
           if (res.results[0].recent_publications.length > 0) {
@@ -652,8 +669,11 @@ export default function ScholarFinderPage() {
           accepting_only: acceptingOnly,
           query: searchQuery.trim() || null,
         });
+        if (sequence !== searchSequence.current) return;
         setProfessors(res.professors);
-        if (res.professors.length > 0 && !selectedProf) {
+        setSelectedProf(res.professors[0] ?? null);
+        setSelectedPaperTitle(res.professors[0]?.recent_publications[0]?.title ?? '');
+        if (res.professors.length > 0) {
           setSelectedProf(res.professors[0]);
           if (res.professors[0].recent_publications.length > 0) {
             setSelectedPaperTitle(res.professors[0].recent_publications[0].title);
@@ -662,14 +682,20 @@ export default function ScholarFinderPage() {
       }
     } catch (err) {
       console.error('Failed to search professors:', err);
+      if (sequence === searchSequence.current) {
+        setSearchError(err instanceof Error ? err.message : 'Professor search is unavailable. Please retry.');
+        setProfessors([]);
+        setSelectedProf(null);
+      }
     } finally {
-      setLoading(false);
+      if (sequence === searchSequence.current) setLoading(false);
     }
-  };
+  }, [searchMode, liveEntityType, selectedDomain, searchQuery, selectedCountry, activeFundingOnly, acceptingOnly]);
 
   useEffect(() => {
-    runSearch();
-  }, [selectedDomain, selectedCountry, activeFundingOnly, acceptingOnly, searchMode, liveEntityType]);
+    const timer = setTimeout(() => { void runSearch(); }, 300);
+    return () => { clearTimeout(timer); searchSequence.current += 1; };
+  }, [runSearch]);
 
   // Feature 1: Handle CV upload and auto-fill
   const handleCVFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -698,9 +724,6 @@ export default function ScholarFinderPage() {
       if (res.parsed_data.thesis_topic) setStudentThesis(res.parsed_data.thesis_topic);
       showToast('📄 CV Parsed Successfully! Profile fields auto-populated.');
 
-      if (selectedProf) {
-        triggerProfileMatch(res.parsed_data, selectedProf);
-      }
     } catch (err) {
       console.error('CV Parsing failed:', err);
       showToast('Could not parse CV file. Please verify format.');
@@ -709,8 +732,9 @@ export default function ScholarFinderPage() {
     }
   };
 
-  const triggerProfileMatch = async (cv: CVParsedData, prof: ProfessorProfile) => {
+  const triggerProfileMatch = useCallback(async (cv: CVParsedData, prof: ProfessorProfile) => {
     setMatchLoading(true);
+    setMatchScore(null);
     try {
       const res = await matchProfile({
         parsed_cv: cv,
@@ -725,19 +749,21 @@ export default function ScholarFinderPage() {
     } finally {
       setMatchLoading(false);
     }
-  };
+  }, []);
 
   // Re-run match if selected professor changes and CV is present
   useEffect(() => {
-    if (selectedProf && cvParsedData) {
-      triggerProfileMatch(cvParsedData, selectedProf);
-    }
-  }, [selectedProf]);
+    const timer = setTimeout(() => {
+      if (selectedProf && cvParsedData) void triggerProfileMatch(cvParsedData, selectedProf);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [selectedProf, cvParsedData, triggerProfileMatch]);
 
   // Feature 2: Deconstruct paper
   const handleDeconstructPaper = async () => {
     if (!selectedProf || !selectedPaperTitle) return;
     setPaperDeconstructLoading(true);
+    setPaperDeconstructData(null);
     try {
       const skillsArray = studentSkills.split(',').map((s) => s.trim()).filter(Boolean);
       const res = await deconstructPaper({
@@ -788,7 +814,7 @@ export default function ScholarFinderPage() {
       sentAt: stage === 'contacted' ? new Date().toISOString() : undefined,
     };
     const updated = [newItem, ...pipeline];
-    savePipeline(updated);
+    if (!savePipeline(updated)) return;
     showToast(`Added ${p.name} to your ${stage.toUpperCase()} pipeline.`);
   };
 
@@ -803,19 +829,20 @@ export default function ScholarFinderPage() {
       }
       return item;
     });
-    savePipeline(updated);
+    if (!savePipeline(updated)) return;
     showToast(`Stage updated to ${newStage.toUpperCase()}`);
   };
 
   const handleRemoveFromPipeline = (itemId: string) => {
     const updated = pipeline.filter((i) => i.id !== itemId);
-    savePipeline(updated);
+    if (!savePipeline(updated)) return;
     showToast('Removed from pipeline');
   };
 
   const handleGenerateEmail = async () => {
     if (!selectedProf) return;
     setEmailGenerating(true);
+    setGeneratedEmailRes(null);
     try {
       const skillsArray = studentSkills.split(',').map((s) => s.trim()).filter(Boolean);
       const res = await generateColdEmail({
@@ -846,6 +873,7 @@ export default function ScholarFinderPage() {
     setSelectedProf(p);
     setInterviewModalOpen(true);
     setInterviewLoading(true);
+    setInterviewPrepData(null);
     try {
       const skillsArray = studentSkills.split(',').map((s) => s.trim()).filter(Boolean);
       const res = await prepareInterview({
@@ -863,9 +891,9 @@ export default function ScholarFinderPage() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    showToast('Copied to clipboard! 📋');
+  const copyToClipboard = async (text: string) => {
+    try { await navigator.clipboard.writeText(text); showToast('Copied to clipboard! 📋'); }
+    catch { showToast('Could not copy. Select and copy the text manually.'); }
   };
 
   const getGmailLink = (to: string, subject: string, body: string) => {
@@ -878,6 +906,7 @@ export default function ScholarFinderPage() {
     <div className={styles.container}>
       {/* Toast Notification */}
       {toastMessage && <div className={styles.toast}>{toastMessage}</div>}
+      {searchError && <p role="alert">{searchError}</p>}
 
       {/* Header Section */}
       <div className={styles.pageHeader}>
@@ -1191,7 +1220,7 @@ export default function ScholarFinderPage() {
                   <div className={styles.recentPubsSection}>
                     <div className={styles.pubTitleHeader}>Latest Research Paper</div>
                     <div className={styles.pubItem}>
-                      "{p.recent_publications[0].title}"
+                      &quot;{p.recent_publications[0].title}&quot;
                     </div>
                     <div className={styles.pubVenue}>
                       {p.recent_publications[0].venue} ({p.recent_publications[0].year})
@@ -1424,7 +1453,7 @@ export default function ScholarFinderPage() {
                     🎯 {lang === 'en' ? 'Tailored Cold Hook (Your Research Inroad):' : 'কোল্ড ইমেইলের জন্য কাস্টম হুক:'}
                   </div>
                   <div className={styles.hookSnippet}>
-                    "{paperDeconstructData.tailored_cold_hook}"
+                    &quot;{paperDeconstructData.tailored_cold_hook}&quot;
                   </div>
                 </div>
 
@@ -1506,7 +1535,7 @@ export default function ScholarFinderPage() {
                 <select
                   className={styles.formSelect}
                   value={targetDegree}
-                  onChange={(e) => setTargetDegree(e.target.value as any)}
+                  onChange={(e) => setTargetDegree(e.target.value === 'PhD' ? 'PhD' : 'MS with Thesis')}
                 >
                   <option value="PhD">PhD</option>
                   <option value="MS with Thesis">MS with Thesis</option>
@@ -1588,7 +1617,7 @@ export default function ScholarFinderPage() {
                 )
               ) : (
                 <span style={{ color: 'var(--text-muted)' }}>
-                  Click "Generate Personalized Cold Email" to produce a tailored, 3-paragraph research pitch adhering to top university admissions standards.
+                  Click &quot;Generate Personalized Cold Email&quot; to produce a tailored, 3-paragraph research pitch adhering to top university admissions standards.
                 </span>
               )}
             </div>
@@ -2185,7 +2214,7 @@ export default function ScholarFinderPage() {
                           📋 Copy Pitch
                         </button>
                       </div>
-                      <div className={styles.pitchText}>"{taraResult.cold_pitch_paragraph}"</div>
+                      <div className={styles.pitchText}>&quot;{taraResult.cold_pitch_paragraph}&quot;</div>
                       <div className={styles.pitchActions}>
                         <Button
                           variant="outline"
@@ -2838,7 +2867,7 @@ export default function ScholarFinderPage() {
 
             {interviewLoading ? (
               <div style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
-                Predicting professor's technical screening questions...
+                Predicting professor&apos;s technical screening questions...
               </div>
             ) : interviewPrepData ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

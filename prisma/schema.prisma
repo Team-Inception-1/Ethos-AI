@@ -31,71 +31,71 @@ enum UserRole {
 }
 
 model User {
-  id              String          @id @default(uuid())
-  email           String          @unique
-  phone           String          @unique
-  name            String
-  passwordHash    String?
-  role            UserRole        @default(STUDENT)
-  isVerified      Boolean         @default(false)
-  avatarUrl       String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id           String   @id @default(uuid())
+  email        String   @unique
+  phone        String   @unique
+  name         String
+  passwordHash String?
+  role         UserRole @default(STUDENT)
+  isVerified   Boolean  @default(false)
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relationships
-  studentProfile  StudentProfile?
-  agencyProfile   Agency?         @relation("AgencyOwner")
-  parentLinksAsParent  ParentLink[] @relation("ParentUser")
-  parentLinksAsStudent ParentLink[] @relation("StudentUser")
-  
-  applicationsAsStudent Application[] @relation("StudentApplications")
-  stageEvents           StageEvent[]  @relation("ActorStageEvents")
-  documents             Document[]    @relation("DocumentOwner")
-  reviewsWritten        Review[]      @relation("StudentReviews")
-  chatMessages          ChatMessage[] @relation("SenderMessages")
-  complaintsFiled       Complaint[]   @relation("Complainant")
-  verificationReports   VerificationReport[] @relation("PurchaserReports")
-  outreaches            ProfessorOutreach[]  @relation("StudentOutreaches")
+  studentProfile       StudentProfile?
+  agencyProfile        Agency?         @relation("AgencyOwner")
+  parentLinksAsParent  ParentLink[]    @relation("ParentUser")
+  parentLinksAsStudent ParentLink[]    @relation("StudentUser")
+
+  applicationsAsStudent Application[]                @relation("StudentApplications")
+  stageEvents           StageEvent[]                 @relation("ActorStageEvents")
+  documents             Document[]                   @relation("DocumentOwner")
+  reviewsWritten        Review[]                     @relation("StudentReviews")
+  chatMessages          ChatMessage[]                @relation("SenderMessages")
+  complaintsFiled       Complaint[]                  @relation("Complainant")
+  verificationReports   VerificationReport[]         @relation("PurchaserReports")
+  outreaches            ProfessorOutreach[]          @relation("StudentOutreaches")
   communityMemberships  StudentCommunityMembership[]
-  communityPosts        CommunityPost[]      @relation("AuthorPosts")
-  communityComments     CommunityComment[]   @relation("AuthorComments")
+  communityPosts        CommunityPost[]              @relation("AuthorPosts")
+  communityComments     CommunityComment[]           @relation("AuthorComments")
   postLikes             CommunityPostLike[]
-  blocksInitiated       UserBlock[]          @relation("Blocker")
-  blocksReceived        UserBlock[]          @relation("Blocked")
-  reportsFiled          CommunityReport[]    @relation("Reporter")
-  peerThreadsFirst      PeerMessageThread[]  @relation("PeerFirst")
-  peerThreadsSecond     PeerMessageThread[]  @relation("PeerSecond")
-  peerMessages          PeerMessage[]        @relation("PeerSender")
+  blocksInitiated       UserBlock[]                  @relation("Blocker")
+  blocksReceived        UserBlock[]                  @relation("Blocked")
+  reportsFiled          CommunityReport[]            @relation("Reporter")
+  peerThreadsFirst      PeerMessageThread[]          @relation("PeerFirst")
+  peerThreadsSecond     PeerMessageThread[]          @relation("PeerSecond")
+  peerMessages          PeerMessage[]                @relation("PeerSender")
 
   @@index([role])
   @@index([email])
 }
 
 model StudentProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  targetCountries String[] // e.g. ["Canada", "Australia", "UK"]
-  targetField     String?  // e.g. "Computer Science & Software Engineering"
-  budgetRange     String?  // e.g. "৳15L - ৳25L / year"
-  ieltsScore      String?  // e.g. "7.5"
-  linkCode        String   @unique // e.g. "ETHOS-STU-8821"
-  educationHistory Json?   // Array of { level, institution, passingYear, gpa }
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  targetCountries  String[] // e.g. ["Canada", "Australia", "UK"]
+  targetField      String? // e.g. "Computer Science & Software Engineering"
+  budgetRange      String? // e.g. "৳15L - ৳25L / year"
+  ieltsScore       String? // e.g. "7.5"
+  linkCode         String   @unique // e.g. "ETHOS-STU-8821"
+  educationHistory Json? // Array of { level, institution, passingYear, gpa }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([linkCode])
 }
 
 model ParentLink {
-  id           String   @id @default(uuid())
-  parentId     String
-  parent       User     @relation("ParentUser", fields: [parentId], references: [id], onDelete: Cascade)
-  studentId    String
-  student      User     @relation("StudentUser", fields: [studentId], references: [id], onDelete: Cascade)
-  
+  id        String @id @default(uuid())
+  parentId  String
+  parent    User   @relation("ParentUser", fields: [parentId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User   @relation("StudentUser", fields: [studentId], references: [id], onDelete: Cascade)
+
   relationship String   @default("Guardian") // e.g. "Father", "Mother", "Guardian"
   isApproved   Boolean  @default(true)
   linkedAt     DateTime @default(now())
@@ -117,27 +117,27 @@ enum LicenseStatus {
 }
 
 model Agency {
-  id              String         @id @default(uuid())
-  ownerUserId     String         @unique
-  owner           User           @relation("AgencyOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
-  
+  id          String @id @default(uuid())
+  ownerUserId String @unique
+  owner       User   @relation("AgencyOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+
   name            String
-  licenseNo       String         @unique
-  licenseStatus   LicenseStatus  @default(PENDING)
-  countriesServed String[]       // e.g. ["CAN", "GBR", "AUS", "USA"]
-  foundedYear     Int            @default(2020)
-  riskScore       Int            @default(0) // 0-100 from Module 5.10
-  rating          Float          @default(5.0)
-  reviewCount     Int            @default(0)
-  successRate     Int            @default(90) // percentage 0-100
-  feeMinPoisha    BigInt         @default(2500000) // in poisha (e.g. 25,000 BDT)
-  feeMaxPoisha    BigInt         @default(8000000) // in poisha (e.g. 80,000 BDT)
+  licenseNo       String        @unique
+  licenseStatus   LicenseStatus @default(PENDING)
+  countriesServed String[] // e.g. ["CAN", "GBR", "AUS", "USA"]
+  foundedYear     Int           @default(2020)
+  riskScore       Int           @default(0) // 0-100 from Module 5.10
+  rating          Float         @default(5.0)
+  reviewCount     Int           @default(0)
+  successRate     Int           @default(90) // percentage 0-100
+  feeMinPoisha    BigInt        @default(2500000) // in poisha (e.g. 25,000 BDT)
+  feeMaxPoisha    BigInt        @default(8000000) // in poisha (e.g. 80,000 BDT)
   address         String?
   website         String?
   description     String?
-  
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
   pricingServices     AgencyPricing[]
@@ -155,37 +155,37 @@ model Agency {
 }
 
 model AgencyPricing {
-  id           String   @id @default(uuid())
-  agencyId     String
-  agency       Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  
-  serviceName  String   // e.g. "Offer Letter Processing"
-  amountPoisha BigInt   // in poisha
-  whenCharged  String   // e.g. "On Offer Received"
-  refundable   Boolean  @default(false)
-  conditions   String?  // Plain language conditions
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  serviceName  String // e.g. "Offer Letter Processing"
+  amountPoisha BigInt // in poisha
+  whenCharged  String // e.g. "On Offer Received"
+  refundable   Boolean @default(false)
+  conditions   String? // Plain language conditions
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([agencyId])
 }
 
 model Review {
-  id            String   @id @default(uuid())
+  id            String  @id @default(uuid())
   studentId     String
-  student       User     @relation("StudentReviews", fields: [studentId], references: [id], onDelete: Cascade)
+  student       User    @relation("StudentReviews", fields: [studentId], references: [id], onDelete: Cascade)
   agencyId      String
-  agency        Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  applicationId String?  @unique
-  
-  rating        Int      // 1 to 5
-  title         String?
-  text          String
-  isVerified    Boolean  @default(true) // verified student customer
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  agency        Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  applicationId String? @unique
+
+  rating     Int // 1 to 5
+  title      String?
+  text       String
+  isVerified Boolean @default(true) // verified student customer
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([agencyId])
   @@index([studentId])
@@ -207,27 +207,27 @@ enum ApplicationStage {
 }
 
 model Application {
-  id               String           @id @default(uuid())
-  studentId        String
-  student          User             @relation("StudentApplications", fields: [studentId], references: [id], onDelete: Restrict)
-  agencyId         String
-  agency           Agency           @relation(fields: [agencyId], references: [id], onDelete: Restrict)
-  
-  targetCountry    String           // e.g. "Canada"
-  targetUniversity String           // e.g. "University of Toronto"
-  targetProgram    String           // e.g. "M.Sc. in Computer Science"
-  intakeSemester   String?          // e.g. "Fall 2026"
+  id        String @id @default(uuid())
+  studentId String
+  student   User   @relation("StudentApplications", fields: [studentId], references: [id], onDelete: Restrict)
+  agencyId  String
+  agency    Agency @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+
+  targetCountry    String // e.g. "Canada"
+  targetUniversity String // e.g. "University of Toronto"
+  targetProgram    String // e.g. "M.Sc. in Computer Science"
+  intakeSemester   String? // e.g. "Fall 2026"
   stage            ApplicationStage @default(SUBMITTED)
-  
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
-  stageEvents      StageEvent[]
-  documents        Document[]
-  milestones       Milestone[]
-  chatThread       ChatThread?
-  complaints       Complaint[]
+  stageEvents StageEvent[]
+  documents   Document[]
+  milestones  Milestone[]
+  chatThread  ChatThread?
+  complaints  Complaint[]
 
   @@index([studentId])
   @@index([agencyId])
@@ -235,17 +235,17 @@ model Application {
 }
 
 model StageEvent {
-  id            String           @id @default(uuid())
+  id            String      @id @default(uuid())
   applicationId String
-  application   Application      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  
-  stage         ApplicationStage
-  actorId       String
-  actor         User             @relation("ActorStageEvents", fields: [actorId], references: [id], onDelete: Restrict)
-  actorRole     UserRole
-  note          String?
-  documentId    String?
-  timestamp     DateTime         @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  stage      ApplicationStage
+  actorId    String
+  actor      User             @relation("ActorStageEvents", fields: [actorId], references: [id], onDelete: Restrict)
+  actorRole  UserRole
+  note       String?
+  documentId String?
+  timestamp  DateTime         @default(now())
 
   @@index([applicationId])
   @@index([timestamp])
@@ -262,26 +262,26 @@ enum DocumentType {
 }
 
 model Document {
-  id            String             @id @default(uuid())
+  id            String       @id @default(uuid())
   ownerId       String
-  owner         User               @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User         @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   applicationId String?
-  application   Application?       @relation(fields: [applicationId], references: [id], onDelete: SetNull)
-  
-  type          DocumentType
-  fileName      String
-  fileSize      Int                // in bytes
-  mimeType      String
-  storageKey    String             // encrypted S3/object store pointer
-  version       Int                @default(1)
-  isEncrypted   Boolean            @default(true)
-  
-  uploadedAt    DateTime           @default(now())
-  
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  type        DocumentType
+  fileName    String
+  fileSize    Int // in bytes
+  mimeType    String
+  storageKey  String // encrypted S3/object store pointer
+  version     Int          @default(1)
+  isEncrypted Boolean      @default(true)
+
+  uploadedAt DateTime @default(now())
+
   // Relationships
-  documentScan       DocumentScan?
-  agreementAnalysis  AgreementAnalysis?
-  chatMessages       ChatMessage[]
+  documentScan      DocumentScan?
+  agreementAnalysis AgreementAnalysis?
+  chatMessages      ChatMessage[]
 
   @@index([ownerId])
   @@index([applicationId])
@@ -289,29 +289,29 @@ model Document {
 }
 
 model DocumentScan {
-  id           String    @id @default(uuid())
-  documentId   String    @unique
-  document     Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  
-  riskScore    Int       // 0-100
-  verdict      String    // likely_genuine | needs_review | likely_fake
-  flags        Json      // Array of flag strings/objects
+  id         String   @id @default(uuid())
+  documentId String   @unique
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  riskScore    Int // 0-100
+  verdict      String // likely_genuine | needs_review | likely_fake
+  flags        Json // Array of flag strings/objects
   senderDomain String?
-  modelVersion String    @default("ocr-v1.0")
-  scannedAt    DateTime  @default(now())
+  modelVersion String   @default("ocr-v1.0")
+  scannedAt    DateTime @default(now())
 
   @@index([riskScore])
 }
 
 model AgreementAnalysis {
-  id               String    @id @default(uuid())
-  documentId       String    @unique
-  document         Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  
-  extractedClauses Json      // Extracted clauses (fee, refund, liability)
-  flaggedIssues    Json      // Flagged mismatches/ambiguities
-  riskVerdict      String    // clear | needs_review | high_risk
-  analyzedAt       DateTime  @default(now())
+  id         String   @id @default(uuid())
+  documentId String   @unique
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  extractedClauses Json // Extracted clauses (fee, refund, liability)
+  flaggedIssues    Json // Flagged mismatches/ambiguities
+  riskVerdict      String // clear | needs_review | high_risk
+  analyzedAt       DateTime @default(now())
 }
 
 // -----------------------------------------------------------------------------
@@ -327,21 +327,22 @@ enum MilestoneStatus {
 }
 
 model Milestone {
-  id               String          @id @default(uuid())
-  applicationId    String
-  application      Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  
-  name             String          // e.g. "Offer Letter Confirmed (30%)"
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  name             String // e.g. "Offer Letter Confirmed (30%)"
   orderIndex       Int             @default(1)
-  amountPoisha     BigInt          // Integer in Poisha (1 BDT = 100 Poisha)
-  releaseCondition String          // Verification criterion
+  amountPoisha     BigInt // Integer in Poisha (1 BDT = 100 Poisha)
+  releaseCondition String // Verification criterion
   status           MilestoneStatus @default(PENDING)
   dueDate          DateTime?
-  
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
 
-  ledgerEntries    LedgerEntry[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ledgerEntries   LedgerEntry[]
+  paymentAttempts PaymentAttempt[]
 
   @@index([applicationId])
   @@index([status])
@@ -355,20 +356,20 @@ enum LedgerEntryType {
 }
 
 model LedgerEntry {
-  id            String          @id @default(uuid())
-  milestoneId   String
-  milestone     Milestone       @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
-  
+  id          String    @id @default(uuid())
+  milestoneId String
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
+
   type          LedgerEntryType
   amountPoisha  BigInt
   provider      String          @default("SSLCOMMERZ") // SSLCOMMERZ | BKASH | NAGAD
-  providerTxnId String          // Gateway external transaction ID
-  txHash        String          // Append-only cryptographic hash
+  providerTxnId String // Gateway external transaction ID
+  txHash        String // Append-only cryptographic hash
   actorId       String
   note          String?
   timestamp     DateTime        @default(now())
 
-  receipt       Receipt?
+  receipt Receipt?
 
   @@index([milestoneId])
   @@index([providerTxnId])
@@ -379,14 +380,100 @@ model Receipt {
   id            String      @id @default(uuid())
   ledgerEntryId String      @unique
   ledgerEntry   LedgerEntry @relation(fields: [ledgerEntryId], references: [id], onDelete: Cascade)
-  
-  receiptNumber String      @unique // e.g. "ETHOS-REC-2026-0089"
+
+  receiptNumber String   @unique // e.g. "ETHOS-REC-2026-0089"
   amountPoisha  BigInt
-  currency      String      @default("BDT")
+  currency      String   @default("BDT")
   pdfStorageKey String?
-  generatedAt   DateTime    @default(now())
+  generatedAt   DateTime @default(now())
 
   @@index([receiptNumber])
+}
+
+model PaymentAttempt {
+  id            String    @id @default(uuid())
+  milestoneId   String
+  milestone     Milestone @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
+  provider      String
+  providerTxnId String    @unique
+  amountPoisha  BigInt
+  currency      String    @default("BDT")
+  status        String    @default("INITIATED")
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([milestoneId, status])
+}
+
+model ScamAlert {
+  id                String   @id @default(uuid())
+  type              String
+  title             String
+  agencyId          String?
+  agencyName        String
+  studentName       String
+  studentEmail      String
+  riskScore         Int
+  severity          String
+  status            String   @default("PENDING_REVIEW")
+  evidenceSummary   String   @db.Text
+  detectedAt        DateTime @default(now())
+  actionTaken       String?
+  adminNote         String?
+  resolvedByAdminId String?
+  updatedAt         DateTime @updatedAt
+
+  @@index([status])
+  @@index([agencyId])
+}
+
+model CountryBenchmarkSubmission {
+  id                String           @id @default(uuid())
+  country           String
+  payload           Json
+  status            ProvenanceStatus @default(PENDING)
+  submittedById     String
+  reviewedByAdminId String?
+  reviewedAt        DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([status])
+  @@index([country])
+}
+
+model GovernanceAudit {
+  id         String   @id @default(uuid())
+  actorId    String
+  action     String
+  entityType String
+  entityId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+}
+
+model AgencyRiskState {
+  agencyId  String            @id
+  riskScore Float             @default(0)
+  flagCount Int               @default(0)
+  updatedAt DateTime          @default(now())
+  events    AgencyRiskEvent[]
+}
+
+model AgencyRiskEvent {
+  id         String          @id
+  agencyId   String
+  agency     AgencyRiskState @relation(fields: [agencyId], references: [agencyId], onDelete: Cascade)
+  source     String
+  weight     Float
+  reason     String
+  occurredAt DateTime        @default(now())
+
+  @@index([agencyId, occurredAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -394,36 +481,36 @@ model Receipt {
 // -----------------------------------------------------------------------------
 
 model ChatThread {
-  id            String        @id @default(uuid())
-  applicationId String        @unique
-  application   Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  id            String      @id @default(uuid())
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   agencyId      String
-  agency        Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  agency        Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 
-  messages      ChatMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ChatMessage[]
 
   @@index([agencyId])
   @@index([applicationId])
 }
 
 model ChatMessage {
-  id             String       @id @default(uuid())
-  threadId       String
-  thread         ChatThread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  
-  senderId       String
-  sender         User         @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  senderRole     UserRole
-  body           String
+  id       String     @id @default(uuid())
+  threadId String
+  thread   ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  senderId        String
+  sender          User      @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderRole      UserRole
+  body            String
   attachmentDocId String?
-  attachmentDoc  Document?    @relation(fields: [attachmentDocId], references: [id], onDelete: SetNull)
-  
-  msgHash        String       // SHA-256 integrity hash for dispute evidence
-  isRead         Boolean      @default(false)
-  sentAt         DateTime     @default(now())
+  attachmentDoc   Document? @relation(fields: [attachmentDocId], references: [id], onDelete: SetNull)
+
+  msgHash String // SHA-256 integrity hash for dispute evidence
+  isRead  Boolean  @default(false)
+  sentAt  DateTime @default(now())
 
   @@index([threadId])
   @@index([senderId])
@@ -442,22 +529,22 @@ enum ComplaintStatus {
 }
 
 model Complaint {
-  id            String          @id @default(uuid())
+  id            String      @id @default(uuid())
   applicationId String
-  application   Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   agencyId      String
-  agency        Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  agency        Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   filedById     String
-  filedBy       User            @relation("Complainant", fields: [filedById], references: [id], onDelete: Cascade)
-  
-  status        ComplaintStatus @default(OPEN)
-  title         String
-  description   String
-  evidenceDocs  String[]        // Array of Document IDs
-  resolution    String?
-  
-  createdAt     DateTime        @default(now())
-  resolvedAt    DateTime?
+  filedBy       User        @relation("Complainant", fields: [filedById], references: [id], onDelete: Cascade)
+
+  status       ComplaintStatus @default(OPEN)
+  title        String
+  description  String
+  evidenceDocs String[] // Array of Document IDs
+  resolution   String?
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
 
   @@index([applicationId])
   @@index([agencyId])
@@ -465,13 +552,13 @@ model Complaint {
 }
 
 model VerificationReport {
-  id            String   @id @default(uuid())
+  id            String @id @default(uuid())
   agencyId      String
-  agency        Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  agency        Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   purchasedById String
-  purchasedBy   User     @relation("PurchaserReports", fields: [purchasedById], references: [id], onDelete: Cascade)
-  
-  reportSummary Json     // License audit, risk scores, complaint history
+  purchasedBy   User   @relation("PurchaserReports", fields: [purchasedById], references: [id], onDelete: Cascade)
+
+  reportSummary Json // License audit, risk scores, complaint history
   pricePoisha   BigInt   @default(29900) // Tk 299.00 = 29,900 Poisha
   pdfStorageKey String?
   generatedAt   DateTime @default(now())
@@ -481,15 +568,15 @@ model VerificationReport {
 }
 
 model Subscription {
-  id        String   @id @default(uuid())
-  agencyId  String
-  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  
-  tier      String   @default("PREMIUM") // BASIC | PREMIUM | ENTERPRISE
-  status    String   @default("ACTIVE")  // ACTIVE | EXPIRED | CANCELLED
-  pricePoisha BigInt @default(999900)    // e.g. Tk 9,999/mo in poisha
-  startsAt  DateTime @default(now())
-  renewsAt  DateTime
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  tier        String   @default("PREMIUM") // BASIC | PREMIUM | ENTERPRISE
+  status      String   @default("ACTIVE") // ACTIVE | EXPIRED | CANCELLED
+  pricePoisha BigInt   @default(999900) // e.g. Tk 9,999/mo in poisha
+  startsAt    DateTime @default(now())
+  renewsAt    DateTime
 
   @@index([agencyId])
   @@index([status])
@@ -510,30 +597,30 @@ enum OutreachStage {
 }
 
 model Professor {
-  id                    String              @id @default(uuid())
-  name                  String
-  title                 String
-  university            String
-  department            String
-  country               String
-  tier                  String
-  labName               String
-  labUrl                String?
-  email                 String              @unique
-  googleScholarUrl      String?
-  primaryDomain         String
-  researchInterests     String[]
-  activeFundingIndicator Boolean            @default(true)
-  fundingSources        String[]
-  acceptingStudents     Boolean             @default(true)
-  recentPublications    Json?               // Array of { title, year, venue, link, summary }
-  hIndex                Int?
-  citationsCount        Int?
-  labLocation           String?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  id                     String   @id @default(uuid())
+  name                   String
+  title                  String
+  university             String
+  department             String
+  country                String
+  tier                   String
+  labName                String
+  labUrl                 String?
+  email                  String   @unique
+  googleScholarUrl       String?
+  primaryDomain          String
+  researchInterests      String[]
+  activeFundingIndicator Boolean  @default(true)
+  fundingSources         String[]
+  acceptingStudents      Boolean  @default(true)
+  recentPublications     Json? // Array of { title, year, venue, link, summary }
+  hIndex                 Int?
+  citationsCount         Int?
+  labLocation            String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
-  outreaches            ProfessorOutreach[]
+  outreaches ProfessorOutreach[]
 
   @@index([university])
   @@index([primaryDomain])
@@ -541,12 +628,12 @@ model Professor {
 }
 
 model ProfessorOutreach {
-  id            String        @id @default(uuid())
-  studentId     String
-  student       User          @relation("StudentOutreaches", fields: [studentId], references: [id], onDelete: Cascade)
-  professorId   String
-  professor     Professor     @relation(fields: [professorId], references: [id], onDelete: Cascade)
-  
+  id          String    @id @default(uuid())
+  studentId   String
+  student     User      @relation("StudentOutreaches", fields: [studentId], references: [id], onDelete: Cascade)
+  professorId String
+  professor   Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
   stage         OutreachStage @default(SHORTLISTED)
   subjectLine   String?
   emailDraft    String?       @db.Text
@@ -583,42 +670,42 @@ enum CommunityPostCategory {
 }
 
 model CountryCommunity {
-  id              String                       @id @default(uuid())
-  country         String                       @unique // e.g. "Germany", "Canada"
-  countryCode     String                       // e.g. "DE", "CA", "GB"
-  flagEmoji       String                       // e.g. "🇩🇪"
-  tagline         String                       @default("")
-  popularCities   String[]                     @default([])
-  topUniversities String[]                     @default([])
-  quickLinks      Json                         @default("[]")
-  description     String?                      @db.Text
-  memberCount     Int                          @default(0)
-  postCount       Int                          @default(0)
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
+  id              String   @id @default(uuid())
+  country         String   @unique // e.g. "Germany", "Canada"
+  countryCode     String // e.g. "DE", "CA", "GB"
+  flagEmoji       String // e.g. "🇩🇪"
+  tagline         String   @default("")
+  popularCities   String[] @default([])
+  topUniversities String[] @default([])
+  quickLinks      Json     @default("[]")
+  description     String?  @db.Text
+  memberCount     Int      @default(0)
+  postCount       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  members         StudentCommunityMembership[]
-  posts           CommunityPost[]
+  members StudentCommunityMembership[]
+  posts   CommunityPost[]
 
   @@index([country])
 }
 
 model StudentCommunityMembership {
-  id              String                @id @default(uuid())
-  userId          String
-  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  communityId     String
-  community       CountryCommunity      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  communityId String
+  community   CountryCommunity @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
-  status          StudentAcademicStatus @default(INCOMING_STUDENT)
+  status                    StudentAcademicStatus @default(INCOMING_STUDENT)
   targetOrCurrentUniversity String?
-  isVerified      Boolean               @default(false)
-  isSeniorMentor  Boolean               @default(false)
-  mentorBio       String?               @db.Text
-  program         String?
-  intake          String?
-  isAvailableForChat Boolean            @default(false)
-  joinedAt        DateTime              @default(now())
+  isVerified                Boolean               @default(false)
+  isSeniorMentor            Boolean               @default(false)
+  mentorBio                 String?               @db.Text
+  program                   String?
+  intake                    String?
+  isAvailableForChat        Boolean               @default(false)
+  joinedAt                  DateTime              @default(now())
 
   @@unique([userId, communityId])
   @@index([userId])
@@ -626,30 +713,30 @@ model StudentCommunityMembership {
 }
 
 model CommunityPost {
-  id              String                @id @default(uuid())
-  communityId     String
-  community       CountryCommunity      @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  authorId        String
-  author          User                  @relation("AuthorPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  id          String           @id @default(uuid())
+  communityId String
+  community   CountryCommunity @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User             @relation("AuthorPosts", fields: [authorId], references: [id], onDelete: Cascade)
 
-  title           String
-  content         String                @db.Text
-  category        CommunityPostCategory @default(HELP)
-  isAnonymous     Boolean               @default(false)
-  isSeniorAsk     Boolean               @default(false)
-  authorStatus    StudentAcademicStatus @default(INCOMING_STUDENT)
+  title            String
+  content          String                @db.Text
+  category         CommunityPostCategory @default(HELP)
+  isAnonymous      Boolean               @default(false)
+  isSeniorAsk      Boolean               @default(false)
+  authorStatus     StudentAcademicStatus @default(INCOMING_STUDENT)
   authorUniversity String?
-  authorVerified  Boolean               @default(false)
-  likesCount      Int                   @default(0)
-  commentsCount   Int                   @default(0)
-  isPinned        Boolean               @default(false)
+  authorVerified   Boolean               @default(false)
+  likesCount       Int                   @default(0)
+  commentsCount    Int                   @default(0)
+  isPinned         Boolean               @default(false)
 
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  comments        CommunityComment[]
-  likes           CommunityPostLike[]
-  reports         CommunityReport[]
+  comments CommunityComment[]
+  likes    CommunityPostLike[]
+  reports  CommunityReport[]
 
   @@index([communityId])
   @@index([category])
@@ -658,23 +745,23 @@ model CommunityPost {
 }
 
 model CommunityComment {
-  id              String                @id @default(uuid())
-  postId          String
-  post            CommunityPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  authorId        String
-  author          User                  @relation("AuthorComments", fields: [authorId], references: [id], onDelete: Cascade)
+  id       String        @id @default(uuid())
+  postId   String
+  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User          @relation("AuthorComments", fields: [authorId], references: [id], onDelete: Cascade)
 
-  content         String                @db.Text
-  isAnonymous     Boolean               @default(false)
-  isSeniorAnswer  Boolean               @default(false)
-  authorStatus    StudentAcademicStatus @default(INCOMING_STUDENT)
+  content          String                @db.Text
+  isAnonymous      Boolean               @default(false)
+  isSeniorAnswer   Boolean               @default(false)
+  authorStatus     StudentAcademicStatus @default(INCOMING_STUDENT)
   authorUniversity String?
-  authorVerified  Boolean               @default(false)
+  authorVerified   Boolean               @default(false)
 
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  reports         CommunityReport[]
+  reports CommunityReport[]
 
   @@index([postId])
   @@index([authorId])
@@ -682,12 +769,12 @@ model CommunityComment {
 }
 
 model CommunityPostLike {
-  id              String        @id @default(uuid())
-  postId          String
-  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt       DateTime      @default(now())
+  id        String        @id @default(uuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
 
   @@unique([postId, userId])
   @@index([postId])
@@ -695,12 +782,12 @@ model CommunityPostLike {
 }
 
 model UserBlock {
-  id              String   @id @default(uuid())
-  blockerId       String
-  blocker         User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
-  blockedUserId   String
-  blockedUser     User     @relation("Blocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
-  createdAt       DateTime @default(now())
+  id            String   @id @default(uuid())
+  blockerId     String
+  blocker       User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUserId String
+  blockedUser   User     @relation("Blocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
 
   @@unique([blockerId, blockedUserId])
   @@index([blockerId])
@@ -708,32 +795,32 @@ model UserBlock {
 }
 
 model CommunityReport {
-  id              String            @id @default(uuid())
-  reporterId      String
-  reporter        User              @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  postId          String?
-  post            CommunityPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  commentId       String?
-  comment         CommunityComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  reason          String
-  details         String?           @db.Text
-  createdAt       DateTime          @default(now())
+  id         String            @id @default(uuid())
+  reporterId String
+  reporter   User              @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  postId     String?
+  post       CommunityPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId  String?
+  comment    CommunityComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reason     String
+  details    String?           @db.Text
+  createdAt  DateTime          @default(now())
 
-  @@index([postId])
-  @@index([reporterId])
   @@unique([reporterId, postId])
   @@unique([reporterId, commentId])
+  @@index([postId])
+  @@index([reporterId])
 }
 
 model PeerMessageThread {
-  id            String        @id @default(uuid())
-  firstUserId   String
-  firstUser     User          @relation("PeerFirst", fields: [firstUserId], references: [id], onDelete: Cascade)
-  secondUserId  String
-  secondUser    User          @relation("PeerSecond", fields: [secondUserId], references: [id], onDelete: Cascade)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  messages      PeerMessage[]
+  id           String        @id @default(uuid())
+  firstUserId  String
+  firstUser    User          @relation("PeerFirst", fields: [firstUserId], references: [id], onDelete: Cascade)
+  secondUserId String
+  secondUser   User          @relation("PeerSecond", fields: [secondUserId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  messages     PeerMessage[]
 
   @@unique([firstUserId, secondUserId])
   @@index([firstUserId, updatedAt])
@@ -741,13 +828,13 @@ model PeerMessageThread {
 }
 
 model PeerMessage {
-  id            String        @id @default(uuid())
-  threadId      String
-  thread        PeerMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  senderId      String
-  sender        User          @relation("PeerSender", fields: [senderId], references: [id], onDelete: Cascade)
-  content       String        @db.Text
-  sentAt        DateTime      @default(now())
+  id       String            @id @default(uuid())
+  threadId String
+  thread   PeerMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId String
+  sender   User              @relation("PeerSender", fields: [senderId], references: [id], onDelete: Cascade)
+  content  String            @db.Text
+  sentAt   DateTime          @default(now())
 
   @@index([threadId, sentAt, id])
 }
@@ -764,59 +851,60 @@ enum ProvenanceStatus {
 }
 
 model CountryCostBenchmark {
-  id                          String           @id @default(uuid())
-  country                     String           @unique // e.g. "Germany", "Canada", "UK"
-  countryCode                 String           // e.g. "DE", "CA", "GB"
-  flagEmoji                   String           // e.g. "🇩🇪"
-  currency                    String           // e.g. "EUR", "CAD", "GBP"
-  exchangeRateBdt             Float            // e.g. 138.50 for EUR
-  
-  livingCostMonthlyPoishaMin  BigInt           // Min monthly living cost in poisha
-  livingCostMonthlyPoishaMax  BigInt           // Max monthly living cost in poisha
-  blockedAccountOrGicPoisha   BigInt           // Official statutory financial guarantee (e.g. €11,904 in poisha)
-  requirementType             String           // "BLOCKED_ACCOUNT", "GIC", "MAINTENANCE_FUNDS", "BANK_SOLVENCY"
-  visaFeePoisha               BigInt           // Statutory embassy/visa fee in poisha
-  healthInsuranceYearlyPoisha BigInt           // Statutory health insurance in poisha
-  
-  officialGovUrl              String           // e.g. https://www.auswaertiges-amt.de/en/visa-service/blocked-account
-  officialGovSourceTitle      String           // e.g. "German Federal Foreign Office (Auswärtiges Amt)"
-  
-  isVerified                  Boolean          @default(true)
-  verifiedByAdminId           String?
-  lastAuditedAt               DateTime         @default(now())
-  createdAt                   DateTime         @default(now())
-  updatedAt                   DateTime         @updatedAt
+  id              String   @id @default(uuid())
+  country         String   @unique // e.g. "Germany", "Canada", "UK"
+  countryCode     String // e.g. "DE", "CA", "GB"
+  flagEmoji       String // e.g. "🇩🇪"
+  currency        String // e.g. "EUR", "CAD", "GBP"
+  keyRequirements String[] @default([])
+  exchangeRateBdt Float // e.g. 138.50 for EUR
 
-  courseCatalogs              UniversityCourseCatalog[]
+  livingCostMonthlyPoishaMin  BigInt // Min monthly living cost in poisha
+  livingCostMonthlyPoishaMax  BigInt // Max monthly living cost in poisha
+  blockedAccountOrGicPoisha   BigInt // Official statutory financial guarantee (e.g. €11,904 in poisha)
+  requirementType             String // "BLOCKED_ACCOUNT", "GIC", "MAINTENANCE_FUNDS", "BANK_SOLVENCY"
+  visaFeePoisha               BigInt // Statutory embassy/visa fee in poisha
+  healthInsuranceYearlyPoisha BigInt // Statutory health insurance in poisha
+
+  officialGovUrl         String // e.g. https://www.auswaertiges-amt.de/en/visa-service/blocked-account
+  officialGovSourceTitle String // e.g. "German Federal Foreign Office (Auswärtiges Amt)"
+
+  isVerified        Boolean  @default(true)
+  verifiedByAdminId String?
+  lastAuditedAt     DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  courseCatalogs UniversityCourseCatalog[]
 
   @@index([country])
   @@index([countryCode])
 }
 
 model UniversityCourseCatalog {
-  id                    String                @id @default(uuid())
-  benchmarkId           String?
-  benchmark             CountryCostBenchmark? @relation(fields: [benchmarkId], references: [id], onDelete: SetNull)
-  
-  universityName        String                // e.g. "Technical University of Munich"
-  country               String                // e.g. "Germany"
-  degreeLevel           String                // "Bachelor", "Master", "PhD"
-  programName           String                // e.g. "M.Sc. in Informatics / Computer Science"
-  
-  annualTuitionLocal    Float                 // In local currency (e.g. 0 EUR, 45,000 CAD)
-  currency              String                // e.g. "EUR", "CAD", "USD"
-  annualTuitionPoisha   BigInt                // Normalized to BDT Poisha
-  
-  officialCatalogUrl    String                // Direct link to university official tuition schedule
-  officialSourceTitle   String                // e.g. "TUM Official Tuition & Fees Schedule 2026/2027"
-  intakeYear            String                @default("2026/2027")
-  
-  status                ProvenanceStatus      @default(VERIFIED)
-  isVerified            Boolean               @default(true)
-  verifiedByAdminId     String?
-  lastAuditedAt         DateTime              @default(now())
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  id          String                @id @default(uuid())
+  benchmarkId String?
+  benchmark   CountryCostBenchmark? @relation(fields: [benchmarkId], references: [id], onDelete: SetNull)
+
+  universityName String // e.g. "Technical University of Munich"
+  country        String // e.g. "Germany"
+  degreeLevel    String // "Bachelor", "Master", "PhD"
+  programName    String // e.g. "M.Sc. in Informatics / Computer Science"
+
+  annualTuitionLocal  Float // In local currency (e.g. 0 EUR, 45,000 CAD)
+  currency            String // e.g. "EUR", "CAD", "USD"
+  annualTuitionPoisha BigInt // Normalized to BDT Poisha
+
+  officialCatalogUrl  String // Direct link to university official tuition schedule
+  officialSourceTitle String // e.g. "TUM Official Tuition & Fees Schedule 2026/2027"
+  intakeYear          String @default("2026/2027")
+
+  status            ProvenanceStatus @default(VERIFIED)
+  isVerified        Boolean          @default(true)
+  verifiedByAdminId String?
+  lastAuditedAt     DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([universityName])
   @@index([country])
@@ -824,28 +912,27 @@ model UniversityCourseCatalog {
 }
 
 model AgencyFeeSubmission {
-  id                    String                @id @default(uuid())
-  agencyId              String
-  agency                Agency                @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  
-  country               String                // Country package is for
-  serviceName           String                // e.g. "Full Visa & Admission Assistance Package"
-  amountPoisha          BigInt                // Proposed agency fee in poisha
-  whenCharged           String                // e.g. "30% on Offer, 40% on Filing, 30% on Visa"
-  refundable            Boolean               @default(true)
-  refundPolicy          String                @db.Text // Exact refund conditions
-  proofDocumentUrls     String[]              // Trade license, university partnership agreement, or circular
-  
-  status                ProvenanceStatus      @default(PENDING)
-  adminFeedback         String?               @db.Text
-  reviewedByAdminId     String?
-  reviewedAt            DateTime?
-  
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  country           String // Country package is for
+  serviceName       String // e.g. "Full Visa & Admission Assistance Package"
+  amountPoisha      BigInt // Proposed agency fee in poisha
+  whenCharged       String // e.g. "30% on Offer, 40% on Filing, 30% on Visa"
+  refundable        Boolean  @default(true)
+  refundPolicy      String   @db.Text // Exact refund conditions
+  proofDocumentUrls String[] // Trade license, university partnership agreement, or circular
+
+  status            ProvenanceStatus @default(PENDING)
+  adminFeedback     String?          @db.Text
+  reviewedByAdminId String?
+  reviewedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([agencyId])
   @@index([country])
   @@index([status])
 }
-

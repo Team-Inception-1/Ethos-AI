@@ -1,46 +1,27 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/auth/authorization';
+import { apiError } from '@/lib/api/response';
+import { identifier, platformError, success, toBdt } from '@/lib/platform/http';
 
-/**
- * Validation endpoint that re-fetches the official source URL for a benchmark
- * or catalog record and compares the numeric value with the stored value.
- *
- * Query parameters:
- *   - type: 'benchmark' | 'catalog'
- *   - id: record identifier
- */
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const type = searchParams.get('type');
-  const id = searchParams.get('id');
-  if (!type || !id) {
-    return NextResponse.json({ success: false, error: 'Missing type or id query param' }, { status: 400 });
-  }
   try {
-    if (type === 'benchmark') {
-      const benchmarks = await db.getCountryCostBenchmarks();
-      const record = benchmarks.find((b) => b.id === id);
-      if (!record) return NextResponse.json({ success: false, error: 'Benchmark not found' }, { status: 404 });
-      const resp = await fetch(record.officialGovUrl);
-      const text = await resp.text();
-      const match = text.match(/\d[\d,\.]*\d/);
-      const external = match ? parseFloat(match[0].replace(/,/g, '')) : null;
-      const matchFlag = external !== null && Math.abs(external - record.blockedAccountOrGicBdt) < 0.01;
-      return NextResponse.json({ success: true, match: matchFlag, stored: record.blockedAccountOrGicBdt, external });
-    }
-    if (type === 'catalog') {
-      const record = await db.getUniversityCourseCatalogById(id);
-      if (!record) return NextResponse.json({ success: false, error: 'Catalog not found' }, { status: 404 });
-      const resp = await fetch(record.officialCatalogUrl);
-      const text = await resp.text();
-      const match = text.match(/\d[\d,\.]*\d/);
-      const external = match ? parseFloat(match[0].replace(/,/g, '')) : null;
-      const matchFlag = external !== null && Math.abs(external - record.annualTuitionLocal) < 0.01;
-      return NextResponse.json({ success: true, match: matchFlag, stored: record.annualTuitionLocal, external });
-    }
-    return NextResponse.json({ success: false, error: 'Invalid type parameter' }, { status: 400 });
-  } catch (e: any) {
-    console.error('Validation error', e);
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
-  }
+    const auth = await requireRole(['ADMIN']);
+    if (auth.response) return auth.response;
+    const { type, id } = z.object({ type: z.enum(['benchmark', 'catalog']), id: identifier })
+      .parse(Object.fromEntries(new URL(request.url).searchParams));
+    const record = type === 'benchmark'
+      ? await prisma.countryCostBenchmark.findUnique({ where: { id } })
+      : await prisma.universityCourseCatalog.findUnique({ where: { id } });
+    if (!record) return apiError('NOT_FOUND', 'Provenance record not found.', 404);
+    const isBenchmark = 'officialGovUrl' in record;
+    // Arbitrary pages have no stable numeric schema. Never fetch user-supplied URLs
+    // from this endpoint or claim the first number on a page verifies a cost.
+    return success({ match: null, external: null, needsReview: true,
+      stored: isBenchmark ? toBdt(record.blockedAccountOrGicPoisha) : record.annualTuitionLocal,
+      sourceUrl: isBenchmark ? record.officialGovUrl : record.officialCatalogUrl,
+      currency: isBenchmark ? 'BDT' : record.currency, lastAuditedAt: record.lastAuditedAt,
+      explanation: 'Open the official source and manually confirm its amount, currency, effective date, and applicability before approving. Automatic numeric verification is unavailable.',
+    });
+  } catch (error) { return platformError(error); }
 }

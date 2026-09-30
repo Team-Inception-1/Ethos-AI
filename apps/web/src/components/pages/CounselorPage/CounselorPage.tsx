@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { z } from 'zod';
 import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
@@ -36,6 +37,10 @@ const DESTINATION_OPTIONS = [
   { id: 'Sweden', nameEn: 'Sweden 🇸🇪', nameBn: 'সুইডেন 🇸🇪' },
   { id: 'Malaysia', nameEn: 'Malaysia 🇲🇾', nameBn: 'মালয়েশিয়া 🇲🇾' },
 ];
+
+const shortlistSchema = z.array(z.object({ id: z.string(), name: z.string(), country: z.string(),
+  city: z.string(), odds: z.number(), tier: z.string(),
+}));
 
 export default function CounselorPage() {
   const { user } = useAuth();
@@ -74,14 +79,14 @@ export default function CounselorPage() {
   const [selectedCostProvenance, setSelectedCostProvenance] = useState<FinancialProvenance | null>(null);
 
   // Helper to ensure an agency is always associated with a recommendation
-  const getAgencyForUni = (uni: UniversityRecommendation): VerifiedAgencyRecord | VerifiedAgencyBrief => {
+  const getAgencyForUni = (uni: UniversityRecommendation): VerifiedAgencyRecord | VerifiedAgencyBrief | null => {
     if (uni.verified_agency) {
       const full = VerifiedKnowledgeEngine.getAgencyById(uni.verified_agency.id);
       if (full) return full;
       return uni.verified_agency;
     }
     const matching = VerifiedKnowledgeEngine.getVerifiedAgenciesForCountry(uni.country);
-    return matching[0] || VerifiedKnowledgeEngine.getAllVerifiedAgencies()[0];
+    return matching[0] || VerifiedKnowledgeEngine.getAllVerifiedAgencies()[0] || null;
   };
 
   // Close verification and cost provenance modals on Escape key
@@ -140,14 +145,17 @@ export default function CounselorPage() {
 
   // Load tracked applications & completed roadmap tasks from localStorage
   useEffect(() => {
+    const timer = setTimeout(() => {
     try {
       const savedTracked = localStorage.getItem('ethos_tracked_unis');
-      if (savedTracked) setTrackedUnis(JSON.parse(savedTracked));
+      if (savedTracked) setTrackedUnis(z.array(z.string()).parse(JSON.parse(savedTracked)));
       const savedTasks = localStorage.getItem('ethos_counselor_completed_tasks');
-      if (savedTasks) setCompletedTasks(JSON.parse(savedTasks));
+      if (savedTasks) setCompletedTasks(z.array(z.string()).parse(JSON.parse(savedTasks)));
     } catch {
       // Ignore localStorage errors
     }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Prime voices on mount
@@ -182,8 +190,7 @@ export default function CounselorPage() {
         ).map((o) => o.id);
         if (matched.length > 0) setSelectedCountries(matched);
       }
-      setGpa('3.75');
-      showToast('✓ Loaded student credentials from your profile.');
+      showToast('Loaded available profile fields. Please enter your GPA.');
     } else {
       // Demo student profile
       setDegree('bachelor');
@@ -274,16 +281,15 @@ export default function CounselorPage() {
   const handleToggleTrackUni = (uni: UniversityRecommendation) => {
     const isTracked = trackedUnis.includes(uni.id);
     let updatedIds: string[];
-    let currentShortlist: any[] = [];
+    let currentShortlist: z.infer<typeof shortlistSchema> = [];
     try {
       const raw = localStorage.getItem('ethos_counselor_shortlist');
-      if (raw) currentShortlist = JSON.parse(raw);
+      if (raw) currentShortlist = shortlistSchema.parse(JSON.parse(raw));
     } catch {}
 
     if (isTracked) {
       updatedIds = trackedUnis.filter((id) => id !== uni.id);
       currentShortlist = currentShortlist.filter((u) => u.id !== uni.id);
-      showToast(`Removed ${uni.university_name} from your tracked applications.`);
     } else {
       updatedIds = [...trackedUnis, uni.id];
       currentShortlist.push({
@@ -294,14 +300,14 @@ export default function CounselorPage() {
         odds: uni.admission_chance_percent,
         tier: uni.tier,
       });
-      showToast(`📌 Added ${uni.university_name} to your tracked applications!`);
     }
-    setTrackedUnis(updatedIds);
     try {
       localStorage.setItem('ethos_tracked_unis', JSON.stringify(updatedIds));
       localStorage.setItem('ethos_counselor_shortlist', JSON.stringify(currentShortlist));
+      setTrackedUnis(updatedIds);
+      showToast(`${isTracked ? 'Removed' : 'Added'} ${uni.university_name} ${isTracked ? 'from' : 'to'} your browser shortlist.`);
     } catch {
-      // Ignore
+      showToast('Could not save the shortlist in this browser. Please retry.');
     }
   };
 
@@ -310,11 +316,11 @@ export default function CounselorPage() {
     const updated = completedTasks.includes(taskKey)
       ? completedTasks.filter((k) => k !== taskKey)
       : [...completedTasks, taskKey];
-    setCompletedTasks(updated);
     try {
       localStorage.setItem('ethos_counselor_completed_tasks', JSON.stringify(updated));
+      setCompletedTasks(updated);
     } catch {
-      // Ignore
+      showToast('Could not save the checklist in this browser. Please retry.');
     }
   };
 
@@ -330,6 +336,7 @@ export default function CounselorPage() {
     if (e) e.preventDefault();
     setLoading(true);
     setError(null);
+    setEvalResult(null);
 
     const countriesToEvaluate =
       selectedCountries.length > 0
@@ -363,8 +370,8 @@ export default function CounselorPage() {
         const el = document.getElementById('counselor-results');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
-    } catch (err: any) {
-      setError(err?.message || 'Error occurred during evaluation.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error occurred during evaluation.');
     } finally {
       setLoading(false);
     }
@@ -479,6 +486,7 @@ export default function CounselorPage() {
 
   // Calculate total roadmap tasks completed
   const totalRoadmapTasks = evalResult?.roadmap.reduce((acc, m) => acc + m.tasks.length, 0) || 1;
+  const showingOfflineDemo = evalResult?.recommendations.some((recommendation) => !recommendation.is_live_grounded) ?? false;
   const completedTaskCount = completedTasks.length;
   const completionPercent = Math.min(100, Math.round((completedTaskCount / totalRoadmapTasks) * 100));
 
@@ -773,6 +781,11 @@ export default function CounselorPage() {
       {/* Results View */}
       {evalResult && (
         <div id="counselor-results" className={styles.resultsArea}>
+          {showingOfflineDemo && (
+            <div style={{ padding: '12px 14px', border: '2px solid var(--amber, #b7791f)', borderRadius: '10px', background: '#fffbeb', color: '#713f12', fontSize: '13px', fontWeight: 700 }}>
+              🧪 Offline demo results: universities, agencies, credentials, success rates, fees, and audit records shown below are illustrative static samples—not live or production-verified data. Confirm all details with official sources.
+            </div>
+          )}
           {/* Summary Banner */}
           <div className={styles.summaryBanner}>
             <div className={styles.summaryBadges}>
@@ -845,7 +858,8 @@ export default function CounselorPage() {
 
               const isTracked = trackedUnis.includes(uni.id);
               const agency = getAgencyForUni(uni);
-              const provenance = VerifiedKnowledgeEngine.getFinancialProvenance(uni, agency);
+              const fullAgency = agency && 'licenseStatus' in agency ? agency : undefined;
+              const provenance = agency ? VerifiedKnowledgeEngine.getFinancialProvenance(uni, fullAgency) : null;
 
               return (
                 <div key={uni.id} className={`${styles.uniCard} ${tierClass}`}>
@@ -890,11 +904,11 @@ export default function CounselorPage() {
                   </div>
 
                   {/* Verified Agency Provenance Card */}
-                  <div className={styles.agencySourceBanner}>
+                  {agency && provenance && <div className={styles.agencySourceBanner}>
                     <div className={styles.agencySourceLeft}>
                       <div className={styles.agencySourceLabelRow}>
                         <span className={styles.agencyGovBadge}>
-                          ✓ {lang === 'en' ? 'Verified Agency Partner' : 'অনুমোদিত এজেন্সি'}
+                          {showingOfflineDemo ? '🧪 Demo Agency Sample' : `✓ ${lang === 'en' ? 'Verified Agency Partner' : 'অনুমোদিত এজেন্সি'}`}
                         </span>
                         <span className={styles.agencyLicenseBadge}>
                           {agency.licenseNo}
@@ -924,12 +938,12 @@ export default function CounselorPage() {
                       type="button"
                       onClick={() => setAgencyVerificationModal({ agency, uniName: uni.university_name, country: uni.country })}
                       className={styles.verifyAgencyBtn}
-                      title="Click to view verified trade license, owner, and official credentials"
+                      title={showingOfflineDemo ? 'View illustrative offline-demo agency record' : 'View agency credentials'}
                     >
                       <span>🔍</span>
                       <span>{lang === 'en' ? 'Verify Agency' : 'এজেন্সি যাচাই'}</span>
                     </button>
-                  </div>
+                  </div>}
 
                   {/* Programs */}
                   <div className={styles.programsList}>
@@ -941,12 +955,12 @@ export default function CounselorPage() {
                   </div>
 
                   {/* Verified Financial Schedule & Cost Provenance Box */}
-                  <div className={styles.costSection}>
+                  {agency && provenance ? <div className={styles.costSection}>
                     <div className={styles.costBoxHeader}>
                       <div className={styles.costBoxHeaderLeft}>
                         <span className={styles.costBoxShieldIcon}>🛡️</span>
                         <span className={styles.costBoxTitle}>
-                          {lang === 'en' ? 'Verified Financial Schedule' : 'যাচাইকৃত টিউশন ও লিভিং খরচ'}
+                          {showingOfflineDemo ? 'Illustrative Offline-Demo Cost Schedule' : (lang === 'en' ? 'Verified Financial Schedule' : 'যাচাইকৃত টিউশন ও লিভিং খরচ')}
                         </span>
                       </div>
                       <div className={styles.costBoxBadges}>
@@ -954,7 +968,7 @@ export default function CounselorPage() {
                           💾 DB: <code>{provenance.catalogId}</code>
                         </span>
                         <span className={styles.costVerifiedPill}>
-                          ✓ {lang === 'en' ? 'Agency Uploaded & Admin Verified' : 'এজেন্সি প্রদত্ত ও অডিটকৃত'}
+                          {showingOfflineDemo ? '🧪 Static sample' : `✓ ${lang === 'en' ? 'Agency Uploaded & Admin Verified' : 'এজেন্সি প্রদত্ত ও অডিটকৃত'}`}
                         </span>
                       </div>
                     </div>
@@ -972,7 +986,7 @@ export default function CounselorPage() {
                           </span>
                         </span>
                         <span className={styles.costItemAgencyNote}>
-                          Verified by {agency.name} (License: {agency.licenseNo})
+                          {showingOfflineDemo ? 'Demo attribution' : 'Verified by'} {agency.name} (License: {agency.licenseNo})
                         </span>
                       </div>
 
@@ -1056,11 +1070,15 @@ export default function CounselorPage() {
                       <span className={styles.nonLiabilityIcon}>⚖️</span>
                       <span className={styles.nonLiabilityText}>
                         {lang === 'en'
-                          ? `Legal Provenance Notice: Fee structures are submitted under legal attestation by licensed consultancy ${agency.name} and audited against university publications by Ethos AI Platform Auditors. Ethos AI is not an immigration or tuition-setting body.`
-                          : `দায়মুক্তি বিজ্ঞপ্তি: টিউশন ফি সরকারি লাইসেন্সধারী এজেন্সি ${agency.name} কর্তৃক সত্যায়িত এবং বিশ্ববিদ্যালয়ের প্রসপেক্টাস অনুযায়ী অডিটকৃত। কোনো আনুমানিক সংখ্যা নয়।`}
+                          ? provenance.legalDisclaimerEn
+                          : provenance.legalDisclaimerBn}
                       </span>
                     </div>
-                  </div>
+                  </div> : <div className={styles.costSection}>
+                    <h4>Estimated annual costs</h4>
+                    <p>Tuition: ৳{uni.annual_tuition_bdt_lakh} lakh · Living: ৳{uni.annual_living_bdt_lakh} lakh</p>
+                    <p>Total: ৳{uni.annual_total_bdt_lakh} lakh. Confirm current fees with the university; no verified cost record is attached.</p>
+                  </div>}
 
                   {/* Cutoff Requirements */}
                   <div className={styles.uniRequirements}>
@@ -1112,17 +1130,16 @@ export default function CounselorPage() {
                       🏢 {lang === 'en' ? 'Find Verified Agencies' : 'অনুমোদিত এজেন্সি খুঁজুন'}
                     </Link>
 
-                    <button
+                    {agency && provenance && <button
                       type="button"
                       onClick={() => {
-                        const agency = getAgencyForUni(uni);
                         setAgencyVerificationModal({ agency, uniName: uni.university_name, country: uni.country });
                       }}
                       className={`${styles.actionBtn} ${styles.actionBtnVerifyAgency}`}
                       title="Verify credentials and trade license of the agency providing data for this university"
                     >
                       🛡️ {lang === 'en' ? 'Verify Agency' : 'এজেন্সি যাচাই করুন'}
-                    </button>
+                    </button>}
 
                     <button
                       type="button"
@@ -1235,7 +1252,7 @@ export default function CounselorPage() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h5 className={styles.riskFlagTitle}>{flag.title}</h5>
-                      <Badge variant={flag.severity as any} size="sm">{flag.severity.toUpperCase()}</Badge>
+                      <Badge variant={flag.severity} size="sm">{flag.severity.toUpperCase()}</Badge>
                     </div>
                     <p className={styles.riskFlagDesc}>{flag.description}</p>
                     <p className={styles.riskFlagTip}>💡 <strong>Mitigation:</strong> {flag.mitigation_tip}</p>
@@ -1368,7 +1385,7 @@ export default function CounselorPage() {
                 )}
 
                 {/* Agency Provenance Bar for Assistant Responses */}
-                {msg.role === 'assistant' && (
+                {msg.role === 'assistant' && VerifiedKnowledgeEngine.getAllVerifiedAgencies().length > 0 && (
                   <div className={styles.chatAgencyBar}>
                     <div className={styles.chatAgencyBadge}>
                       <span className={styles.chatGovFlag}>🇧🇩</span>
@@ -1383,7 +1400,7 @@ export default function CounselorPage() {
                       className={styles.chatVerifyBtn}
                       onClick={() => {
                         const agency = VerifiedKnowledgeEngine.getAllVerifiedAgencies()[0];
-                        setAgencyVerificationModal({ agency });
+                        if (agency) setAgencyVerificationModal({ agency });
                       }}
                       title="Click to view agency verification dossier"
                     >
@@ -1617,7 +1634,7 @@ export default function CounselorPage() {
                         {f.severity}
                       </span>
                     </div>
-                    <blockquote className={styles.findingQuote}>"{f.quote}"</blockquote>
+                    <blockquote className={styles.findingQuote}>&quot;{f.quote}&quot;</blockquote>
                     <p className={styles.findingIssue}>❌ {f.issue}</p>
                     <p className={styles.findingSuggestion}>✅ {f.suggestion}</p>
                   </div>
@@ -1654,7 +1671,7 @@ export default function CounselorPage() {
               <div className={styles.modalTitleGroup}>
                 <div className={styles.modalSubHeaderRow}>
                   <span className={styles.modalGovBadge}>
-                    🇧🇩 GOVT LICENSED & VERIFIED BY ETHOS AI
+                    {showingOfflineDemo ? '🧪 OFFLINE DEMO — ILLUSTRATIVE RECORD' : '🇧🇩 CREDENTIAL RECORD'}
                   </span>
                   <span className={styles.modalLicensePill}>
                     {agencyVerificationModal.agency.licenseNo}
@@ -1686,8 +1703,12 @@ export default function CounselorPage() {
                 <div>
                   <strong>{lang === 'en' ? 'Data Attribution:' : 'তথ্য প্রদানের উৎস:'}</strong>{' '}
                   {lang === 'en'
-                    ? `Admissions cutoff, fees, and requirements for ${agencyVerificationModal.uniName} (${agencyVerificationModal.country || 'Target Country'}) are verified directly through ${agencyVerificationModal.agency.name}.`
-                    : `${agencyVerificationModal.uniName} (${agencyVerificationModal.country || ''})-এর ভর্তি যোগ্যতা, টিউশন ফি ও ভিসা নির্দেশিকা সরাসরি ${agencyVerificationModal.agency.name}-এর মাধ্যমে যাচাইকৃত।`}
+                    ? showingOfflineDemo
+                      ? `This is illustrative offline-demo attribution for ${agencyVerificationModal.uniName}; it is not live verification by ${agencyVerificationModal.agency.name}.`
+                      : `Agency attribution for ${agencyVerificationModal.uniName} (${agencyVerificationModal.country || 'Target Country'}): ${agencyVerificationModal.agency.name}. Confirm current details with official sources.`
+                    : showingOfflineDemo
+                      ? `${agencyVerificationModal.uniName}-এর এই তথ্য অফলাইন ডেমোর নমুনা; এটি ${agencyVerificationModal.agency.name}-এর লাইভ যাচাইকরণ নয়।`
+                      : `${agencyVerificationModal.uniName} (${agencyVerificationModal.country || ''})-এর তথ্য ${agencyVerificationModal.agency.name}-এর নামে প্রদর্শিত; বর্তমান তথ্য অফিসিয়াল উৎসে নিশ্চিত করুন।`}
                 </div>
               </div>
             )}
