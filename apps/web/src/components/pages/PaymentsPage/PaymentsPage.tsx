@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import { PaymentsEscrowSkeleton } from '@/components/ui/Skeleton';
 import styles from './PaymentsPage.module.css';
 
 interface MilestoneItem {
@@ -284,9 +285,7 @@ export default function PaymentsPage() {
 
       {/* Main Content */}
       {loadError ? <p role="alert">{loadError} <button onClick={() => void fetchEscrow()}>Retry</button></p> : loading ? (
-        <div style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-          Loading escrow status…
-        </div>
+        <PaymentsEscrowSkeleton />
       ) : activeTab === 'milestones' ? (
         <GlassCard padding="none" className={styles.tableCard}>
           <table className={styles.table} aria-label="Payment ledger">

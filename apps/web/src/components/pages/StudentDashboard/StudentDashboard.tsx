@@ -7,6 +7,7 @@ import GlassCard from '@/components/ui/GlassCard';
 import { useAuth } from '@/context/AuthContext';
 import { applicationListSchema, stageLabel } from '@/lib/applications/contracts';
 import { useApplicationData } from '@/lib/applications/use-data';
+import { DashboardStatsSkeleton } from '@/components/ui/Skeleton';
 import styles from './StudentDashboard.module.css';
 
 const ClipboardIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>;
@@ -49,7 +50,7 @@ export default function StudentDashboard() {
         <Link href="/dashboard/applications"><Button variant="outline" size="sm">View all applications</Button></Link>
       </div>
 
-      {loading && <GlassCard padding="lg"><p role="status">Loading dashboard…</p></GlassCard>}
+      {loading && <DashboardStatsSkeleton />}
       {error && (
         <GlassCard padding="lg">
           <p role="alert">{error}</p>

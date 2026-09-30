@@ -13,6 +13,7 @@ import {
   DirectMessageThread,
 } from '@/lib/communityClient';
 import styles from './CommunityPage.module.css';
+import Skeleton, { CommunityFeedSkeleton } from '@/components/ui/Skeleton';
 
 const CATEGORIES = [
   'All',
@@ -139,6 +140,8 @@ export default function CommunityPage() {
   const [nextPostCursor, setNextPostCursor] = useState<string | null>(null);
   const [posts, setPosts] = useState<CommunityPostItem[]>([]);
   const [seniors, setSeniors] = useState<SeniorMentor[]>([]);
+  const [postsLoading, setPostsLoading] = useState<boolean>(true);
+  const [seniorsLoading, setSeniorsLoading] = useState<boolean>(true);
 
   // Modals & Panels
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -205,9 +208,12 @@ export default function CommunityPage() {
       if (active) { setPosts(page.items); setNextPostCursor(page.nextCursor); setLoadError(''); }
     }).catch(error => {
       if (active) { setPosts([]); setNextPostCursor(null); setLoadError(error instanceof Error ? error.message : 'Feed could not be loaded.'); }
+    }).finally(() => {
+      if (active) setPostsLoading(false);
     });
     CommunityService.getSeniorsByCountry(activeHubId).then(items => { if (active) setSeniors(items); })
-      .catch(() => { if (active) setLoadError('Mentors could not be loaded. Please retry.'); });
+      .catch(() => { if (active) setLoadError('Mentors could not be loaded. Please retry.'); })
+      .finally(() => { if (active) setSeniorsLoading(false); });
     return () => { active = false; };
   }, [activeHubId, selectedCategory, seniorOnlyFilter, searchQuery, currentUserId, blockedUsers, joinedHubIds]);
 
@@ -420,7 +426,13 @@ export default function CommunityPage() {
   };
 
   const visiblePosts = posts.filter(post => post.countryId === activeHubId);
-  if (authLoading) return <div className={styles.page}>Loading your session…</div>;
+  if (authLoading) {
+    return (
+      <div className={styles.page}>
+        <CommunityFeedSkeleton />
+      </div>
+    );
+  }
   if (!user) return <div className={styles.page}>Sign in to access the Student Network Hub.</div>;
 
   return (
@@ -594,7 +606,28 @@ export default function CommunityPage() {
       <div className={styles.mainGrid}>
         {/* Left Column: Feed */}
         <div className={styles.feedList}>
-          {visiblePosts.length === 0 ? (
+          {postsLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} aria-busy="true" aria-label="Loading posts">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className={styles.postCard} aria-hidden="true">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <Skeleton width={42} height={42} circle />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <Skeleton width={140} height={16} />
+                      <Skeleton width={90} height={12} />
+                    </div>
+                  </div>
+                  <Skeleton width="85%" height={22} style={{ marginBottom: '10px' }} />
+                  <Skeleton width="100%" height={14} style={{ marginBottom: '6px' }} />
+                  <Skeleton width="65%" height={14} style={{ marginBottom: '16px' }} />
+                  <div style={{ display: 'flex', gap: '16px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+                    <Skeleton width={70} height={24} rounded="full" />
+                    <Skeleton width={90} height={24} rounded="full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : visiblePosts.length === 0 ? (
             <div className={styles.emptyFeed}>
               <h3>No discussions found in {currentHub?.country} Hub</h3>
               <p style={{ marginTop: '8px', fontSize: '13px' }}>
@@ -881,7 +914,23 @@ export default function CommunityPage() {
               Verified seniors and alumni actively enrolled in {currentHub?.country} universities who volunteer to guide newcomers:
             </p>
 
-            {seniors.length === 0 ? (
+            {seniorsLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} aria-busy="true">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className={styles.seniorItem} aria-hidden="true">
+                    <div className={styles.seniorItemTop}>
+                      <Skeleton width={48} height={48} circle />
+                      <div className={styles.seniorMeta} style={{ width: '100%' }}>
+                        <Skeleton width={120} height={15} />
+                        <Skeleton width={160} height={12} style={{ marginTop: '4px' }} />
+                        <Skeleton width={80} height={18} rounded="full" style={{ marginTop: '4px' }} />
+                      </div>
+                    </div>
+                    <Skeleton width="95%" height={12} style={{ marginTop: '8px' }} />
+                  </div>
+                ))}
+              </div>
+            ) : seniors.length === 0 ? (
               <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                 No registered seniors currently listed for this country.
               </p>

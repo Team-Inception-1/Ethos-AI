@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { fetchChatThreads, fetchThreadMessages, sendChatMessage, exportDisputeTranscript,
   type ChatThreadSummary, type ChatMessageItem, type ChatTranscript } from '@/lib/chatClient';
+import { ChatWorkspaceSkeleton } from '@/components/ui/Skeleton';
 import styles from './ChatPage.module.css';
 
 type SignedInUser = NonNullable<ReturnType<typeof useAuth>['user']>;
@@ -37,16 +38,21 @@ function ConversationWorkspace({ user }: { user: SignedInUser }) {
       <h1>Application conversations</h1><p>Messages saved to your application record.</p>
     </div></div>
     {error && <p role="alert">{error} <button onClick={() => setRetry(n => n + 1)}>Retry</button></p>}
-    {loading && <p role="status">Loading conversations…</p>}
-    {!loading && !error && threads.length === 0 && <p>No conversations yet. Conversations become available when an application is linked to an agency.</p>}
-    <div className={styles.layout}>
-      <nav className={styles.threadList} aria-label="Conversations">{threads.map(item =>
-        <button key={item.id} className={styles.thread} onClick={() => setSelected(item.id)} aria-pressed={selected === item.id}>
-          <strong>{user.role === 'agency' ? item.studentName : item.agencyName}</strong>
-          <span>{item.targetUniversity}</span><p>{item.lastMessage?.text || 'No messages yet'}</p>
-        </button>)}</nav>
-      {thread && <ThreadConversation key={thread.id} thread={thread} user={user} />}
-    </div>
+    {loading ? (
+      <ChatWorkspaceSkeleton />
+    ) : (
+      <>
+        {!error && threads.length === 0 && <p>No conversations yet. Conversations become available when an application is linked to an agency.</p>}
+        <div className={styles.layout}>
+          <nav className={styles.threadList} aria-label="Conversations">{threads.map(item =>
+            <button key={item.id} className={styles.thread} onClick={() => setSelected(item.id)} aria-pressed={selected === item.id}>
+              <strong>{user.role === 'agency' ? item.studentName : item.agencyName}</strong>
+              <span>{item.targetUniversity}</span><p>{item.lastMessage?.text || 'No messages yet'}</p>
+            </button>)}</nav>
+          {thread && <ThreadConversation key={thread.id} thread={thread} user={user} />}
+        </div>
+      </>
+    )}
   </div>;
 }
 

@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { browserApi, errorMessage } from '@/lib/platform/browser';
 import { stageTransitions, type AgencyDashboardData, type ApplicationStage, type BenchmarkView, type FeeSubmissionView } from '@/lib/platform/agency-contracts';
+import { AdminTableSkeleton } from '@/components/ui/Skeleton';
 import styles from './AgencyDashboard.module.css';
 
 const tabs = ['applications', 'services', 'license', 'benchmarks'] as const;
@@ -112,7 +113,7 @@ export default function AgencyDashboard() {
       {tabs.map(value => <Button key={value} variant={tab === value ? 'primary' : 'outline'}
         onClick={() => router.push(`/agency/dashboard?tab=${value}`, { scroll: false })}>{value === 'license' ? 'License & documents' : human(value)}</Button>)}
     </nav>
-    {!dashboard && loading && <p>Loading your agency records…</p>}
+    {!dashboard && loading && <AdminTableSkeleton rows={4} />}
     {dashboard && tab === 'applications' && <>
       <div style={grid}><GlassCard><h2>{dashboard.applications.length}</h2><p>Applications in this view</p></GlassCard>
         <GlassCard><h2>{money(dashboard.applications.reduce((sum, app) => sum + app.heldBdt, 0))}</h2><p>Recorded held escrow</p></GlassCard></div>
