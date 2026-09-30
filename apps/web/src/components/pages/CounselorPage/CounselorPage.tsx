@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import {
   evaluateCounselorProfile,
+  discoverLiveUniversities,
   sendCounselorChatMessage,
   auditSOP,
   type CounselorEvaluationRequest,
@@ -20,6 +21,7 @@ import {
   type GroundingCitation,
   type VerifiedAgencyBrief,
 } from '@/lib/aiService';
+import { OFFLINE_DEMO_ENABLED } from '@/lib/ai/demo';
 import {
   VerifiedKnowledgeEngine,
   type VerifiedAgencyRecord,
@@ -364,7 +366,9 @@ export default function CounselorPage() {
     };
 
     try {
-      const result = await evaluateCounselorProfile(payload);
+      const result = OFFLINE_DEMO_ENABLED
+        ? await evaluateCounselorProfile(payload)
+        : await discoverLiveUniversities({ ...payload, enable_live_discovery: true });
       setEvalResult(result);
       setTimeout(() => {
         const el = document.getElementById('counselor-results');
@@ -757,8 +761,12 @@ export default function CounselorPage() {
         <div className={styles.wizardActions}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {lang === 'en'
-              ? 'Deterministic heuristic matching across 7 destination countries with offline zero-downtime failover'
-              : '৭টি দেশের অফিসিয়াল ডেটাবেজের ভিত্তিতে তাৎক্ষণিক ও নিরপেক্ষ বিশ্লেষণ'}
+              ? (OFFLINE_DEMO_ENABLED
+                  ? 'Illustrative heuristic matching for explicitly enabled offline demonstrations'
+                  : 'Live Gemini-grounded university discovery with source citations')
+              : (OFFLINE_DEMO_ENABLED
+                  ? 'অফলাইন প্রদর্শনের জন্য নমুনাভিত্তিক বিশ্লেষণ'
+                  : 'উৎসসহ লাইভ জেমিনি-ভিত্তিক বিশ্ববিদ্যালয় অনুসন্ধান')}
           </span>
           <Button
             type="button"
