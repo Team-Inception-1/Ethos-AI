@@ -19,3 +19,7 @@ Thumbs.db
 .vscode/
 .idea/
 .neon
+
+# Browser-test artifacts
+test-results/
+playwright-report/

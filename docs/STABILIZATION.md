@@ -1,0 +1,43 @@
+# Ethos AI Stabilization Ledger
+
+This document tracks confirmed defects and the repair commits that address them.
+Update the verification column as each change is implemented and tested.
+
+| ID | Severity | Area | Reproduction / evidence | Expected behavior | Repair commit | Verification |
+|---|---|---|---|---|---|---|
+| ST-001 | Critical | Authorization | `getAuthenticatedUser()` falls back to a verified `ADMIN` after session lookup fails; it also accepts caller-controlled role headers. | No session returns 401; role comes only from an authenticated server-side user record. | `fix(auth): make Neon sessions authoritative and authorization fail closed` | Pending |
+| ST-002 | Critical | Authentication | Password login does not use the password; demo and new-user branches proceed to OTP UI even if OTP dispatch fails. | Password sign-in and passwordless OTP are explicit flows; failed requests remain on the form with an actionable error. | `fix(auth): repair signup password verification and OTP flows` | Pending |
+| ST-003 | High | Authentication | Registration, OTP verification, localStorage identity, and profile persistence have independent paths and can disagree. | Neon Auth session is authoritative; platform profile is provisioned only after successful verification. | `fix(auth): repair signup password verification and OTP flows` | Pending |
+| ST-004 | Critical | User profile | `/api/user/profile` accepts arbitrary email/ID; GET may create a verified account, and PUT updates caller-selected users. | `/api/user/me` returns and updates only the current session's profile. | `fix(auth): make Neon sessions authoritative and authorization fail closed` | Pending |
+| ST-005 | High | Community hubs | Hub list and mentor list are imported from bundled JSON at runtime. | Hub summaries and mentor records are read from Neon. | `fix(community): load hubs and memberships from Neon` | Pending |
+| ST-006 | Critical | Community persistence | Community page uses localStorage; post API returns a new object without saving it; Prisma models have no migration. | Membership, posts, comments, likes, moderation, and messages persist in Neon. | `fix(community): persist posts comments and likes` | Pending |
+| ST-007 | Critical | Documents | Upload writes private files into `public/uploads`, accepts unvalidated files, and accepts owner ID from the client. | Private validated files are stored and served only after server-side relationship checks. | `fix(documents): enforce private storage and ownership` | Pending |
+| ST-008 | Critical | Payments | Sandbox webhook verification checks transaction-like fields but does not verify a signature or reconcile the payment amount. | Only authentic, matching, idempotent provider events can change escrow state. | `fix(payments): secure escrow state changes and webhooks` | Pending |
+| ST-009 | High | Persistence | Most business APIs use a process-local `InMemoryDatabase`; data differs across workers and disappears on restart. | Production business state is stored transactionally in PostgreSQL. | `fix(platform): replace production in-memory repositories` | Pending |
+| ST-010 | High | Schema migrations | Live Neon has the original 19 tables and no `_prisma_migrations`; repository schema has 31 models but its only migration creates 19 tables. | Existing data is backed up and schema changes are applied additively with verified migration history. | `chore(db): baseline live Neon and add additive migrations` | Pending |
+| ST-011 | High | AI service | FastAPI allows all CORS origins with credentials and exposes analysis routes without request authentication. | Configured origins and authenticated server-to-server requests are enforced. | `fix(ai): secure web-to-AI integration and persist risk state` | Pending |
+| ST-012 | High | Quality gates | ESLint reports 190 errors and 48 warnings across 57 files. | Full lint, typecheck, and production build pass in CI. | `refactor(web): eliminate lint failures and split oversized modules` | Pending |
+| ST-013 | High | Test coverage | Escrow suite passes 31/31; 112 Python test functions exist but local Python is broken; web route/auth/community tests are absent. | CI runs deterministic unit, database integration, API security, and end-to-end workflow tests. | `test(ci): enforce complete quality and workflow gates` | Pending |
+| ST-014 | Medium | Documentation / hygiene | README architecture and versions are stale; setup references missing environment template; hygiene scan flags ignored environments and third-party source. | Setup, deployment, architecture, license, and hygiene instructions match the repository. | `docs(operations): align setup architecture and deployment guidance` | Pending |
+
+## Baseline
+
+- Branch: `repair/full-stabilization`
+- Starting commit: `502ca6e`
+- Existing validation: TypeScript and Next.js production build pass; ESLint fails with 190 errors / 48 warnings; escrow suite passes 31/31.
+- Existing Neon state: 19 application tables, no `_prisma_migrations`; the live data must be preserved.
+- Current environment: Node 25.3.0; Python runtime is unavailable and the existing ignored `.venv` references a removed installation.
+
+## Commit log
+
+| Commit | Scope | Targeted checks | Typecheck | Build | Notes |
+|---|---|---|---|---|---|
+| `test(stabilization)` | Ledger, Vitest, guarded auth fixtures, disposable PostgreSQL CI, Playwright smoke | 6 unit tests and 2 browser smoke tests pass; escrow 31/31; touched-file lint passes | Pass | Pass | Local PostgreSQL suite skipped because Docker daemon is stopped; CI runs it against its service container. Clean-install dry run succeeds without legacy peer mode; upstream UI peer warnings remain. No live database writes. |
+
+## Running the regression harness
+
+- From `apps/web`: `npm run db:generate`, `npm test`, and `npm run test:e2e`.
+- Install the browser with `npx playwright install chromium`, or set `PLAYWRIGHT_CHANNEL=chrome` to use an installed Chrome for local smoke tests.
+- PostgreSQL tests require `RUN_DATABASE_TESTS=true`, `NODE_ENV=test`, and an explicitly supplied `DATABASE_URL` pointing at a local database named `ethos_test`. They refuse remote/live database URLs and never load local environment files.
+- The deterministic auth adapter uses explicit fixtures, checks `NODE_ENV=test` at creation and use, and refuses enabled non-test configuration on module load. It is not a demo authentication bypass.
+- Full repository lint is still red at the recorded baseline; existing CI intentionally continues to report that until the lint-cleanup commit.

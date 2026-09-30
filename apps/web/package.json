@@ -6,28 +6,37 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "db:generate": "prisma generate --schema ../../prisma/schema.prisma"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
-    "@better-auth/api-key": "^1.7.6",
-    "@better-auth/core": "^1.7.6",
     "@neondatabase/auth": "^0.5.0-beta",
     "@prisma/client": "^5.22.0",
-    "better-auth": "^1.7.6",
     "csstype": "^3.2.3",
     "marked": "^18.0.13",
     "next": "16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
+  "overrides": {
+    "@better-auth/api-key": "1.6.23",
+    "better-auth": "1.6.23",
+    "@better-auth/core": "1.6.23"
+  },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "prisma": "^5.22.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }
