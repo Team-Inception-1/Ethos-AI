@@ -68,19 +68,22 @@ const roles: { id: UserRole; label: string; labelBn: string; icon: React.ReactNo
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
-  const { loading, signInWithPassword, signUp, verifyOtp, resendOtp, otpCountdown, otpEmail, requestSignInOtp, neonAuthStatus } = useAuth();
+  const { loading, signInWithPassword, signUp, verifyOtp, resendOtp, otpCountdown, otpEmail, requestSignInOtp, neonAuthStatus, requestPasswordResetOtp, resetPasswordWithOtp } = useAuth();
 
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [role, setRole] = useState<UserRole>('student');
-  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [step, setStep] = useState<'form' | 'otp' | 'forgot' | 'reset-otp'>('form');
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -186,6 +189,65 @@ export default function AuthPage({ mode }: AuthPageProps) {
     }
   };
 
+  const handleRequestReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+    if (!email.trim()) {
+      setErrorMsg(lang === 'en' ? 'Please enter your email to receive a reset code.' : 'রিসেট কোড পেতে আপনার ইমেল দিন।');
+      return;
+    }
+    setIsVerifying(true);
+    try {
+      const result = await requestPasswordResetOtp(email.trim());
+      if (result.success) {
+        setOtp(['', '', '', '', '', '']);
+        setNewPassword('');
+        setStep('reset-otp');
+      } else {
+        setErrorMsg(result.error.message);
+      }
+    } catch {
+      setErrorMsg(lang === 'en' ? 'Could not send reset code. Please try again.' : 'রিসেট কোড পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+    const code = otp.join('');
+    if (code.length !== 6) {
+      setErrorMsg(lang === 'en' ? 'Please enter a valid 6-digit code.' : 'দয়া করে সঠিক ৬-সংখ্যার কোড লিখুন।');
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      setErrorMsg(lang === 'en' ? 'New password must be at least 8 characters long.' : 'নতুন পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।');
+      return;
+    }
+    setIsVerifying(true);
+    try {
+      const result = await resetPasswordWithOtp(email.trim(), code, newPassword);
+      if (result.success) {
+        setStep('form');
+        setPassword('');
+        setSuccessMsg(
+          lang === 'en'
+            ? 'Password reset successfully! Please sign in with your new password.'
+            : 'পাসওয়ার্ড সফলভাবে রিসেট হয়েছে! নতুন পাসওয়ার্ড দিয়ে সাইন ইন করুন।'
+        );
+      } else {
+        setErrorMsg(result.error.message);
+      }
+    } catch {
+      setErrorMsg(lang === 'en' ? 'Password reset failed. Please try again.' : 'পাসওয়ার্ড রিসেট ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       {/* Background */}
@@ -264,6 +326,43 @@ export default function AuthPage({ mode }: AuthPageProps) {
                         : 'ইতিমধ্যে সুরক্ষিত ২,৪০০+ শিক্ষার্থীদের সাথে যোগ দিন'}
                   </p>
                 </>
+              ) : step === 'forgot' ? (
+                <>
+                  <button type="button" onClick={() => { setErrorMsg(''); setSuccessMsg(''); setStep('form'); }} className={styles.backBtn}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    {lang === 'en' ? 'Back' : 'ফিরে যান'}
+                  </button>
+                  <h1 className={styles.formTitle}>{lang === 'en' ? 'Reset Password' : 'পাসওয়ার্ড রিসেট করুন'}</h1>
+                  <p className={styles.formSub}>
+                    {lang === 'en'
+                      ? 'Enter your email to receive a password reset verification code'
+                      : 'পাসওয়ার্ড রিসেট কোড পেতে আপনার ইমেল লিখুন'}
+                  </p>
+                </>
+              ) : step === 'reset-otp' ? (
+                <>
+                  <button type="button" onClick={() => { setErrorMsg(''); setSuccessMsg(''); setStep('forgot'); }} className={styles.backBtn}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    {lang === 'en' ? 'Back' : 'ফিরে যান'}
+                  </button>
+                  <h1 className={styles.formTitle}>{lang === 'en' ? 'Set New Password' : 'নতুন পাসওয়ার্ড দিন'}</h1>
+                  <p className={styles.formSub}>
+                    {lang === 'en' ? (
+                      <>
+                        We sent a 6-digit code to{' '}
+                        <strong style={{ color: 'var(--blue-light)' }}>{otpEmail || email}</strong>. Enter it below with your new password.
+                      </>
+                    ) : (
+                      <>
+                        আমরা <strong style={{ color: 'var(--blue-light)' }}>{otpEmail || email}</strong>-এ ৬ সংখ্যার কোড পাঠিয়েছি। কোড ও নতুন পাসওয়ার্ড লিখুন।
+                      </>
+                    )}
+                  </p>
+                </>
               ) : (
                 <>
                   <button type="button" onClick={() => setStep('form')} className={styles.backBtn}>
@@ -319,6 +418,24 @@ export default function AuthPage({ mode }: AuthPageProps) {
               )}
 
 
+
+              {successMsg && (
+                <div
+                  role="status"
+                  style={{
+                    color: '#16a34a',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    marginBottom: '12px',
+                    padding: '10px 12px',
+                    background: 'rgba(22, 163, 74, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(22, 163, 74, 0.3)',
+                  }}
+                >
+                  ✓ {successMsg}
+                </div>
+              )}
 
               {errorMsg && <div role="alert" style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
 
@@ -402,7 +519,15 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     </button>
                   </div>
                   {mode === 'login' && (
-                    <button type="button" className={styles.forgotLink} onClick={() => setErrorMsg('Password reset is not available yet. Use email OTP to sign in.')}>
+                    <button
+                      type="button"
+                      className={styles.forgotLink}
+                      onClick={() => {
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                        setStep('forgot');
+                      }}
+                    >
                       {lang === 'en' ? 'Forgot password?' : 'পাসওয়ার্ড ভুলে গেছেন?'}
                     </button>
                   )}
@@ -488,6 +613,141 @@ export default function AuthPage({ mode }: AuthPageProps) {
                   </>
                 )}
               </p>
+            </>
+          ) : step === 'forgot' ? (
+            /* Forgot Password Step */
+            <>
+              {errorMsg && <div role="alert" style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>{errorMsg}</div>}
+
+              <form className={styles.form} onSubmit={handleRequestReset}>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label} htmlFor="forgot-email">
+                    {lang === 'en' ? 'Email Address' : 'ইমেইল ঠিকানা'}
+                  </label>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    className={styles.input}
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" size="lg" fullWidth glow disabled={loading || isVerifying}>
+                  {isVerifying
+                    ? (lang === 'en' ? 'Sending Code…' : 'কোড পাঠানো হচ্ছে…')
+                    : (lang === 'en' ? 'Send Reset Code →' : 'রিসেট কোড পাঠান →')}
+                </Button>
+
+                <button
+                  type="button"
+                  className={styles.otpSwitchLink}
+                  onClick={() => { setErrorMsg(''); setSuccessMsg(''); setStep('form'); }}
+                  disabled={loading || isVerifying}
+                >
+                  {lang === 'en' ? '← Back to Sign In' : '← সাইন ইন এ ফিরুন'}
+                </button>
+              </form>
+            </>
+          ) : step === 'reset-otp' ? (
+            /* Reset Password OTP Step */
+            <>
+              {errorMsg && <div role="alert" style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>{errorMsg}</div>}
+
+              <form className={styles.form} onSubmit={handleResetPassword}>
+                <div className={styles.otpGrid} role="group" aria-label="OTP input">
+                  {otp.map((v, i) => (
+                    <input
+                      key={i}
+                      id={`reset-otp-${i}`}
+                      ref={(el) => {
+                        otpRefs.current[i] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={v}
+                      onChange={(e) => handleOtpChange(i, e.target.value)}
+                      onKeyDown={(e) => handleOtpKey(i, e)}
+                      onPaste={handleOtpPaste}
+                      className={`${styles.otpBox} ${v ? styles.otpFilled : ''}`}
+                      aria-label={`Digit ${i + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 12px', lineHeight: '1.5' }}>
+                  📬 Verification code sent to <strong style={{ color: 'var(--text-primary)' }}>{otpEmail || email}</strong>
+                </div>
+
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label} htmlFor="new-password">
+                    {lang === 'en' ? 'New Password' : 'নতুন পাসওয়ার্ড'}
+                  </label>
+                  <div className={styles.passwordWrap}>
+                    <input
+                      id="new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      className={`${styles.input} ${styles.passwordInput}`}
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      className={styles.passwordToggleBtn}
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                      title={showNewPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {lang === 'en' ? 'Must be at least 8 characters long.' : 'কমপক্ষে ৮ অক্ষরের হতে হবে।'}
+                  </div>
+                </div>
+
+                <Button type="submit" size="lg" fullWidth glow disabled={isVerifying}>
+                  {isVerifying
+                    ? (lang === 'en' ? 'Resetting Password…' : 'পরিবর্তন করা হচ্ছে…')
+                    : (lang === 'en' ? 'Reset Password →' : 'পাসওয়ার্ড পরিবর্তন করুন →')}
+                </Button>
+
+                <p className={styles.resend}>
+                  {lang === 'en' ? "Didn't receive code? " : 'কোড পাননি? '}
+                  {otpCountdown > 0 ? (
+                    <span style={{ color: 'var(--blue-light)', fontWeight: 600 }}>Resend in {otpCountdown}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isVerifying}
+                      onClick={async () => {
+                        setIsVerifying(true);
+                        const result = await requestPasswordResetOtp(email.trim());
+                        setIsVerifying(false);
+                        setErrorMsg(result.success ? '' : result.error.message);
+                      }}
+                      className={styles.switchLink}
+                    >
+                      {lang === 'en' ? 'Resend OTP' : 'OTP পুনরায় পাঠান'}
+                    </button>
+                  )}
+                </p>
+
+                <button
+                  type="button"
+                  className={styles.otpSwitchLink}
+                  onClick={() => { setErrorMsg(''); setSuccessMsg(''); setStep('form'); }}
+                  disabled={isVerifying}
+                >
+                  {lang === 'en' ? '← Back to Sign In' : '← সাইন ইন এ ফিরুন'}
+                </button>
+              </form>
             </>
           ) : (
             /* OTP Step */
