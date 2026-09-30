@@ -17,8 +17,36 @@ Currently implemented:
   - `POST /api/ai/agencies/{agency_id}/risk-events` — record a complaint/review-sentiment event
 - `GET /health`
 
-Not yet implemented here (owned by other Kanban issues — see `docs/KANBAN.md`):
-- AI Counselor recommendation engine (Module 5.18, Issue #24, @Souravg223)
+Also includes AI Counselor and Scholar tools under `/api/ai/counselor` and
+`/api/ai/scholar`.
+
+## Service boundary and runtime modes
+
+All endpoints except `/health` require `Authorization: Bearer <AI_SERVICE_API_TOKEN>`.
+Set the same private token on Next.js and FastAPI, and configure Next.js
+`AI_SERVICE_URL` with the internal service origin. Browser clients use the
+authenticated same-origin `/api/ai` gateway; never expose this token in a
+`NEXT_PUBLIC_` variable. Gateway mutation requests also require a same-origin
+Origin header. Direct CORS origins are opt-in through the JSON array
+`AI_ALLOWED_ORIGINS` (default `[]`).
+
+Provider-backed tools return 503 when a provider is missing. Deterministic fake
+providers, demo risk seeding, and seed-based scholar tools require explicit
+`OFFLINE_DEMO=true` or `ENVIRONMENT=test`. Client demonstration fallback separately
+requires `NEXT_PUBLIC_OFFLINE_DEMO=true`, and never masks authentication failures.
+Production counselor discovery does not silently replace failed live results
+with static universities or fabricated verified-agency endorsements.
+
+Production agency risk state and complete event history use PostgreSQL via
+`DATABASE_URL`, with `AgencyRiskState` / `AgencyRiskEvent` tables created by the
+repository Prisma migrations. Row locks serialize concurrent score updates;
+state and event insertion commit together. Storage failure returns 503 rather
+than a clean risk score. Browser requests cannot create risk events or attach
+agency IDs to arbitrary content scans; trusted internal workflows own those writes.
+
+Limits: JSON requests 1 MiB, text values 100,000 characters, collections 200 items,
+nesting depth 16; files 20 MiB, PDFs 30 pages, images 20 megapixels. Upload intake
+is bounded before multipart parsing. OCR has conversion/execution timeouts.
 
 ## Setup
 
@@ -47,6 +75,11 @@ uvicorn app.main:app --reload --port 8001
 ```bash
 pytest
 ```
+
+Optional durability/concurrency tests require `TEST_DATABASE_URL` pointing at a
+migrated disposable PostgreSQL database. They never use the runtime `DATABASE_URL`.
+Without that explicit test setting, those tests skip. Normal tests force offline
+provider settings before importing the app.
 
 Tests run fully offline against deterministic fakes (`FakeAgreementLLM`,
 `FakeScamLLM`) — no API key or network access required. The real Gemini

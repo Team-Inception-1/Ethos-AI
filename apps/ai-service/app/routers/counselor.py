@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.llm.counselor_base import CounselorLLM, CounselorLLMError
 from app.llm.counselor_factory import get_counselor_llm
+from app.config import get_settings
 from app.schemas import (
     CounselorChatRequest,
     CounselorChatResponse,
@@ -54,10 +55,14 @@ async def evaluate_profile(
     admission chance percentages, financial proof requirements, and roadmap.
     Supports optional live web discovery via Google Search Grounding.
     """
+    if not get_settings().deterministic_allowed and not payload.enable_live_discovery:
+        raise HTTPException(status_code=503, detail="Static recommendations require explicit offline demo mode. Enable live discovery.")
     try:
         if payload.enable_live_discovery:
             return await evaluate_counselor_profile_with_live(payload)
         return evaluate_counselor_profile(payload)
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.exception("Profile evaluation failed")
         raise HTTPException(
@@ -74,6 +79,8 @@ async def discover_live(
     try:
         req = payload.model_copy(update={"enable_live_discovery": True})
         return await evaluate_counselor_profile_with_live(req)
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.exception("Live university discovery failed")
         raise HTTPException(

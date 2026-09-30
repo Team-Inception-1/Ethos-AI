@@ -9,11 +9,8 @@ review sentiment (pushed in by the core Node API via
 the core Node DB, not here; see ETHOS_AI_CONTEXT.md §10 on keeping AI logic
 isolated behind a clean internal API).
 
-Storage: in-memory, process-local. This is intentionally simple for a course
-project — good enough to make the DoD's contract fully real and testable
-end-to-end today. When #14's Prisma schema lands, swap this class's internals
-for a DB-backed implementation without changing its public method signatures
-(`record_event` / `get_score`), so callers (the router) never need to change.
+Production storage uses PostgreSQL transactions and per-agency row locks.
+The in-memory implementation is selected only for tests or OFFLINE_DEMO.
 
 Scoring model: risk_score is a decayed weighted rollup, capped at [0, 100].
 Each event nudges the score toward its own weight rather than simply summing,
@@ -28,7 +25,10 @@ so:
 from __future__ import annotations
 
 import threading
+from uuid import uuid4
 from datetime import datetime, timezone
+from fastapi import HTTPException
+from app.config import get_settings
 
 from app.schemas import AgencyRiskEvent, AgencyRiskScore
 
@@ -92,15 +92,69 @@ class AgencyRiskStore:
             )
 
 
-# Process-wide singleton — mirrors the `_cached_default` pattern in
-# `app/llm/factory.py`. A course-project-scale FastAPI service runs as a
-# single process, so this is sufficient; a DB-backed store (see module
-# docstring) would remove the need for this singleton entirely.
-_default_store: AgencyRiskStore | None = None
+# The store object is cached; production scores and history remain in PostgreSQL.
+class PostgresAgencyRiskStore:
+    """Durable EMA and audit history, serialized per agency across workers."""
+
+    def __init__(self, database_url: str, connect=None):
+        if connect is None:
+            import psycopg
+            connect = psycopg.connect
+        self._connect = connect
+        self._database_url = database_url
+
+    def _connection(self):
+        return self._connect(self._database_url, connect_timeout=5,
+                             options="-c statement_timeout=5000")
+
+    @staticmethod
+    def _score(cursor, agency_id):
+        cursor.execute('SELECT "riskScore", "flagCount", "updatedAt" FROM "AgencyRiskState" WHERE "agencyId" = %s', (agency_id,))
+        state = cursor.fetchone()
+        cursor.execute('SELECT "source", "weight", "reason", "occurredAt" FROM "AgencyRiskEvent" WHERE "agencyId" = %s ORDER BY "occurredAt" DESC, "id" DESC LIMIT 20', (agency_id,))
+        events = [AgencyRiskEvent(source=row[0], weight=row[1], reason=row[2], occurred_at=row[3])
+                  for row in reversed(cursor.fetchall())]
+        return AgencyRiskScore(agency_id=agency_id, risk_score=round(state[0], 2) if state else 0,
+                               flag_count=state[1] if state else 0,
+                               last_updated=state[2] if state else datetime.now(timezone.utc),
+                               recent_events=events)
+
+    def record_event(self, agency_id: str, source: str, weight: float, reason: str) -> AgencyRiskScore:
+        event = AgencyRiskEvent(source=source, weight=weight, reason=reason)
+        try:
+            with self._connection() as connection, connection.cursor() as cursor:
+                cursor.execute('INSERT INTO "AgencyRiskState" ("agencyId", "riskScore", "flagCount", "updatedAt") VALUES (%s, 0, 0, NOW()) ON CONFLICT ("agencyId") DO NOTHING', (agency_id,))
+                cursor.execute('SELECT "riskScore" FROM "AgencyRiskState" WHERE "agencyId" = %s FOR UPDATE', (agency_id,))
+                previous = cursor.fetchone()[0]
+                event.occurred_at = datetime.now(timezone.utc)
+                updated = max(0.0, min(100.0, previous + _EMA_ALPHA * (weight - previous)))
+                cursor.execute('UPDATE "AgencyRiskState" SET "riskScore" = %s, "flagCount" = "flagCount" + 1, "updatedAt" = %s WHERE "agencyId" = %s', (updated, event.occurred_at, agency_id))
+                cursor.execute('INSERT INTO "AgencyRiskEvent" ("id", "agencyId", "source", "weight", "reason", "occurredAt") VALUES (%s, %s, %s, %s, %s, %s)', (str(uuid4()), agency_id, source, weight, reason, event.occurred_at))
+                return self._score(cursor, agency_id)
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Agency risk storage is unavailable.") from exc
+
+    def get_score(self, agency_id: str) -> AgencyRiskScore:
+        try:
+            with self._connection() as connection, connection.cursor() as cursor:
+                # A single snapshot keeps the count/score and audit trail consistent.
+                cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+                return self._score(cursor, agency_id)
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Agency risk storage is unavailable.") from exc
 
 
-def get_agency_risk_store() -> AgencyRiskStore:
+_default_store: AgencyRiskStore | PostgresAgencyRiskStore | None = None
+
+
+def get_agency_risk_store() -> AgencyRiskStore | PostgresAgencyRiskStore:
     global _default_store
     if _default_store is None:
-        _default_store = AgencyRiskStore()
+        settings = get_settings()
+        if settings.deterministic_allowed:
+            _default_store = AgencyRiskStore()
+        elif settings.database_url:
+            _default_store = PostgresAgencyRiskStore(settings.database_url)
+        else:
+            raise HTTPException(status_code=503, detail="Agency risk storage is not configured.")
     return _default_store

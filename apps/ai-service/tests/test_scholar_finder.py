@@ -21,7 +21,7 @@ from app.services.scholar_engine import (
 )
 from app.services.scholar_knowledge import SEED_PROFESSORS
 
-client = TestClient(app)
+client = TestClient(app, headers={"Authorization": "Bearer offline-test-token"})
 
 
 def test_seed_professors_structure():

@@ -1,12 +1,15 @@
 /**
- * Ethos AI — Central Verified Agency & Country Knowledge Store
+ * Ethos AI — Offline Demo Agency & Country Fixture Store
  * 
- * Provides an authoritative, persistent data source for:
- * 1. 15 Admin-Verified Bangladeshi Consultancies (Trade licenses, addresses, fee structures, ratings)
+ * Provides illustrative static fixtures only when explicit offline-demo mode is enabled.
+ * These records are not live, authoritative, or production-verified.
+ * 1. 15 sample Bangladeshi consultancies (placeholder licenses, addresses, fees, ratings)
  * 2. 16+ Country-Wise Study-Abroad Cost Standards (Tuition, GIC/Blocked account, Visa fees, Escrow limits)
  * 3. Two-way sync with Agency Dashboard (editing services) and Admin Panel (approvals/rejections)
  * 4. Grounded, non-hallucinated knowledge provider for AI Chatbot & Counselor
  */
+
+import { OFFLINE_DEMO_ENABLED } from './ai/demo';
 
 export interface AgencyServicePackage {
   id: string;
@@ -2277,6 +2280,7 @@ export const VERIFIED_COURSE_CATALOGS: UniversityCourseCatalogItem[] = [
 
 export class VerifiedKnowledgeEngine {
   private static getStoredAgencies(): VerifiedAgencyRecord[] {
+    if (!OFFLINE_DEMO_ENABLED) return [];
     if (typeof window === 'undefined') return INITIAL_AGENCIES;
     try {
       const data = localStorage.getItem(STORAGE_KEY_AGENCIES);
@@ -2284,15 +2288,16 @@ export class VerifiedKnowledgeEngine {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length >= 10) return parsed;
       }
-    } catch (e) {}
+    } catch {}
     return INITIAL_AGENCIES;
   }
 
   private static saveAgencies(agencies: VerifiedAgencyRecord[]) {
+    if (!OFFLINE_DEMO_ENABLED) return;
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(STORAGE_KEY_AGENCIES, JSON.stringify(agencies));
-    } catch (e) {}
+    } catch {}
   }
 
   public static getAllVerifiedAgencies(): VerifiedAgencyRecord[] {
@@ -2315,11 +2320,12 @@ export class VerifiedKnowledgeEngine {
   }
 
   public static getPendingAgencies(): PendingAgencySubmission[] {
+    if (!OFFLINE_DEMO_ENABLED) return [];
     if (typeof window === 'undefined') return INITIAL_PENDING;
     try {
       const data = localStorage.getItem(STORAGE_KEY_PENDING);
       if (data) return JSON.parse(data);
-    } catch (e) {}
+    } catch {}
     return INITIAL_PENDING;
   }
 
@@ -2339,7 +2345,7 @@ export class VerifiedKnowledgeEngine {
       name: item.name,
       ownerName: item.ownerName,
       licenseNo: item.licenseNo,
-      licenseType: (item.licenseType as any) || 'DNCC_TRADE',
+      licenseType: 'DNCC_TRADE',
       licenseStatus: 'VERIFIED',
       foundedYear: new Date().getFullYear(),
       rating: 4.8,
@@ -2388,6 +2394,7 @@ export class VerifiedKnowledgeEngine {
   }
 
   public static getCountryCost(countryQuery: string): CountryCostStandard | null {
+    if (!OFFLINE_DEMO_ENABLED) return null;
     const q = countryQuery.toLowerCase().trim();
     if (q.includes('canada') || q.includes('কানাডা') || q.includes('can')) return INITIAL_COUNTRY_COSTS.canada;
     if (q.includes('german') || q.includes('জার্মানি') || q.includes('deu') || q.includes('deutschland')) return INITIAL_COUNTRY_COSTS.germany;
@@ -2425,10 +2432,12 @@ export class VerifiedKnowledgeEngine {
   }
 
   public static getUniversityCatalogs(): UniversityCourseCatalogItem[] {
+    if (!OFFLINE_DEMO_ENABLED) return [];
     return VERIFIED_COURSE_CATALOGS;
   }
 
-  public static getFinancialProvenance(uni: any, agencyFallback?: any): FinancialProvenance {
+  public static getFinancialProvenance(uni: Partial<import('./aiService').UniversityRecommendation> & { name?: string }, agencyFallback?: VerifiedAgencyRecord): FinancialProvenance | null {
+    if (!OFFLINE_DEMO_ENABLED) return null;
     const uniName = (uni.university_name || uni.name || '').trim();
     const uniCountry = (uni.country || '').trim();
     const uniId = (uni.id || '').toLowerCase();
@@ -2444,7 +2453,7 @@ export class VerifiedKnowledgeEngine {
     // 2. Identify verifying agency
     let agency = agencyFallback;
     if (!agency && uni.verified_agency) {
-      agency = this.getAgencyById(uni.verified_agency.id) || uni.verified_agency;
+      agency = this.getAgencyById(uni.verified_agency.id);
     }
     if (!agency && catalog?.verifyingAgencyId) {
       agency = this.getAgencyById(catalog.verifyingAgencyId);
@@ -2453,6 +2462,7 @@ export class VerifiedKnowledgeEngine {
       const matching = this.getVerifiedAgenciesForCountry(uniCountry);
       agency = matching[0] || this.getAllVerifiedAgencies()[0];
     }
+    if (!agency) return null;
 
     // 3. Country living standard & benchmarks
     const countryStandard = this.getCountryCost(uniCountry) || INITIAL_COUNTRY_COSTS.uk;
@@ -2581,8 +2591,8 @@ export class VerifiedKnowledgeEngine {
       lastAuditedAt: catalog?.lastAuditedAt || '2026-09-01',
       ledgerChecksum,
       status: 'VERIFIED',
-      legalDisclaimerEn: `All numerical cost calculations are anchored to database records submitted under affidavit by licensed consultancy ${agency.name} (License: ${agency.licenseNo}) and cross-audited against official university registrar bulletins by Ethos Platform Auditors. Solvency minimums correspond to binding embassy regulations. Ethos AI displays verified third-party audited fee structures and is not a financial guarantor.`,
-      legalDisclaimerBn: `সকল খরচের তথ্য সরকারি লাইসেন্সধারী এজেন্সি ${agency.name} (লাইসেন্স: ${agency.licenseNo}) কর্তৃক ডাটাবেজে সংরক্ষিত এবং ইথোস এডমিন কর্তৃক বিশ্ববিদ্যালয়ের অফিশিয়াল ওয়েবসাইট ও সংশ্লিষ্ট দূতাবাসের ভিসা রুলস অনুযায়ী অডিটকৃত। কোনো আনুমানিক বা ভিত্তিহীন সংখ্যা প্রদর্শন করা হয় না।`,
+      legalDisclaimerEn: `Offline demo only. ${agency.name}, its license, fees, ratings, audit identifiers, and calculated costs are illustrative fixtures, not live or production-verified records. Confirm every current amount and credential with the university, immigration authority, and issuing regulator before acting.`,
+      legalDisclaimerBn: `শুধু অফলাইন ডেমো। ${agency.name}-এর নাম, লাইসেন্স, ফি, রেটিং, অডিট আইডি ও হিসাব করা খরচ নমুনা তথ্য; এগুলো লাইভ বা প্রোডাকশন-যাচাইকৃত রেকর্ড নয়। সিদ্ধান্তের আগে বিশ্ববিদ্যালয়, ইমিগ্রেশন কর্তৃপক্ষ ও লাইসেন্স প্রদানকারী সংস্থার কাছে সব তথ্য নিশ্চিত করুন।`,
     };
   }
 }

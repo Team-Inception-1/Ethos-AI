@@ -30,7 +30,7 @@ def override_llm():
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    return TestClient(app, headers={"Authorization": "Bearer offline-test-token"})
 
 
 def test_health_endpoint(client):

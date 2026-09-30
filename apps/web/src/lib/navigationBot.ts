@@ -5,6 +5,7 @@
  * with 1-click navigation actions in English and Bangla.
  */
 import { VerifiedKnowledgeEngine } from './verifiedKnowledgeStore';
+import { OFFLINE_DEMO_ENABLED } from './ai/demo';
 
 export interface NavAction {
   label: string;
@@ -185,6 +186,20 @@ const POLITE_PATTERNS = [
  * Intelligent Intent Matcher: DIRECT, Human-like Q&A Engine
  */
 export function queryNavigationAssistant(query: string, currentPath: string = '/'): BotResponse {
+  void currentPath;
+  if (!OFFLINE_DEMO_ENABLED) {
+    const destinations = QUICK_CATEGORIES.filter(item =>
+      query.toLowerCase().includes(item.id) || query.toLowerCase().includes(item.titleEn.toLowerCase().split(' ')[0]));
+    return {
+      category: 'general',
+      text: 'I can help you find the right section. Use the published directory for agency details and the AI tools for document analysis. Current costs and payment terms should be checked with their official source.',
+      textBn: 'সঠিক বিভাগ খুঁজে নিতে সাহায্য করতে পারি। এজেন্সির তথ্যের জন্য প্রকাশিত ডিরেক্টরি এবং নথি বিশ্লেষণের জন্য এআই টুল ব্যবহার করুন। বর্তমান খরচ ও পেমেন্টের শর্ত অফিসিয়াল উৎস থেকে যাচাই করুন।',
+      actions: (destinations.length ? destinations : QUICK_CATEGORIES.slice(0, 3)).map(item => ({
+        label: item.titleEn, labelBn: item.titleBn, icon: item.icon,
+        href: ({ directory: '/directory', compare: '/compare', 'ai-tools': '/ai-tools', counselor: '/counselor', escrow: '/dashboard/escrow', guardian: '/dashboard' } as Record<string, string>)[item.id] || '/directory',
+      })),
+    };
+  }
   const rawQ = query.trim();
   const q = rawQ.toLowerCase();
 
@@ -192,8 +207,8 @@ export function queryNavigationAssistant(query: string, currentPath: string = '/
   const cleanQ = q.replace(/[.,?!;:_~]/g, ' ').replace(/\s+/g, ' ').trim();
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 0. VERIFIED AGENCY & COUNTRY COST GROUNDED KNOWLEDGE MATCHER
-  // (Provides admin-verified Bangladeshi agency data & country cost sheets)
+  // 0. OFFLINE DEMO AGENCY & COUNTRY COST MATCHER
+  // Illustrative fixtures only; this branch is disabled outside explicit offline-demo mode.
   // ─────────────────────────────────────────────────────────────────────────────
   const matchedCountry = VerifiedKnowledgeEngine.getCountryCost(cleanQ);
   const isAskingCostOrAgency = 
@@ -214,8 +229,8 @@ export function queryNavigationAssistant(query: string, currentPath: string = '/
 
     return {
       category: 'country',
-      text: `📊 **Verified Study Abroad Cost & Agency Sheet for ${matchedCountry.flag} ${matchedCountry.country}**
-*(Source: Ethos AI Admin-Verified Bangladesh Database)*
+      text: `🧪 **Offline demo: illustrative cost & agency sheet for ${matchedCountry.flag} ${matchedCountry.country}**
+*(Static sample data — not live, production-verified, or a substitute for official sources.)*
 
 💰 **Estimated 1st-Year Budget:** ৳${(matchedCountry.totalFirstYearEstBdt.min / 100000).toFixed(1)}L – ৳${(matchedCountry.totalFirstYearEstBdt.max / 100000).toFixed(1)}L BDT
 
@@ -224,14 +239,14 @@ export function queryNavigationAssistant(query: string, currentPath: string = '/
 2. **Living / Blocked Fund:** ${matchedCountry.livingOrBlockedBdt.label}
 3. **Visa & Biometrics Fee:** ${matchedCountry.visaAndBiometricsBdt.label}
 4. **Health Insurance:** ${matchedCountry.healthInsuranceYearlyBdt.label}
-5. **Verified Escrow Agency Fee:** ৳${matchedCountry.escrowAgencyFeeBdt.min.toLocaleString()} – ৳${matchedCountry.escrowAgencyFeeBdt.max.toLocaleString()} BDT *(Released milestone-by-milestone only)*
+5. **Illustrative Agency Fee:** ৳${matchedCountry.escrowAgencyFeeBdt.min.toLocaleString()} – ৳${matchedCountry.escrowAgencyFeeBdt.max.toLocaleString()} BDT
 
-🏢 **Admin-Approved Verified Agencies for ${matchedCountry.country}:**
+🏢 **Illustrative demo agencies for ${matchedCountry.country}:**
 ${agencyListEn}
 
 🛡️ *Remember: Never pay an agency full fee upfront. Use Ethos Milestone Escrow to protect your funds.*`,
-      textBn: `📊 **${matchedCountry.flag} ${matchedCountry.countryBn}-র নির্ভরযোগ্য খরচ ও অনুমোদিত এজেন্সির তথ্য**
-*(উৎস: Ethos AI অ্যাডমিন-যাচাইকৃত বাংলাদেশ ডাটাবেজ)*
+      textBn: `🧪 **অফলাইন ডেমো: ${matchedCountry.flag} ${matchedCountry.countryBn}-র নমুনা খরচ ও এজেন্সি তথ্য**
+*(স্থির নমুনা তথ্য—লাইভ বা প্রোডাকশন-যাচাইকৃত নয়; অফিসিয়াল উৎসে নিশ্চিত করুন।)*
 
 💰 **১ম বছরের আনুমানিক মোট বাজেট:** ৳${(matchedCountry.totalFirstYearEstBdt.min / 100000).toFixed(1)} লাখ – ৳${(matchedCountry.totalFirstYearEstBdt.max / 100000).toFixed(1)} লাখ BDT
 
@@ -240,9 +255,9 @@ ${agencyListEn}
 ২. **লিভিং / ব্লকড ফান্ড:** ${matchedCountry.livingOrBlockedBdt.labelBn}
 ৩. **ভিসা ও বায়োমেট্রিক্স ফি:** ${matchedCountry.visaAndBiometricsBdt.labelBn}
 ৪. **স্বাস্থ্য বীমা:** ${matchedCountry.healthInsuranceYearlyBdt.labelBn}
-৫. **যাচাইকৃত এসক্রো এজেন্সি ফি:** ৳${matchedCountry.escrowAgencyFeeBdt.min.toLocaleString()} – ৳${matchedCountry.escrowAgencyFeeBdt.max.toLocaleString()} টাকা *(কাজের ধাপ সম্পন্ন হলে ধাপে ধাপে রিলিজ হয়)*
+৫. **নমুনা এজেন্সি ফি:** ৳${matchedCountry.escrowAgencyFeeBdt.min.toLocaleString()} – ৳${matchedCountry.escrowAgencyFeeBdt.max.toLocaleString()} টাকা
 
-🏢 **${matchedCountry.countryBn}-র জন্য সরকারি ট্রেড লাইসেন্সপ্রাপ্ত ও যাচাইকৃত এজেন্সি:**
+🏢 **${matchedCountry.countryBn}-র জন্য ডেমো এজেন্সির নমুনা:**
 ${agencyListBn}
 
 🛡️ *সতর্কতা: কোনো এজেন্সিকে কখনোই এককালীন সব টাকা আগে দেবেন না। আপনার টাকা নিরাপদ রাখতে Ethos মাইলস্টোন এসক্রো ব্যবহার করুন।*`,
@@ -256,12 +271,12 @@ ${agencyListBn}
           descriptionBn: `${matchedCountry.countryBn}-র এজেন্সিদের ফি ও রিফান্ড পলিসি তুলনা।`,
         },
         {
-          label: 'Verified Agency Directory',
-          labelBn: 'যাচাইকৃত এজেন্সি ডিরেক্টরি',
+          label: 'Agency Directory',
+          labelBn: 'এজেন্সি ডিরেক্টরি',
           href: '/directory',
           icon: '🏢',
-          description: 'Browse all verified agencies in Bangladesh.',
-          descriptionBn: 'বাংলাদেশের সকল যাচাইকৃত এজেন্সির তালিকা দেখুন।',
+          description: 'Browse the directory and independently confirm current credentials.',
+          descriptionBn: 'ডিরেক্টরি দেখুন এবং বর্তমান পরিচয়পত্র স্বাধীনভাবে নিশ্চিত করুন।',
         },
         {
           label: `${matchedCountry.country} Student Network`,

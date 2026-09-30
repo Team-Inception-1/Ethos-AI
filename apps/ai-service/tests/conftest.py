@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
+
+# Force offline test configuration before app imports, even on developer machines.
+os.environ["ENVIRONMENT"] = "test"
+os.environ["GEMINI_API_KEY"] = ""
+os.environ["GOOGLE_API_KEY"] = ""
+os.environ["GOOGLE_VISION_API_KEY"] = ""
+os.environ["DATABASE_URL"] = ""
+os.environ["OFFLINE_DEMO"] = "false"
+os.environ["AI_SERVICE_API_TOKEN"] = "offline-test-token"
 
 # Allow `import app...` when pytest is run from apps/ai-service/ without
 # installing the package (keeps things simple for a course project).

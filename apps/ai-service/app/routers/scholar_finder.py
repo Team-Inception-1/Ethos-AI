@@ -13,8 +13,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status, Depends, Request
+from pydantic import BaseModel, Field
+from app.config import get_settings
 
 from app.schemas import (
     ColdEmailGenerateRequest,
@@ -57,7 +58,15 @@ from app.services.text_extraction import extract_normalized_text
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/ai/scholar", tags=["scholar-finder"])
+def require_real_scholar_data(request: Request):
+    if not get_settings().deterministic_allowed and request.url.path.rsplit('/scholar/', 1)[-1] not in {
+        "live-search", "parse-cv/file", "parse-cv/text",
+    }:
+        raise HTTPException(status_code=503, detail="This tool currently requires explicit offline demo mode.")
+
+
+router = APIRouter(prefix="/api/ai/scholar", tags=["scholar-finder"],
+                   dependencies=[Depends(require_real_scholar_data)])
 
 
 @router.post("/search", response_model=ProfessorSearchResponse)
@@ -149,14 +158,17 @@ async def get_professor_by_id(prof_id: str) -> ProfessorProfile:
 
 
 class ParseCVTextPayload(BaseModel):
-    raw_text: str
+    raw_text: str = Field(min_length=1, max_length=100_000)
 
 
 @router.post("/parse-cv/file", response_model=CVParseResponse)
 async def parse_cv_file_endpoint(file: UploadFile = File(...)) -> CVParseResponse:
     """Extracts student credentials, skills, and thesis from an uploaded CV/Resume (PDF or text)."""
     try:
-        content = await file.read()
+        limit = get_settings().max_upload_bytes
+        content = await file.read(limit + 1)
+        if len(content) > limit:
+            raise HTTPException(status_code=413, detail="Uploaded file is too large.")
         extracted = extract_normalized_text(file.filename or "cv.pdf", content)
         if not extracted.strip():
             raise ValueError("No readable text could be extracted from the uploaded document.")
@@ -167,6 +179,8 @@ async def parse_cv_file_endpoint(file: UploadFile = File(...)) -> CVParseRespons
             raw_char_count=len(extracted),
             model_used="Ethos CV Parser (pypdf + Heuristic Extraction)",
         )
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.exception("CV file extraction failed")
         raise HTTPException(

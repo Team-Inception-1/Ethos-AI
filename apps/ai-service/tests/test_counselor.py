@@ -22,7 +22,7 @@ from app.services.counselor_engine import (
 from app.services.counselor_knowledge import convert_to_bdt_lakh
 
 
-client = TestClient(app)
+client = TestClient(app, headers={"Authorization": "Bearer offline-test-token"})
 
 
 def test_normalize_gpa():

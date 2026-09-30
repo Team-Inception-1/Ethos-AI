@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     # --- Service metadata ----------------------------------------------
     service_name: str = "ethos-ai-service"
     environment: str = "development"
+    ai_service_api_token: str | None = None
+    ai_allowed_origins: list[str] = []
+    offline_demo: bool = False
+    database_url: str | None = None
+    max_json_bytes: int = 1024 * 1024
 
     # --- Upload limits ---------------------------------------------------
     max_upload_bytes: int = 20 * 1024 * 1024  # 20 MB, matches AIToolsPage upload hint
@@ -39,6 +44,10 @@ class Settings(BaseSettings):
     @property
     def google_vision_configured(self) -> bool:
         return bool(self.google_vision_api_key)
+
+    @property
+    def deterministic_allowed(self) -> bool:
+        return self.environment == "test" or self.offline_demo
 
 
 @lru_cache

@@ -30,6 +30,7 @@ from app.routers.scholar_finder import router as scholar_finder_router
 from app.schemas import HealthResponse
 from app.services.agency_risk_store import get_agency_risk_store
 from app.services.seed_demo_risk_events import seed_demo_risk_events
+from app.security import ServiceBoundary
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -40,10 +41,8 @@ async def lifespan(app: FastAPI):
     # Best-effort demo seeding for the Directory UI (#25) — see
     # app/services/seed_demo_risk_events.py for rationale. Failures here must
     # never prevent the service from starting.
-    try:
+    if settings.offline_demo:
         await seed_demo_risk_events(get_agency_risk_store())
-    except Exception:  # pragma: no cover - best-effort demo seeding only
-        logger.exception("Demo risk-event seeding failed at startup; continuing without it")
     yield
 
 
@@ -55,15 +54,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Permissive by default for local dev; tighten `allow_origins` to the deployed
-# web app's origin(s) via env/config before production deployment.
+# Browser traffic uses the authenticated Next.js gateway. Direct origins are
+# opt-in and never receive wildcard credentialed access.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[origin for origin in settings.ai_allowed_origins if origin != "*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+app.add_middleware(ServiceBoundary)
 
 app.include_router(agreement_router)
 app.include_router(offer_letter_router)

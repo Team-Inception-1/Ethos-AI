@@ -29,6 +29,7 @@ export default function AIBubble() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messageSequenceRef = useRef(0);
 
   const getInitialMessages = (l: 'en' | 'bn'): Message[] => [
     {
@@ -93,7 +94,7 @@ export default function AIBubble() {
     }
 
     const userMsg: Message = {
-      id: `usr-${Date.now()}`,
+      id: `usr-${++messageSequenceRef.current}`,
       from: 'user',
       text: query,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -107,7 +108,7 @@ export default function AIBubble() {
     setTimeout(() => {
       const response = queryNavigationAssistant(query, pathname);
       const aiMsg: Message = {
-        id: `ai-${Date.now()}`,
+        id: `ai-${++messageSequenceRef.current}`,
         from: 'ai',
         text: activeLang === 'bn' ? response.textBn : response.text,
         actions: response.actions,
