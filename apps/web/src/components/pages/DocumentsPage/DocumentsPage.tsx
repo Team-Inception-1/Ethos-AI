@@ -1,23 +1,27 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { z } from 'zod';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import styles from './DocumentsPage.module.css';
 
-interface DocItem {
-  id: string;
-  name: string;
-  type: 'offer_letter' | 'agreement' | 'passport' | 'transcript' | 'other';
-  size: string;
-  storageKey: string;
-  storageUrl: string;
-  version: number;
-  riskScore: number | null;
-  verdict: 'likely_genuine' | 'needs_review' | 'likely_fake' | null;
-  flags: string[];
-  uploadedAt: string;
+const documentSchema = z.object({ id: z.string(), name: z.string(),
+  type: z.enum(['offer_letter', 'agreement', 'passport', 'transcript', 'other']),
+  size: z.string(), sizeBytes: z.number().nonnegative().default(0), storageKey: z.string(), storageUrl: z.string(),
+  version: z.number(), riskScore: z.number().nullable(), verdict: z.enum(['likely_genuine', 'needs_review', 'likely_fake']).nullable(),
+  flags: z.array(z.string()), uploadedAt: z.string(),
+});
+type DocItem = z.infer<typeof documentSchema>;
+async function requestError(response: Response): Promise<Error> {
+  const parsed = z.object({ error: z.object({ message: z.string() }) }).safeParse(await response.json().catch(() => null));
+  return new Error(parsed.success ? parsed.data.error.message : 'The request failed. Please retry.');
+}
+async function loadDocuments(signal?: AbortSignal): Promise<DocItem[]> {
+  const response = await fetch('/api/documents', { cache: 'no-store', signal });
+  if (!response.ok) throw await requestError(response);
+  return z.object({ documents: z.array(documentSchema) }).parse(await response.json()).documents;
 }
 
 const typeIcons: Record<string, string> = {
@@ -38,11 +42,17 @@ const typeLabels: Record<string, string> = {
 
 export default function DocumentsPage() {
   const { user } = useAuth();
+  return <DocumentVault key={user?.id ?? 'signed-out'} />;
+}
+
+function DocumentVault() {
+  const { user } = useAuth();
   const [docs, setDocs] = useState<DocItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState('');
 
   // Filter & Search states
   const [activeTab, setActiveTab] = useState<'all' | 'offer_letter' | 'agreement' | 'passport' | 'transcript'>('all');
@@ -55,32 +65,39 @@ export default function DocumentsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchDocs = async () => {
+  const fetchDocs = useCallback(async () => {
     try {
-      setLoading(true);
-      const ownerParam = user?.id ? `?ownerId=${encodeURIComponent(user.id)}` : '';
-      const res = await fetch(`/api/documents${ownerParam}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDocs(data.documents || []);
-      }
+      const documents = await loadDocuments();
+      setDocs(documents);
+      return documents;
     } catch (err) {
-      console.error('Failed to load documents:', err);
+      setError(err instanceof Error ? err.message : 'Could not load documents.');
+      return null;
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDocs();
+    const controller = new AbortController();
+    loadDocuments(controller.signal).then(documents => {
+      if (!controller.signal.aborted) setDocs(documents);
+    }).catch(err => {
+      if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Could not load documents.');
+    }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, [user?.id]);
 
   const processUpload = async (file: File) => {
+    if (uploading) return;
+    if (!file.size || file.size > 10 * 1024 * 1024 || !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
+      setError('Choose a nonempty PDF, JPEG, or PNG file up to 10 MB.'); return;
+    }
+    setError('');
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', selectedType);
-    formData.append('ownerId', user?.id || 'usr-student-01');
 
     try {
       const res = await fetch('/api/documents', {
@@ -88,11 +105,10 @@ export default function DocumentsPage() {
         body: formData,
       });
 
-      if (res.ok) {
-        await fetchDocs();
-      }
+      if (!res.ok) throw await requestError(res);
+      await fetchDocs();
     } catch (err) {
-      console.error('Upload failed:', err);
+      setError(err instanceof Error ? err.message : 'Upload failed. Please retry.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -129,34 +145,32 @@ export default function DocumentsPage() {
   };
 
   const handleScan = async (doc: DocItem) => {
+    setError('');
     setScanningId(doc.id);
     try {
       const res = await fetch(`/api/documents/${doc.id}/scan`, {
         method: 'POST',
       });
-      if (res.ok) {
-        const data = await res.json();
-        setDocs((prev) =>
-          prev.map((d) => (d.id === doc.id ? data.document : d))
-        );
-        setScanModalDoc(data.document);
-      }
+      if (!res.ok) throw await requestError(res);
+      const refreshed = await fetchDocs();
+      const scanned = refreshed?.find(item => item.id === doc.id);
+      if (scanned) setScanModalDoc(scanned);
     } catch (err) {
-      console.error('Scan error:', err);
+      setError(err instanceof Error ? err.message : 'Document scanning failed.');
     } finally {
       setScanningId(null);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this document from the encrypted vault?')) return;
+    if (!confirm('Are you sure you want to remove this document?')) return;
+    setError('');
     try {
       const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setDocs((prev) => prev.filter((d) => d.id !== id));
-      }
+      if (!res.ok) throw await requestError(res);
+      setDocs((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
-      console.error('Delete error:', err);
+      setError(err instanceof Error ? err.message : 'Document deletion failed.');
     }
   };
 
@@ -185,23 +199,24 @@ export default function DocumentsPage() {
   const totalCount = docs.length;
   const verifiedCount = docs.filter((d) => d.verdict === 'likely_genuine').length;
   const flaggedCount = docs.filter((d) => d.verdict === 'needs_review' || d.verdict === 'likely_fake').length;
-  const totalSizeMB = '4.5 MB';
+  const totalSizeMB = `${(docs.reduce((sum, doc) => sum + doc.sizeBytes, 0) / (1024 * 1024)).toFixed(1)} MB`;
 
   return (
     <div className={styles.page}>
+      {error && <p role="alert">{error}</p>}
       {/* ─── Top Header ─── */}
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <h1>Document Vault & Storage</h1>
           <p>
-            Secure document vault with automated <strong>Offer & Agreement Verification</strong>
+            Document storage with <strong>Offer & Agreement Analysis</strong> when the scanning service is configured
           </p>
         </div>
 
         <div className={styles.quickUploadBar}>
           <select
             value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value as any)}
+            onChange={(e) => { const type = e.target.value; if (type === 'offer_letter' || type === 'agreement' || type === 'passport' || type === 'transcript') setSelectedType(type); }}
             className={styles.typeSelect}
             aria-label="Document classification"
           >
@@ -216,7 +231,7 @@ export default function DocumentsPage() {
             ref={fileInputRef}
             onChange={handleFileSelect}
             style={{ display: 'none' }}
-            accept=".pdf,.jpg,.jpeg,.png,.docx,.txt"
+            accept=".pdf,.jpg,.jpeg,.png"
           />
 
           <Button
@@ -225,7 +240,7 @@ export default function DocumentsPage() {
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
-            {uploading ? 'Encrypting & Uploading…' : '+ Upload Document'}
+            {uploading ? 'Uploading…' : '+ Upload Document'}
           </Button>
         </div>
       </div>
@@ -266,7 +281,7 @@ export default function DocumentsPage() {
           <div className={styles.statInfo}>
             <div className={styles.statVal}>{totalSizeMB}</div>
             <div className={styles.statLabel}>Secure Cloud Storage</div>
-            <Badge variant="ai" size="sm">Active & Encrypted</Badge>
+            <Badge variant="neutral" size="sm">Database Storage Total</Badge>
           </div>
         </div>
       </div>
@@ -293,7 +308,7 @@ export default function DocumentsPage() {
         </div>
         <p className={styles.uploadLabel}>
           {uploading ? (
-            'Encrypting & Uploading to Cloud Vault…'
+            'Uploading to Private Storage…'
           ) : isDragging ? (
             'Drop file to upload immediately!'
           ) : (
@@ -303,12 +318,12 @@ export default function DocumentsPage() {
           )}
         </p>
         <p className={styles.uploadHint}>
-          PDF, JPG, PNG, DOCX up to 20MB — Stored with SHA-256 integrity hash & copy-on-write branching
+          PDF, JPEG, or PNG up to 10 MB — New uploads use private storage and authenticated downloads
         </p>
         <div className={styles.badgeRow}>
-          <Badge variant="verified" size="sm">✓ Cloud Vault Connected</Badge>
-          <Badge variant="ai" size="sm">⚡ Instant AI Fraud Scanner Ready</Badge>
-          <Badge variant="neutral" size="sm">🔒 256-bit Encrypted</Badge>
+          <Badge variant="neutral" size="sm">Private New Uploads</Badge>
+          <Badge variant="neutral" size="sm">PDF / JPEG / PNG</Badge>
+          <Badge variant="neutral" size="sm">Authenticated Downloads</Badge>
         </div>
       </div>
 
@@ -378,7 +393,7 @@ export default function DocumentsPage() {
       {/* ─── Document Grid ─── */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
-          Loading your encrypted document vault…
+          Loading your documents…
         </div>
       ) : filteredDocs.length === 0 ? (
         <div className={styles.emptyState}>
@@ -540,7 +555,7 @@ export default function DocumentsPage() {
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Version</span>
-                <span className={styles.infoVal}>v{previewDoc.version} (Immutable Log)</span>
+                <span className={styles.infoVal}>v{previewDoc.version}</span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Storage Key</span>
@@ -549,8 +564,8 @@ export default function DocumentsPage() {
                 </code>
               </div>
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Cloud Provider</span>
-                <Badge variant="verified" size="sm">Encrypted Cloud Storage</Badge>
+                <span className={styles.infoLabel}>File Access</span>
+                <Badge variant="neutral" size="sm">Authenticated Download</Badge>
               </div>
             </div>
 

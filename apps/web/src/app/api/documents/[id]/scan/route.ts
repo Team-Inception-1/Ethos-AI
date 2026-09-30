@@ -5,16 +5,18 @@ import { requireUser, forbiddenResponse } from '@/lib/auth/authorization';
 import { canAccessDocument } from '@/lib/auth/relationships';
 import { readDocumentFile } from '@/lib/storage';
 import { apiError, handleApiError } from '@/lib/api/response';
+import { sameOrigin } from '@/lib/auth/registration';
 
 const scanResult = z.object({
   risk_score: z.number().min(0).max(100),
   verdict: z.string().max(100), flags: z.array(z.string().max(2000)).max(100),
 });
 
-export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const { id } = await context.params;
     if (!await canAccessDocument(authorization.user, id)) return forbiddenResponse();
     const document = await prisma.document.findUnique({ where: { id } });
