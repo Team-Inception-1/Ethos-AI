@@ -137,6 +137,19 @@ jobs:
     defaults:
       run:
         working-directory: apps/ai-service
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ethos
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: ethos_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ethos -d ethos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout repository
@@ -150,11 +163,21 @@ jobs:
       - name: Install system dependencies (Tesseract + Poppler for OCR)
         run: sudo apt-get update && sudo apt-get install -y tesseract-ocr poppler-utils
 
+      - name: Install and deploy schema to disposable PostgreSQL
+        working-directory: .
+        run: |
+          npm ci --no-audit
+          DATABASE_URL="$TEST_DATABASE_URL" npx prisma migrate deploy --schema prisma/schema.prisma
+        env:
+          TEST_DATABASE_URL: "postgresql://ethos:test-only@127.0.0.1:5432/ethos_test"
+
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
       - name: Run offline AI unit/API test suite (no API key required)
         run: pytest -v
+        env:
+          TEST_DATABASE_URL: "postgresql://ethos:test-only@127.0.0.1:5432/ethos_test"
 
       - name: Live Gemini smoke test (runs only when GEMINI_API_KEY secret is set)
         if: ${{ env.GEMINI_API_KEY != '' }}
