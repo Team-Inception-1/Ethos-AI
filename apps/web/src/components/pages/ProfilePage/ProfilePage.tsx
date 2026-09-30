@@ -170,9 +170,8 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className={styles.page}>
-      <div className="container">
-        {/* Header */}
+    <div className={styles.page}>
+      {/* Header */}
         <div className={styles.header}>
           <div className={styles.titleRow}>
             <div>
@@ -615,6 +614,5 @@ export default function ProfilePage() {
           </GlassCard>
         </div>
       </div>
-    </main>
   );
 }
