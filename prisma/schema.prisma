@@ -63,6 +63,9 @@ model User {
   blocksInitiated       UserBlock[]          @relation("Blocker")
   blocksReceived        UserBlock[]          @relation("Blocked")
   reportsFiled          CommunityReport[]    @relation("Reporter")
+  peerThreadsFirst      PeerMessageThread[]  @relation("PeerFirst")
+  peerThreadsSecond     PeerMessageThread[]  @relation("PeerSecond")
+  peerMessages          PeerMessage[]        @relation("PeerSender")
 
   @@index([role])
   @@index([email])
@@ -584,6 +587,10 @@ model CountryCommunity {
   country         String                       @unique // e.g. "Germany", "Canada"
   countryCode     String                       // e.g. "DE", "CA", "GB"
   flagEmoji       String                       // e.g. "🇩🇪"
+  tagline         String                       @default("")
+  popularCities   String[]                     @default([])
+  topUniversities String[]                     @default([])
+  quickLinks      Json                         @default("[]")
   description     String?                      @db.Text
   memberCount     Int                          @default(0)
   postCount       Int                          @default(0)
@@ -607,6 +614,10 @@ model StudentCommunityMembership {
   targetOrCurrentUniversity String?
   isVerified      Boolean               @default(false)
   isSeniorMentor  Boolean               @default(false)
+  mentorBio       String?               @db.Text
+  program         String?
+  intake          String?
+  isAvailableForChat Boolean            @default(false)
   joinedAt        DateTime              @default(now())
 
   @@unique([userId, communityId])
@@ -643,6 +654,7 @@ model CommunityPost {
   @@index([communityId])
   @@index([category])
   @@index([createdAt])
+  @@index([communityId, createdAt, id])
 }
 
 model CommunityComment {
@@ -666,6 +678,7 @@ model CommunityComment {
 
   @@index([postId])
   @@index([authorId])
+  @@index([postId, createdAt, id])
 }
 
 model CommunityPostLike {
@@ -708,6 +721,35 @@ model CommunityReport {
 
   @@index([postId])
   @@index([reporterId])
+  @@unique([reporterId, postId])
+  @@unique([reporterId, commentId])
+}
+
+model PeerMessageThread {
+  id            String        @id @default(uuid())
+  firstUserId   String
+  firstUser     User          @relation("PeerFirst", fields: [firstUserId], references: [id], onDelete: Cascade)
+  secondUserId  String
+  secondUser    User          @relation("PeerSecond", fields: [secondUserId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  messages      PeerMessage[]
+
+  @@unique([firstUserId, secondUserId])
+  @@index([firstUserId, updatedAt])
+  @@index([secondUserId, updatedAt])
+}
+
+model PeerMessage {
+  id            String        @id @default(uuid())
+  threadId      String
+  thread        PeerMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        User          @relation("PeerSender", fields: [senderId], references: [id], onDelete: Cascade)
+  content       String        @db.Text
+  sentAt        DateTime      @default(now())
+
+  @@index([threadId, sentAt, id])
 }
 
 // -----------------------------------------------------------------------------

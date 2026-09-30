@@ -52,6 +52,11 @@ jobs:
       - run: npm run db:generate
       - name: Deploy migrations to disposable database only
         run: npx prisma migrate deploy --schema ../../prisma/schema.prisma
+      - name: Idempotent community seed and seed safety tests
+        run: |
+          node ../../prisma/seed-community.test.mjs
+          node ../../prisma/seed-community.mjs
+          node ../../prisma/seed-community.mjs
       - name: Unit and PostgreSQL integration tests
         run: npm test
         env:
