@@ -1,6 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { currentUserSchema, type User, type UserRole } from '@/lib/auth/contracts';
+import { postAuth, authFailure, type AuthResult } from '@/lib/auth/client-request';
 export type { User, UserRole, StudentDetails, AgencyDetails } from '@/lib/auth/contracts';
 
 export interface NeonAuthStatus {
@@ -13,11 +14,11 @@ interface AuthContextValue {
   user: User | null; isAuthenticated: boolean; loading: boolean;
   pendingRegistration: Partial<User> | null; otpSent: boolean; otpCountdown: number; otpEmail: string;
   linkedStudents: User[]; linkedParents: User[]; neonAuthStatus: NeonAuthStatus;
-  login: (email: string, password?: string) => Promise<boolean>;
-  register: (data: Registration) => Promise<boolean>;
-  verifyOtp: (code: string) => Promise<boolean>; resendOtp: () => Promise<boolean>;
-  requestSignInOtp: (email: string) => Promise<boolean>;
-  logout: () => Promise<void>; refreshSession: () => Promise<User | null>;
+  signInWithPassword: (email: string, password: string) => Promise<AuthResult<User>>;
+  signUp: (data: Registration) => Promise<AuthResult>;
+  verifyOtp: (code: string) => Promise<AuthResult<User>>; resendOtp: () => Promise<AuthResult>;
+  requestSignInOtp: (email: string) => Promise<AuthResult>;
+  signOut: () => Promise<AuthResult>; logout: () => Promise<AuthResult>; refreshSession: () => Promise<User | null>;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   linkStudent: (identifier: string) => { success: boolean; message: string };
   unlinkStudent: (studentId: string) => void;
@@ -28,14 +29,6 @@ const DEFAULT_AUTH_STATUS: NeonAuthStatus = {
   connected: false, provider: 'neon_better_auth', baseUrl: '', loading: true, demoEnabled: false,
 };
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-async function authRequest(path: string, body: unknown) {
-  const response = await fetch('/api/auth/' + path, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin', body: JSON.stringify(body),
-  });
-  if (!response.ok) throw new Error('Authentication request failed.');
-}
 
 async function fetchCurrentUser(): Promise<User | null> {
   try {
@@ -65,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [otpEmail, setOtpEmail] = useState('');
   const [neonAuthStatus, setNeonAuthStatus] = useState(DEFAULT_AUTH_STATUS);
   const generation = useRef(0);
+  const registrationPassword = useRef<string | null>(null);
+  const registrationVerified = useRef(false);
 
   const refreshSession = useCallback(async () => {
     const requestGeneration = ++generation.current;
@@ -98,57 +93,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, [otpCountdown]);
 
-  const login = async (email: string, password?: string) => {
-    try {
-      if (!password) return false;
-      await authRequest('sign-in/email', { email: email.trim().toLowerCase(), password });
-      return !!await refreshSession();
-    } catch { return false; }
+  const signInWithPassword = async (email: string, password: string): Promise<AuthResult<User>> => {
+    if (!password) return authFailure('PASSWORD_REQUIRED', 'Enter your password.');
+    const result = await postAuth('/api/auth/sign-in/email', { email: email.trim().toLowerCase(), password });
+    if (!result.success) return result;
+    const current = await refreshSession();
+    return current ? { success: true, data: current } : authFailure('PROFILE_UNAVAILABLE', 'Your email must be verified and your platform profile completed before signing in.');
   };
 
-  const sendOtp = async (email: string, type: 'sign-in' | 'email-verification') => {
-    try {
-      await authRequest('email-otp/send-verification-otp', { email, type });
-      setOtpEmail(email); setOtpSent(true); setOtpCountdown(60);
-      return true;
-    } catch { return false; }
+  const sendOtp = async (email: string, type: 'sign-in' | 'email-verification'): Promise<AuthResult> => {
+    const result = await postAuth('/api/auth/email-otp/send-verification-otp', { email, type });
+    if (result.success) { setOtpEmail(email); setOtpSent(true); setOtpCountdown(60); }
+    return result;
   };
 
-  const register = async (data: Registration) => {
-    if (data.role === 'admin' || !data.password) return false;
-    try {
-      const email = data.email.trim().toLowerCase();
-      await authRequest('sign-up/email', { name: data.name, email, password: data.password });
-      setPendingRegistration({ name: data.name, email, phone: data.phone, role: data.role });
-      return await sendOtp(email, 'email-verification');
-    } catch { return false; }
+  const signUp = async (data: Registration): Promise<AuthResult> => {
+    if (data.role === 'admin' || !data.password) return authFailure('INVALID_REGISTRATION', 'Choose a public account type and enter a password.');
+    const email = data.email.trim().toLowerCase();
+    if (pendingRegistration?.email === email && otpCountdown > 0) return authFailure('RESEND_COOLDOWN', 'Wait before requesting another verification code.');
+    const result = await postAuth('/api/registration/start', { ...data, email });
+    if (!result.success) return result;
+    registrationPassword.current = data.password;
+    registrationVerified.current = false;
+    setPendingRegistration({ name: data.name, email, phone: data.phone, role: data.role });
+    setOtpEmail(email);
+    return sendOtp(email, 'email-verification');
   };
 
-  const verifyOtp = async (code: string) => {
-    if (!/^\d{6}$/.test(code) || !otpEmail) return false;
-    try {
-      await authRequest(pendingRegistration ? 'email-otp/verify-email' : 'sign-in/email-otp', { email: otpEmail, otp: code });
-      const current = await refreshSession();
-      if (!current) return false;
-      setPendingRegistration(null); setOtpSent(false);
-      return true;
-    } catch { return false; }
+  const verifyOtp = async (code: string): Promise<AuthResult<User>> => {
+    if (!/^\d{6}$/.test(code) || !otpEmail) return authFailure('INVALID_OTP', 'Enter a six-digit code.');
+    if (!pendingRegistration || !registrationVerified.current) {
+      const result = await postAuth(pendingRegistration ? '/api/auth/email-otp/verify-email' : '/api/auth/sign-in/email-otp', { email: otpEmail, otp: code });
+      if (!result.success) return result;
+      if (pendingRegistration) registrationVerified.current = true;
+    }
+    if (pendingRegistration) {
+      // Some Neon configurations do not create a session on verification. Authenticate
+      // with the original password, never with a sign-in OTP of a different purpose.
+      if (registrationPassword.current) {
+        const signedIn = await postAuth('/api/auth/sign-in/email', { email: otpEmail, password: registrationPassword.current });
+        if (!signedIn.success) return signedIn;
+      }
+      const provisioned = await postAuth('/api/registration/complete', {});
+      if (!provisioned.success) return provisioned;
+    }
+    const current = await refreshSession();
+    if (!current) return authFailure('PROFILE_UNAVAILABLE', 'Your session or platform profile could not be restored. Please sign in again.');
+    registrationPassword.current = null;
+    setPendingRegistration(null); setOtpSent(false);
+    return { success: true, data: current };
   };
 
-  const resendOtp = async () => {
-    if (otpCountdown > 0 || !otpEmail) return false;
+  const resendOtp = async (): Promise<AuthResult> => {
+    if (otpCountdown > 0) return authFailure('RESEND_COOLDOWN', 'Wait before requesting another code.');
+    if (!otpEmail) return authFailure('EMAIL_REQUIRED', 'Enter your email first.');
     return sendOtp(otpEmail, pendingRegistration ? 'email-verification' : 'sign-in');
   };
 
-  const requestSignInOtp = async (email: string) => {
+  const requestSignInOtp = async (email: string): Promise<AuthResult> => {
     setPendingRegistration(null);
+    registrationPassword.current = null;
     return sendOtp(email.trim().toLowerCase(), 'sign-in');
   };
 
-  const logout = async () => {
-    // Clear local UI immediately, but report/retain no fabricated replacement identity.
-    ++generation.current; setUser(null); setPendingRegistration(null); setOtpSent(false);
-    try { await authRequest('sign-out', {}); } finally { await refreshSession(); }
+  const signOut = async (): Promise<AuthResult> => {
+    const result = await postAuth('/api/auth/sign-out', {});
+    if (result.success) {
+      ++generation.current; setUser(null); setPendingRegistration(null); setOtpSent(false);
+      registrationPassword.current = null;
+    }
+    await refreshSession();
+    return result;
   };
 
   const updateProfile = async (updates: Partial<User>) => {
@@ -163,8 +178,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return <AuthContext.Provider value={{
     user, loading, isAuthenticated: !!user, pendingRegistration, otpSent, otpCountdown, otpEmail,
-    linkedStudents: [], linkedParents: [], neonAuthStatus, login, register, verifyOtp, resendOtp,
-    logout, refreshSession, updateProfile, checkNeonAuth, requestSignInOtp,
+    linkedStudents: [], linkedParents: [], neonAuthStatus, signInWithPassword, signUp, verifyOtp, resendOtp,
+    signOut, logout: signOut, refreshSession, updateProfile, checkNeonAuth, requestSignInOtp,
     linkStudent: () => ({ success: false, message: 'Guardian linking requires a server-approved relationship.' }),
     unlinkStudent: () => {},
   }}>{children}</AuthContext.Provider>;

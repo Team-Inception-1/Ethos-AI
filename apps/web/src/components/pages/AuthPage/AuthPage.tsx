@@ -68,7 +68,7 @@ const roles: { id: UserRole; label: string; labelBn: string; icon: React.ReactNo
 
 export default function AuthPage({ mode }: AuthPageProps) {
   const router = useRouter();
-  const { loading, login, register, verifyOtp, resendOtp, otpCountdown, otpEmail, refreshSession, requestSignInOtp, neonAuthStatus } = useAuth();
+  const { loading, signInWithPassword, signUp, verifyOtp, resendOtp, otpCountdown, otpEmail, requestSignInOtp, neonAuthStatus } = useAuth();
 
   const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [role, setRole] = useState<UserRole>('student');
@@ -109,10 +109,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
         return;
       }
       setIsVerifying(true);
-      const sent = await register({ name: fullName, email, phone, role, password });
+      const sent = await signUp({ name: fullName, email, phone, role, password });
       setIsVerifying(false);
-      if (sent) setStep('otp');
-      else setErrorMsg('Registration or verification email failed. Please retry.');
+      if (sent.success) setStep('otp');
+      else setErrorMsg(sent.error.message);
     } else {
       if (!email.trim() || !password.trim()) {
         setErrorMsg('Please enter your email and password.');
@@ -120,14 +120,14 @@ export default function AuthPage({ mode }: AuthPageProps) {
       }
       setIsVerifying(true);
       try {
-        const ok = await login(email.trim(), password);
-        if (!ok) {
-          setErrorMsg('Invalid login credentials. Please check your email and password.');
+        const ok = await signInWithPassword(email.trim(), password);
+        if (!ok.success) {
+          setErrorMsg(ok.error.message);
           setIsVerifying(false);
           return;
         }
 
-        const current = await refreshSession();
+        const current = ok.data;
         if (!current) { setErrorMsg('Your session could not be restored. Please sign in again.'); return; }
         router.push(current.role === 'agency' ? '/agency/dashboard' : current.role === 'admin' ? '/admin' : '/dashboard');
       } catch (err) {
@@ -146,8 +146,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
     setIsVerifying(true);
     const sent = await requestSignInOtp(email);
     setIsVerifying(false);
-    if (sent) setStep('otp');
-    else setErrorMsg('The sign-in code could not be sent. Please retry.');
+    if (sent.success) setStep('otp');
+    else setErrorMsg(sent.error.message);
   };
 
   const handleOtpChange = (i: number, val: string) => {
@@ -172,12 +172,12 @@ export default function AuthPage({ mode }: AuthPageProps) {
     setErrorMsg('');
     try {
       const success = await verifyOtp(code);
-      if (success) {
-        const current = await refreshSession();
+      if (success.success) {
+        const current = success.data;
         if (!current) { setErrorMsg('Your session could not be restored. Please sign in again.'); return; }
         router.push(current.role === 'agency' ? '/agency/dashboard' : current.role === 'admin' ? '/admin' : '/dashboard');
       } else {
-        setErrorMsg('Invalid verification code. Please check your email and try again.');
+        setErrorMsg(success.error.message);
       }
     } catch {
       setErrorMsg('Verification failed. Please try again.');
@@ -320,7 +320,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
 
 
-              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
+              {errorMsg && <div role="alert" style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600 }}>{errorMsg}</div>}
 
               <form className={styles.form} onSubmit={handleFormSubmit}>
                 {mode === 'register' && (
@@ -402,9 +402,9 @@ export default function AuthPage({ mode }: AuthPageProps) {
                     </button>
                   </div>
                   {mode === 'login' && (
-                    <Link href="#" className={styles.forgotLink}>
+                    <button type="button" className={styles.forgotLink} onClick={() => setErrorMsg('Password reset is not available yet. Use email OTP to sign in.')}>
                       {lang === 'en' ? 'Forgot password?' : 'পাসওয়ার্ড ভুলে গেছেন?'}
-                    </Link>
+                    </button>
                   )}
                 </div>
                 <Button type="submit" size="lg" fullWidth glow disabled={loading || isVerifying}>
@@ -492,7 +492,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           ) : (
             /* OTP Step */
             <>
-              {errorMsg && <div style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>{errorMsg}</div>}
+              {errorMsg && <div role="alert" style={{ color: 'var(--red-light)', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>{errorMsg}</div>}
 
               <div className={styles.otpGrid} role="group" aria-label="OTP input">
                 {otp.map((v, i) => (
@@ -534,7 +534,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 {otpCountdown > 0 ? (
                   <span style={{ color: 'var(--blue-light)', fontWeight: 600 }}>Resend in {otpCountdown}s</span>
                 ) : (
-                  <button type="button" onClick={resendOtp} className={styles.switchLink}>
+                  <button type="button" disabled={isVerifying} onClick={async () => { setIsVerifying(true); const result = await resendOtp(); setIsVerifying(false); setErrorMsg(result.success ? '' : result.error.message); }} className={styles.switchLink}>
                     {lang === 'en' ? 'Resend OTP' : 'OTP পুনরায় পাঠান'}
                   </button>
                 )}
