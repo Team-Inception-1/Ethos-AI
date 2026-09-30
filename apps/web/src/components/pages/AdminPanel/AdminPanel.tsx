@@ -1555,7 +1555,7 @@ export default function AdminPanel() {
                     <td><Skeleton width={110} height={14} /><Skeleton width={140} height={12} style={{ marginTop: 4 }} /></td>
                     <td><Skeleton width={80} height={14} /></td>
                     <td><Skeleton width={80} height={14} /><Skeleton width={120} height={12} style={{ marginTop: 4 }} /></td>
-                    <td><Skeleton width={120} height={16} rounded="sm" /></td>
+                    <td><Skeleton width={120} height={16} rounded="md" /></td>
                     <td><Skeleton width={100} height={14} /></td>
                   </tr>
                 ))
