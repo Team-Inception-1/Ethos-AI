@@ -6,6 +6,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// The web app is installed independently in CI and locally, so it needs a
+// generated client in its own node_modules tree as well as the root client
+// used by the seed scripts.
+generator webClient {
+  provider = "prisma-client-js"
+  output   = "../apps/web/node_modules/.prisma/client"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
