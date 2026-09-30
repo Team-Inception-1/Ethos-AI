@@ -41,8 +41,10 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function DocumentsPage() {
-  const { user } = useAuth();
-  return <DocumentVault key={user?.id ?? 'signed-out'} />;
+  const { user, loading } = useAuth();
+  if (loading) return <p role="status">Restoring your secure document session…</p>;
+  if (!user) return <p role="alert">Sign in to access your document vault.</p>;
+  return <DocumentVault key={user.id} />;
 }
 
 function DocumentVault() {
