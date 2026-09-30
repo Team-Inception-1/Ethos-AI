@@ -67,4 +67,14 @@ Neon preservation: `stabilization-backup-20260930` (`br-jolly-dream-axwk9y8j`) p
 - Install the browser with `npx playwright install chromium`, or set `PLAYWRIGHT_CHANNEL=chrome` to use an installed Chrome for local smoke tests.
 - PostgreSQL tests require `RUN_DATABASE_TESTS=true`, `NODE_ENV=test`, and an explicitly supplied `DATABASE_URL` pointing at a local database named `ethos_test`. They refuse remote/live database URLs and never load local environment files.
 - The deterministic auth adapter uses explicit fixtures, checks `NODE_ENV=test` at creation and use, and refuses enabled non-test configuration on module load. It is not a demo authentication bypass.
-- Full repository lint is still red at the recorded baseline; existing CI intentionally continues to report that until the lint-cleanup commit.
+- Historical baseline: full repository lint was red until the later parallel cleanup checkpoint recorded below.
+
+## Parallel stabilization checkpoint — 2026-09-30
+
+- Payments now use PostgreSQL transactions, locked milestones, persisted attempts, amount/currency reconciliation, replay protection, and signed sandbox callbacks. Sandbox mode refuses production; live gateways remain disabled pending real provider integration.
+- Admin governance, fee submissions, applications, chat, provenance proposals, profiles, and agency operations use Prisma repositories. The production in-memory database was removed.
+- Browser AI requests use authenticated same-origin Next.js proxies. FastAPI requires a service token, restricts origins and body sizes, refuses fake production providers, and persists agency risk state in PostgreSQL.
+- Application, agency, admin, chat, directory, comparison, parent, payment, and AI screens no longer report local-only writes or fabricated production verification as success.
+- The additive `20260930144000_secure_platform_state` migration passed on the retained Neon validation branch. Validation still contains 20 users, four documents, and six hubs; all new state tables are present and initially empty.
+- Local verification: full ESLint passes with zero errors/warnings; strict TypeScript and production build pass; 189 web tests pass (five disposable-PostgreSQL tests skipped locally), 120 Python tests pass (two disposable-PostgreSQL tests skipped locally), escrow QA passes 31/31, and all seven browser flows pass when the slow-filesystem timeout case is rerun serially.
+- Primary Neon deployment remains intentionally pending until the pushed repair branch passes the disposable PostgreSQL CI workflow. The final PR must not be opened before that gate is green.

@@ -62,7 +62,7 @@ echo "🔍 Checking for sensitive unignored files..."
 FORBIDDEN_FILES=(".env" ".env.local" ".env.production" "id_rsa" "id_rsa.pub")
 SENSITIVE_FOUND=0
 for pattern in "${FORBIDDEN_FILES[@]}"; do
-    FOUND=$(find . -not -path '*/.*' -not -path './node_modules*' -name "$pattern" 2>/dev/null || true)
+    FOUND=$(git ls-files --cached --others --exclude-standard | awk -F/ -v name="$pattern" '$NF == name' || true)
     if [[ -n "$FOUND" ]]; then
         echo "❌ Forbidden file detected: $FOUND"
         SENSITIVE_FOUND=$((SENSITIVE_FOUND + 1))
@@ -77,7 +77,7 @@ fi
 # 4. Merge conflict markers
 echo ""
 echo "🔍 Checking for unresolved merge conflict markers..."
-if grep -rnE '^(<<<<<<<|=======|>>>>>>>)' --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next . >/dev/null 2>&1; then
+if git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- '*.ts' '*.tsx' '*.js' '*.json' '*.md' '*.py' >/dev/null 2>&1; then
     echo "❌ Unresolved merge conflict markers detected in codebase."
     TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
 else

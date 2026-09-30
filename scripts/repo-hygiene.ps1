@@ -69,8 +69,9 @@ $ForbiddenFiles = @(".env", ".env.local", ".env.production", "id_rsa", "id_rsa.p
 
 $SensitiveFound = 0
 foreach ($Pattern in $ForbiddenFiles) {
-    $Matches = Get-ChildItem -Path $Path -Filter $Pattern -Recurse -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch "node_modules|\.git|\.next" }
+    $Matches = @(git -C $Path ls-files --cached --others --exclude-standard 2>$null) |
+        Where-Object { (Split-Path $_ -Leaf) -eq $Pattern } |
+        ForEach-Object { Get-Item -LiteralPath (Join-Path $Path $_) -ErrorAction SilentlyContinue }
     
     foreach ($File in $Matches) {
         Write-Host "[FAIL] Forbidden file detected: $($File.FullName)" -ForegroundColor Red
@@ -87,9 +88,9 @@ if ($SensitiveFound -eq 0) {
 # 4. Merge Conflict Markers Check
 # -----------------------------------------------------------------------------
 Write-Host "`n[CHECK] Scanning for unresolved merge conflict markers..." -ForegroundColor Cyan
-$ConflictFiles = Get-ChildItem -Path $Path -Include "*.ts","*.tsx","*.js","*.json","*.md","*.py" -Recurse -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch "node_modules|\.git|\.next" } |
-    Select-String -Pattern '^(<<<<<<<|=======|>>>>>>>)' -List
+$TrackedSource = @(git -C $Path ls-files '*.ts' '*.tsx' '*.js' '*.json' '*.md' '*.py' 2>$null) |
+    ForEach-Object { Join-Path $Path $_ }
+$ConflictFiles = $TrackedSource | Select-String -Pattern '^(<<<<<<<|=======|>>>>>>>)' -List
 
 if ($ConflictFiles) {
     foreach ($Match in $ConflictFiles) {
