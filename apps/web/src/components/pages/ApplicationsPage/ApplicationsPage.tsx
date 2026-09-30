@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { FormEvent, useState } from 'react';
+import { z } from 'zod';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import GlassCard from '@/components/ui/GlassCard';
@@ -9,6 +11,12 @@ import { useApplicationData } from '@/lib/applications/use-data';
 import styles from './ApplicationsPage.module.css';
 
 type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'warning' | 'info';
+
+const agencyListSchema = z.object({ agencies: z.array(z.object({ id: z.string(), name: z.string() })) });
+const mutationSchema = z.object({ data: z.object({ application: z.object({ id: z.string() }) }) });
+const mutationErrorSchema = z.object({ error: z.object({ message: z.string() }) });
+
+type ApplicationsPageProps = { initialAgencyId?: string };
 
 function stageVariant(stage: ApplicationItem['stage']): BadgeVariant {
   if (stage === 'COMPLETED' || stage === 'VISA_APPROVED') return 'verified';
@@ -22,8 +30,48 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
 }
 
-export default function ApplicationsPage() {
+export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsPageProps) {
   const { data, error, loading, retry } = useApplicationData('/api/applications', applicationListSchema);
+  const agencies = useApplicationData('/api/agencies', agencyListSchema);
+  const [isFormOpen, setIsFormOpen] = useState(Boolean(initialAgencyId));
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdMessage, setCreatedMessage] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    agencyId: initialAgencyId,
+    targetCountry: 'Canada',
+    targetUniversity: '',
+    targetProgram: '',
+    intakeSemester: 'Fall 2027',
+  });
+
+  async function submitApplication(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const response = await fetch('/api/applications', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const body: unknown = await response.json();
+      if (!response.ok) {
+        const failure = mutationErrorSchema.safeParse(body);
+        throw new Error(failure.success ? failure.data.error.message : 'Could not create the application.');
+      }
+      const created = mutationSchema.parse(body);
+      setCreatedMessage(`Application ${created.data.application.id.slice(0, 8)} was created and its escrow milestones are ready.`);
+      setIsFormOpen(false);
+      setForm(value => ({ ...value, targetUniversity: '', targetProgram: '' }));
+      retry();
+    } catch (submissionError) {
+      setSubmitError(submissionError instanceof Error ? submissionError.message : 'Could not create the application.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className={styles.page}>
@@ -32,8 +80,10 @@ export default function ApplicationsPage() {
           <h1>My Applications</h1>
           <p className={styles.target}>Applications available to your signed-in account.</p>
         </div>
-        <Link href="/directory"><Button size="sm">+ New Application</Button></Link>
+        <Button size="sm" onClick={() => { setSubmitError(null); setIsFormOpen(true); }}>+ New Application</Button>
       </div>
+
+      {createdMessage && <div className={styles.successBanner} role="status">✓ {createdMessage}</div>}
 
       {loading && <GlassCard padding="lg"><p role="status">Loading applications…</p></GlassCard>}
 
@@ -87,6 +137,57 @@ export default function ApplicationsPage() {
             </div>
           </div>
           <Link href="/dashboard/payments"><Button size="sm" variant="emerald">Manage escrow →</Button></Link>
+        </div>
+      )}
+
+      {isFormOpen && (
+        <div className={styles.modalBackdrop} role="presentation" onMouseDown={event => {
+          if (event.target === event.currentTarget && !submitting) setIsFormOpen(false);
+        }}>
+          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="new-application-title">
+            <div className={styles.modalHeader}>
+              <div>
+                <h2 id="new-application-title">Start a protected application</h2>
+                <p>Your identity is taken from your signed-in account. Fees use the agency’s verified pricing.</p>
+              </div>
+              <button type="button" className={styles.closeButton} aria-label="Close application form"
+                onClick={() => setIsFormOpen(false)} disabled={submitting}>×</button>
+            </div>
+            <form className={styles.form} onSubmit={submitApplication}>
+              <label>Verified agency
+                <select required value={form.agencyId} onChange={event => setForm({ ...form, agencyId: event.target.value })}>
+                  <option value="">Select an agency</option>
+                  {agencies.data?.agencies.map(agency => <option key={agency.id} value={agency.id}>{agency.name}</option>)}
+                </select>
+              </label>
+              {agencies.loading && <p className={styles.formHint}>Loading verified agencies…</p>}
+              {agencies.error && <p role="alert" className={styles.formError}>{agencies.error}</p>}
+              <div className={styles.formGrid}>
+                <label>Destination country
+                  <input required minLength={2} maxLength={100} value={form.targetCountry}
+                    onChange={event => setForm({ ...form, targetCountry: event.target.value })} />
+                </label>
+                <label>Intake
+                  <input required minLength={2} maxLength={100} placeholder="Fall 2027" value={form.intakeSemester}
+                    onChange={event => setForm({ ...form, intakeSemester: event.target.value })} />
+                </label>
+              </div>
+              <label>University
+                <input required minLength={2} maxLength={200} placeholder="University of British Columbia" value={form.targetUniversity}
+                  onChange={event => setForm({ ...form, targetUniversity: event.target.value })} />
+              </label>
+              <label>Program
+                <input required minLength={2} maxLength={200} placeholder="M.Sc. in Computer Science" value={form.targetProgram}
+                  onChange={event => setForm({ ...form, targetProgram: event.target.value })} />
+              </label>
+              {submitError && <p role="alert" className={styles.formError}>{submitError}</p>}
+              <div className={styles.modalActions}>
+                <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)} disabled={submitting}>Cancel</Button>
+                <Button type="submit" variant="emerald" loading={submitting}
+                  disabled={!form.agencyId || agencies.loading}>Create protected application</Button>
+              </div>
+            </form>
+          </section>
         </div>
       )}
     </div>
