@@ -49,4 +49,12 @@ accepted. Rollback means reverting application code and retaining additive
 tables; deleting tables or restoring production over newer user data needs a
 separate reviewed recovery decision.
 
+The separately approved document-object migration preserved all four document
+records and file bytes, changed their pointers to verified private copies, and
+removed only the four verified public source objects. Recovery information is
+in the ignored local migration manifest and the retained pre-migration branch.
+Deploy the repair application's private-key reader with this change; the old
+reader does not support the new storage namespace. Retain the backup and review
+its object-storage access policy before final production acceptance.
+
 Prisma baselining guidance: https://www.prisma.io/docs/orm/prisma-migrate/workflows/baselining

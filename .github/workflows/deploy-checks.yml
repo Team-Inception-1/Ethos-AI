@@ -55,6 +55,7 @@ jobs:
       - name: Idempotent community seed and seed safety tests
         run: |
           node ../../prisma/seed-community.test.mjs
+          node --test ../../scripts/migrate-private-documents.test.mjs
           node ../../prisma/seed-community.mjs
           node ../../prisma/seed-community.mjs
       - name: Unit and PostgreSQL integration tests
