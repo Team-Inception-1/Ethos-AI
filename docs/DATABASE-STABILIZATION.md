@@ -7,11 +7,14 @@ Production: `br-withered-unit-axfbhtie`.
 The read-only live schema snapshot is `prisma/baseline/live-20260930.sql`.
 It is a reference, not a script to run over an existing database.
 
-The old initial migration is not an exact description of live Neon: array
-nullability/defaults, timestamp defaults and constraint names differ. Do not
-silently mark that migration applied, or tighten existing nullable columns.
-Production baselining is paused for review of those differences. No `db push`,
-reset, drop, truncation or destructive reconciliation is permitted.
+The old initial migration was not an exact description of live Neon: array
+nullability/defaults, timestamp defaults and constraint names differed. The user
+approved preserving existing columns and creating an accurate baseline. The
+former SQL is archived in `prisma/baseline/original-init.sql`; the initial migration
+now reproduces the live 19 application tables, excluding the unmanaged
+`playing_with_neon` example table. There was no pre-existing migration history.
+Both migrations are recorded as applied on the validation branch only. No
+`db push`, reset, drop, truncation or destructive reconciliation is permitted.
 
 `20260930130000_add_platform_models` contains only the 12 missing platform
 models, two peer messaging models, their four enums, indexes and foreign keys.
@@ -20,8 +23,10 @@ checks reject invalid messaging/report data. Community reads derive counts from
 related rows, so legacy illustrative counters cannot inflate them.
 
 On an empty disposable database, normal `prisma migrate deploy` applies both
-migrations. On existing Neon, first approve and reconcile the baseline/history;
-never replay the original create-table migration on live tables.
+migrations. On existing Neon, verify the corrected baseline, then mark only the
+initial migration applied using `prisma migrate resolve --applied 20250101000000_init`.
+Deploy the additive migration normally; never replay create-table baseline SQL
+on existing tables. Production deployment follows validated community tests.
 
 Run `node prisma/seed-community.mjs` with an explicit `DATABASE_URL` and matching
 `COMMUNITY_SEED_ALLOWED_HOST`. CI may use local `ethos_test` without that host
