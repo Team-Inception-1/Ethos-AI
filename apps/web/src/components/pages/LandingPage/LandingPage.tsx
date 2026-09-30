@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
+import { useLanguage } from '@/lib/browser-preferences';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import GlassCard from '@/components/ui/GlassCard';
@@ -154,36 +155,18 @@ function useScrollReveal() {
 }
 
 export default function LandingPage() {
-  const [lang, setLang] = useState<'en'|'bn'>('en');
+  const [lang, setLang] = useLanguage();
   
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('ethos-lang') as 'en' | 'bn';
-      if (saved === 'en' || saved === 'bn') setLang(saved);
-    } catch {}
-    const handleLangChange = (e: Event) => {
-      const customEvent = e as CustomEvent<'en' | 'bn'>;
-      if (customEvent.detail === 'en' || customEvent.detail === 'bn') {
-        setLang(customEvent.detail);
-      }
-    };
-    window.addEventListener('ethos-lang-change', handleLangChange);
-    return () => window.removeEventListener('ethos-lang-change', handleLangChange);
-  }, []);
 
   const toggleLanguage = () => {
     const next = lang === 'en' ? 'bn' : 'en';
     setLang(next);
-    try {
-      localStorage.setItem('ethos-lang', next);
-      window.dispatchEvent(new CustomEvent('ethos-lang-change', { detail: next }));
-    } catch {}
   };
 
-  const statsReveal = useScrollReveal();
-  const featuresReveal = useScrollReveal();
-  const stepsReveal = useScrollReveal();
-  const ctaReveal = useScrollReveal();
+  const { ref: statsRef, isVisible: statsVisible } = useScrollReveal();
+  const { ref: featuresRef, isVisible: featuresVisible } = useScrollReveal();
+  const { ref: stepsRef, isVisible: stepsVisible } = useScrollReveal();
+  const { ref: ctaRef, isVisible: ctaVisible } = useScrollReveal();
 
   return (
     <main className={styles.main} suppressHydrationWarning>
@@ -256,9 +239,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ── */}
-      <section className={styles.featuresSection} aria-label="Features" ref={featuresReveal.ref}>
+      <section className={styles.featuresSection} aria-label="Features" ref={featuresRef}>
         <div className="container">
-          <div className={`${styles.sectionHeader} ${featuresReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}>
+          <div className={`${styles.sectionHeader} ${featuresVisible ? 'animate-fade-up' : 'opacity-0'}`}>
             <h2>{lang === 'en' ? 'Everything You Need to Study Safely' : 'নিরাপদে পড়াশোনার জন্য সবকিছু'}</h2>
             <p className={styles.sectionSubtitle}>
               {lang === 'en'
@@ -270,7 +253,7 @@ export default function LandingPage() {
             {features.map((f, i) => (
               <div 
                 key={f.title} 
-                className={`${featuresReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`} 
+                className={`${featuresVisible ? 'animate-fade-up' : 'opacity-0'}`}
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
                 <Link href={f.href || '#'} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
@@ -290,16 +273,16 @@ export default function LandingPage() {
       </section>
 
       {/* ── Stats ── */}
-      <section className={styles.statsSection} aria-label="Statistics" ref={statsReveal.ref}>
+      <section className={styles.statsSection} aria-label="Statistics" ref={statsRef}>
         <div className="container">
           <div className={styles.statsGrid}>
             {stats.map((s, i) => (
               <div
                 key={s.label}
-                className={`${statsReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}
+                className={`${statsVisible ? 'animate-fade-up' : 'opacity-0'}`}
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <StatCard {...s} lang={lang} trigger={statsReveal.isVisible} />
+                <StatCard {...s} lang={lang} trigger={statsVisible} />
               </div>
             ))}
           </div>
@@ -307,9 +290,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── How It Works ── */}
-      <section className={styles.stepsSection} id="how" aria-label="How it works" ref={stepsReveal.ref}>
+      <section className={styles.stepsSection} id="how" aria-label="How it works" ref={stepsRef}>
         <div className="container">
-          <div className={`${styles.sectionHeader} ${stepsReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}>
+          <div className={`${styles.sectionHeader} ${stepsVisible ? 'animate-fade-up' : 'opacity-0'}`}>
             <h2>{lang === 'en' ? 'How Ethos AI Works' : 'Ethos AI কীভাবে কাজ করে'}</h2>
             <p className={styles.sectionSubtitle}>
               {lang === 'en' ? 'Four simple steps to a safer study-abroad journey.' : 'নিরাপদ বিদেশ যাত্রার চারটি সহজ ধাপ।'}
@@ -319,7 +302,7 @@ export default function LandingPage() {
             {steps.map((s, i) => (
               <div 
                 key={s.n} 
-                className={`${styles.step} ${stepsReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}
+                className={`${styles.step} ${stepsVisible ? 'animate-fade-up' : 'opacity-0'}`}
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
                 <div className={styles.stepNumber} aria-hidden="true">{s.n}</div>
@@ -335,9 +318,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── Agency CTA ── */}
-      <section className={styles.agencyCtaSection} aria-label="Agency CTA" ref={ctaReveal.ref}>
+      <section className={styles.agencyCtaSection} aria-label="Agency CTA" ref={ctaRef}>
         <div className="container">
-          <div className={`${ctaReveal.isVisible ? 'animate-fade-up' : 'opacity-0'}`}>
+          <div className={`${ctaVisible ? 'animate-fade-up' : 'opacity-0'}`}>
             <GlassCard glow padding="lg" className={styles.agencyCta} variant="frosted">
               <div className={styles.agencyCtaContent}>
                 <div>

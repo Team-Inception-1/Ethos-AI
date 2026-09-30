@@ -1,9 +1,11 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useLanguage } from '@/lib/browser-preferences';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import ThemeToggle from '@/components/ui/ThemeToggle';
-import { useAuth, UserRole } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { EthosLogoIcon } from '@/components/ui/EthosLogo/EthosLogo';
 import styles from './Navbar.module.css';
 
@@ -16,7 +18,7 @@ const navLinks = [
 
 export default function Navbar() {
   const { user, isAuthenticated } = useAuth();
-  const [lang, setLang] = useState<'en' | 'bn'>('en');
+  const [lang, setLang] = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const dashboardHref =
@@ -29,40 +31,19 @@ export default function Navbar() {
     (pathname?.startsWith('/admin') && user?.role === 'admin') ||
     pathname === '/dashboard';
 
-  const [imgError, setImgError] = useState(false);
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
 
-  useEffect(() => {
-    setImgError(false);
-  }, [user?.avatarUrl]);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('ethos-lang') as 'en' | 'bn';
-      if (saved === 'en' || saved === 'bn') setLang(saved);
-    } catch {}
-    const handleLangChange = (e: Event) => {
-      const customEvent = e as CustomEvent<'en' | 'bn'>;
-      if (customEvent.detail === 'en' || customEvent.detail === 'bn') {
-        setLang(customEvent.detail);
-      }
-    };
-    window.addEventListener('ethos-lang-change', handleLangChange);
-    return () => window.removeEventListener('ethos-lang-change', handleLangChange);
-  }, []);
 
   const toggleLanguage = () => {
     const next = lang === 'en' ? 'bn' : 'en';
     setLang(next);
-    try {
-      localStorage.setItem('ethos-lang', next);
-      window.dispatchEvent(new CustomEvent('ethos-lang-change', { detail: next }));
-    } catch {}
   };
 
 
   return (
-    <header className={styles.header} suppressHydrationWarning>
-      <nav className={`${styles.nav} container`} suppressHydrationWarning>
+    <header className={styles.header}>
+      <nav className={`${styles.nav} container`}>
         {/* Logo */}
         <Link href="/" className={styles.logo} aria-label="Ethos AI Home">
           <EthosLogoIcon size={30} />
@@ -90,7 +71,7 @@ export default function Navbar() {
         </ul>
 
         {/* Right Controls */}
-        <div className={styles.controls} suppressHydrationWarning>
+        <div className={styles.controls}>
           {/* Language Toggle */}
           <button
             id="lang-toggle"
@@ -110,11 +91,11 @@ export default function Navbar() {
               {/* User Profile Link */}
               <Link href="/dashboard/profile" className={styles.userPill} title="View Profile & Settings">
                 <span className={styles.userAvatarPill}>
-                  {user.avatarUrl && !imgError ? (
-                    <img
+                  {user.avatarUrl && user.avatarUrl !== failedAvatar ? (
+                    <Image unoptimized width={40} height={40}
                       src={user.avatarUrl}
                       alt={user.name}
-                      onError={() => setImgError(true)}
+                      onError={() => setFailedAvatar(user.avatarUrl ?? null)}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
                     />
                   ) : (

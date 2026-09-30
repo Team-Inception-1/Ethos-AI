@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function EscrowRedirect({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default function EscrowRedirect() {
   redirect('/dashboard/payments');
 }

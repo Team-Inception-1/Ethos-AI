@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import StudentDashboard from '@/components/pages/StudentDashboard';
 import AgencyDashboard from '@/components/pages/AgencyDashboard';
@@ -8,15 +8,10 @@ import AdminPanel from '@/components/pages/AdminPanel';
 import ParentDashboard from '@/components/pages/ParentDashboard';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { user, loading } = useAuth();
 
   // Neutral loading state — no role-specific content until hydrated
-  if (!mounted) {
+  if (loading) {
     return (
       <div style={{
         display: 'flex',
@@ -36,7 +31,8 @@ export default function DashboardPage() {
     );
   }
 
-  if (user?.role === 'agency') {
+  if (!user) return <p>Please sign in to open your dashboard.</p>;
+  if (user.role === 'agency') {
     return <AgencyDashboard />;
   }
 

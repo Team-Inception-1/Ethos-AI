@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -8,7 +9,12 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './ProfilePage.module.css';
 
 export default function ProfilePage() {
-  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, logout } = useAuth();
+  const { user } = useAuth();
+  return <ProfileEditor key={user?.id || 'signed-out'} />;
+}
+
+function ProfileEditor() {
+  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, logout, refreshSession } = useAuth();
 
   const [copied, setCopied] = useState(false);
   const [linkInput, setLinkInput] = useState('');
@@ -17,26 +23,24 @@ export default function ProfilePage() {
   // Form states initialized from user
   const [fullName, setFullName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const email = user?.email || '';
 
-  const [targetField, setTargetField] = useState(user?.studentDetails?.targetField || 'Computer Science');
-  const [budgetRange, setBudgetRange] = useState(user?.studentDetails?.budgetRange || '৳15L - ৳25L / year');
-  const [ieltsScore, setIeltsScore] = useState(user?.studentDetails?.ieltsScore || '7.5');
-  const [targetCountriesStr, setTargetCountriesStr] = useState(user?.studentDetails?.targetCountries?.join(', ') || 'Canada, Australia, UK');
+  const [targetField, setTargetField] = useState(user?.studentDetails?.targetField || '');
+  const [budgetRange, setBudgetRange] = useState(user?.studentDetails?.budgetRange || '');
+  const [ieltsScore, setIeltsScore] = useState(user?.studentDetails?.ieltsScore || '');
+  const [targetCountriesStr, setTargetCountriesStr] = useState(user?.studentDetails?.targetCountries?.join(', ') || '');
 
   const [agencyName, setAgencyName] = useState(user?.agencyDetails?.agencyName || user?.name || '');
-  const [agencyLicense, setAgencyLicense] = useState(user?.agencyDetails?.licenseNo || 'MOE-BD-2024-889');
-  const [agencyCountries, setAgencyCountries] = useState(user?.agencyDetails?.countriesServed?.join(', ') || 'Canada, UK, Australia');
+  const [agencyLicense, setAgencyLicense] = useState(user?.agencyDetails?.licenseNo || '');
+  const [agencyCountries, setAgencyCountries] = useState(user?.agencyDetails?.countriesServed?.join(', ') || '');
 
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [avatarSuccess, setAvatarSuccess] = useState<string | null>(null);
-  const [imgError, setImgError] = useState(false);
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState('');
 
-  React.useEffect(() => {
-    setImgError(false);
-  }, [user?.avatarUrl]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,16 +68,14 @@ export default function ProfilePage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to upload photo');
+        throw new Error(data.error?.message || 'Failed to upload photo');
       }
 
-      updateProfile({
-        avatarUrl: data.avatarUrl,
-      });
+      await refreshSession();
       setAvatarSuccess('Avatar saved securely!');
       setTimeout(() => setAvatarSuccess(null), 3000);
-    } catch (err: any) {
-      setAvatarError(err.message || 'Avatar upload failed');
+    } catch (err: unknown) {
+      setAvatarError(err instanceof Error ? err.message : 'Avatar upload failed');
       setTimeout(() => setAvatarError(null), 4000);
     } finally {
       setUploadingAvatar(false);
@@ -81,20 +83,6 @@ export default function ProfilePage() {
     }
   };
 
-  React.useEffect(() => {
-    if (user) {
-      setFullName(user.name);
-      setPhone(user.phone);
-      setEmail(user.email);
-      setTargetField(user.studentDetails?.targetField || 'Computer Science');
-      setBudgetRange(user.studentDetails?.budgetRange || '৳15L - ৳25L / year');
-      setIeltsScore(user.studentDetails?.ieltsScore || '7.5');
-      setTargetCountriesStr(user.studentDetails?.targetCountries?.join(', ') || 'Canada, Australia, UK');
-      setAgencyName(user.agencyDetails?.agencyName || user.name);
-      setAgencyLicense(user.agencyDetails?.licenseNo || 'MOE-BD-2024-889');
-      setAgencyCountries(user.agencyDetails?.countriesServed?.join(', ') || 'Canada, UK, Australia');
-    }
-  }, [user]);
 
   if (!user) {
     return (
@@ -120,43 +108,48 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSaveAccountDetails = (e: React.FormEvent) => {
+  const handleSaveAccountDetails = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({
+    setSaveError('');
+    const saved = await updateProfile({
       name: fullName.trim(),
       phone: phone.trim(),
-      email: email.trim(),
     });
+    if (!saved) { setSaveError('Changes were not saved. Please try again.'); return; }
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
-  const handleSaveAgencyDetails = (e: React.FormEvent) => {
+  const handleSaveAgencyDetails = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({
+    setSaveError('');
+    const saved = await updateProfile({
       name: fullName.trim(),
       agencyDetails: {
         agencyName: agencyName.trim(),
         licenseNo: agencyLicense.trim(),
-        licenseStatus: user?.agencyDetails?.licenseStatus || 'verified',
+        licenseStatus: user?.agencyDetails?.licenseStatus || 'pending',
         countriesServed: agencyCountries.split(',').map((s) => s.trim()).filter(Boolean),
       },
     });
+    if (!saved) { setSaveError('Changes were not saved. Please try again.'); return; }
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
-  const handleSaveStudentDetails = (e: React.FormEvent) => {
+  const handleSaveStudentDetails = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({
+    setSaveError('');
+    const saved = await updateProfile({
       studentDetails: {
         targetField,
         budgetRange,
         ieltsScore,
         targetCountries: targetCountriesStr.split(',').map((s) => s.trim()),
-        linkCode: user.studentDetails?.linkCode || 'ETHOS-STU-8821',
+        linkCode: user.studentDetails?.linkCode || '',
       },
     });
+    if (!saved) { setSaveError('Changes were not saved. Please try again.'); return; }
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
@@ -170,9 +163,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className={styles.page}>
-      <div className="container">
-        {/* Header */}
+    <div className={styles.page}>
+      {saveError && <p role="alert">{saveError}</p>}
+      {/* Header */}
         <div className={styles.header}>
           <div className={styles.titleRow}>
             <div>
@@ -239,11 +232,11 @@ export default function ProfilePage() {
           <GlassCard padding="lg" className={styles.userCard}>
             <div className={styles.avatarWrapper}>
               <div className={styles.avatar}>
-                {user.avatarUrl && !imgError ? (
-                  <img
+                {user.avatarUrl && user.avatarUrl !== failedAvatar ? (
+                  <Image unoptimized width={96} height={96}
                     src={user.avatarUrl}
                     alt={user.name}
-                    onError={() => setImgError(true)}
+                    onError={() => setFailedAvatar(user.avatarUrl || null)}
                     className={styles.avatarImg}
                   />
                 ) : (
@@ -352,7 +345,7 @@ export default function ProfilePage() {
                     type="email"
                     className={styles.inputSmall}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    readOnly
                     required
                   />
                 </div>
@@ -480,7 +473,7 @@ export default function ProfilePage() {
                     <div>
                       <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Link a Student Account</h3>
                       <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        Enter your child's <strong>Ethos Link Code</strong> (e.g. <code>ETHOS-STU-8821</code>) or registered email address.
+                        Enter your child&apos;s <strong>Ethos Link Code</strong> (e.g. <code>ETHOS-STU-8821</code>) or registered email address.
                       </p>
                     </div>
 
@@ -512,7 +505,7 @@ export default function ProfilePage() {
                   </h3>
                   {linkedStudents.length === 0 ? (
                     <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                      No student accounts linked yet. Use the box above to link your child's profile.
+                      No student accounts linked yet. Use the box above to link your child&apos;s profile.
                     </p>
                   ) : (
                     <div className={styles.guardianList}>
@@ -614,7 +607,6 @@ export default function ProfilePage() {
             )}
           </GlassCard>
         </div>
-      </div>
-    </main>
+    </div>
   );
 }

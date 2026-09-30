@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import styles from './TopBar.module.css';
@@ -92,47 +93,28 @@ export default function TopBar() {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  const effectiveRole =
-    pathname?.startsWith('/agency') ? 'agency' :
-    pathname?.startsWith('/admin') ? 'admin' :
-    (user?.role || 'student');
+  const effectiveRole = user?.role || 'student';
 
   let userName = user?.name;
   if (!userName) {
-    userName = effectiveRole === 'agency'
-      ? 'Global Edu BD'
-      : effectiveRole === 'admin'
-      ? 'Platform Administrator'
-      : effectiveRole === 'parent'
-      ? 'Parent User'
-      : 'Student User';
+    userName = 'Your account';
   } else if (userName.includes('@')) {
     const local = userName.split('@')[0].replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim();
     userName = local ? local.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : userName;
   }
   const initial = userName ? userName.charAt(0).toUpperCase() : 'U';
 
-  const initialNotifs =
+  const initialNotifs = process.env.NEXT_PUBLIC_OFFLINE_DEMO !== 'true' ? [] :
     effectiveRole === 'agency' ? AGENCY_NOTIFICATIONS :
     effectiveRole === 'admin' ? ADMIN_NOTIFICATIONS :
     STUDENT_NOTIFICATIONS;
 
-  const [notifs, setNotifs] = React.useState(initialNotifs);
+  const [readIds, setReadIds] = React.useState<string[]>([]);
+  const notifs = initialNotifs.map(n => ({...n, read: readIds.includes(n.id)}));
   const [openNotifs, setOpenNotifs] = React.useState(false);
-  const [imgError, setImgError] = React.useState(false);
+  const [failedAvatar, setFailedAvatar] = React.useState<string | null>(null);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    setImgError(false);
-  }, [user?.avatarUrl]);
-
-  React.useEffect(() => {
-    setNotifs(
-      effectiveRole === 'agency' ? AGENCY_NOTIFICATIONS :
-      effectiveRole === 'admin' ? ADMIN_NOTIFICATIONS :
-      STUDENT_NOTIFICATIONS
-    );
-  }, [effectiveRole]);
 
   const unreadCount = notifs.filter((n) => !n.read).length;
 
@@ -147,11 +129,11 @@ export default function TopBar() {
   }, []);
 
   const handleMarkAllRead = () => {
-    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    setReadIds(initialNotifs.map(n => n.id));
   };
 
   const handleItemClick = (id: string) => {
-    setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setReadIds(prev => [...prev, id]);
     setOpenNotifs(false);
   };
 
@@ -264,11 +246,11 @@ export default function TopBar() {
             title={userName}
             id="user-menu-btn"
           >
-            {user?.avatarUrl && !imgError ? (
-              <img
+            {user?.avatarUrl && user.avatarUrl !== failedAvatar ? (
+              <Image unoptimized width={40} height={40}
                 src={user.avatarUrl}
                 alt={userName}
-                onError={() => setImgError(true)}
+                onError={() => setFailedAvatar(user.avatarUrl || null)}
                 className={styles.avatarImg}
               />
             ) : (

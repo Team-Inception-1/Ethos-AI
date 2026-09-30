@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import GlassCard from '@/components/ui/GlassCard';
@@ -13,19 +13,10 @@ interface RoleRestrictedProps {
 }
 
 export default function RoleRestricted({ allowedRoles, featureName, children }: RoleRestrictedProps) {
-  const { user } = useAuth();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // During SSR/initial mount, pass through or wait for hydration
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
-  const role = user?.role || 'student';
+  const { user, loading } = useAuth();
+  if (loading) return <p role="status">Checking your session…</p>;
+  if (!user) return <p>Please <Link href="/login">sign in</Link> to access {featureName}.</p>;
+  const role = user.role;
 
   if (!allowedRoles.includes(role)) {
     if (role === 'admin') {
@@ -101,5 +92,5 @@ export default function RoleRestricted({ allowedRoles, featureName, children }: 
     }
   }
 
-  return <>{children}</>;
+  return allowedRoles.includes(role) ? <>{children}</> : <p>This feature is unavailable for your account role.</p>;
 }

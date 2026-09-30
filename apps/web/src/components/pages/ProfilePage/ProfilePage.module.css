@@ -4,9 +4,8 @@
    ============================================================ */
 
 .page {
-  min-height: 100vh;
-  padding-top: calc(var(--navbar-height, 64px) + var(--space-6, 24px));
-  padding-bottom: var(--space-16);
+  padding-top: 0;
+  padding-bottom: var(--space-12);
 }
 
 .header {
