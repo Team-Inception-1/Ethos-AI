@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { useAuth } from '@/context/AuthContext';
 import styles from './PaymentsPage.module.css';
 
 interface MilestoneItem {
@@ -51,7 +50,6 @@ const statusVariant = (s: string) => {
 };
 
 export default function PaymentsPage() {
-  const { user } = useAuth();
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
   const [summary, setSummary] = useState({ held: 0, released: 0, pending: 0 });
   const [ledgerEntries, setLedgerEntries] = useState<LedgerItem[]>([]);
@@ -62,7 +60,6 @@ export default function PaymentsPage() {
   // Modals
   const [payModalItem, setPayModalItem] = useState<MilestoneItem | null>(null);
   const [payProvider, setPayProvider] = useState<'BKASH' | 'NAGAD' | 'SSLCOMMERZ'>('BKASH');
-  const [walletPhone, setWalletPhone] = useState('01712345678');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [releaseModalItem, setReleaseModalItem] = useState<MilestoneItem | null>(null);
@@ -74,6 +71,7 @@ export default function PaymentsPage() {
   const [activeReceipt, setActiveReceipt] = useState<{ receipt: ReceiptItem; milestone?: MilestoneItem; ledger?: LedgerItem } | null>(null);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -86,19 +84,22 @@ export default function PaymentsPage() {
       if (res.ok) {
         const data = await res.json();
         setMilestones(data.milestones || []);
-        setSummary(data.summary || { held: 0, released: 0, pending: 0 });
+        setSummary({ held: Number(data.summary?.heldPoisha ?? 0) / 100,
+          released: Number(data.summary?.releasedPoisha ?? 0) / 100, pending: Number(data.summary?.pendingPoisha ?? 0) / 100 });
         setLedgerEntries(data.ledgerEntries || []);
         setReceipts(data.receipts || []);
-      }
+        setLoadError(null);
+      } else setLoadError('Could not load payment records. Please sign in and retry.');
     } catch {
-      // fallback
+      setLoadError('Could not reach the payment service. Please retry.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEscrow();
+    const timer = setTimeout(() => { void fetchEscrow(); }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleDeposit = async () => {
@@ -112,15 +113,15 @@ export default function PaymentsPage() {
           action: 'deposit',
           milestoneId: payModalItem.id,
           provider: payProvider,
-          actorId: user?.id || 'usr-student-01',
         }),
       });
 
+      const data = await res.json();
       if (res.ok) {
-        showToast(`৳${(Number(payModalItem.amountPoisha) / 100).toLocaleString()} successfully deposited into Escrow via ${payProvider}!`);
+        showToast('Sandbox payment initiated. No money has been moved; the milestone remains pending until confirmation.');
         setPayModalItem(null);
         await fetchEscrow();
-      }
+      } else showToast(data.error?.message ?? 'Payment initiation failed.');
     } catch {
       alert('Payment processing failed');
     } finally {
@@ -138,24 +139,23 @@ export default function PaymentsPage() {
         body: JSON.stringify({
           action: 'release',
           milestoneId: releaseModalItem.id,
-          actorId: user?.id || 'usr-student-01',
           note: releaseNote || 'Milestone verified and authorized for release',
         }),
       });
 
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
-        showToast(`Payment released to agency! Receipt ${data.receipt?.receiptNumber} generated.`);
+        showToast(`Sandbox release recorded. Receipt ${data.receipt?.receiptNumber ?? ''}. No real money was transferred.`);
         setReleaseModalItem(null);
         await fetchEscrow();
         if (data.receipt) {
           setActiveReceipt({
             receipt: data.receipt,
             milestone: releaseModalItem,
-            ledger: data.entry,
+            ledger: data.ledgerEntry,
           });
         }
-      }
+      } else showToast(data.error?.message ?? 'Release failed.');
     } catch {
       alert('Release action failed');
     } finally {
@@ -173,16 +173,16 @@ export default function PaymentsPage() {
         body: JSON.stringify({
           action: 'dispute',
           milestoneId: disputeModalItem.id,
-          actorId: user?.id || 'usr-student-01',
           reason: disputeReason,
         }),
       });
 
+      const data = await res.json();
       if (res.ok) {
-        showToast(`Milestone frozen in Escrow. Dispute resolution case filed.`);
+        showToast('Milestone marked disputed and frozen pending review.');
         setDisputeModalItem(null);
         await fetchEscrow();
-      }
+      } else showToast(data.error?.message ?? 'Dispute failed.');
     } catch {
       alert('Dispute action failed');
     } finally {
@@ -192,16 +192,8 @@ export default function PaymentsPage() {
 
   const openReceiptForMilestone = (m: MilestoneItem) => {
     const ledger = ledgerEntries.find((l) => l.milestoneId === m.id && l.type === 'RELEASE');
-    const receipt = receipts.find((r) => r.ledgerEntryId === ledger?.id) || {
-      id: `rec-fallback`,
-      ledgerEntryId: ledger?.id || 'ldg-002',
-      receiptNumber: `ETHOS-REC-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      amountPoisha: m.amountPoisha,
-      currency: 'BDT',
-      pdfStorageKey: 'receipts/verified.pdf',
-      generatedAt: new Date().toISOString(),
-    };
-
+    const receipt = receipts.find((r) => r.ledgerEntryId === ledger?.id);
+    if (!receipt) { showToast('No recorded receipt is available for this milestone.'); return; }
     setActiveReceipt({ receipt, milestone: m, ledger });
   };
 
@@ -233,7 +225,7 @@ export default function PaymentsPage() {
             border: '2px solid var(--ink)',
           }}
         >
-          ✓ {toastMessage}
+          {toastMessage}
         </div>
       )}
 
@@ -242,7 +234,7 @@ export default function PaymentsPage() {
         <div>
           <h1>Milestone Payments & Escrow</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Funds are locked in a trust-secured escrow ledger and released only upon verified academic milestones.
+            Review milestone records. Live payments are unavailable; enabled sandbox transactions do not move real money.
           </p>
         </div>
 
@@ -286,12 +278,12 @@ export default function PaymentsPage() {
           onClick={() => setActiveTab('ledger')}
           className={`${styles.modeTab} ${activeTab === 'ledger' ? styles.modeTabActive : ''}`}
         >
-          Immutable Ledger Trail ({ledgerEntries.length})
+          Ledger Records ({ledgerEntries.length})
         </button>
       </div>
 
       {/* Main Content */}
-      {loading ? (
+      {loadError ? <p role="alert">{loadError} <button onClick={() => void fetchEscrow()}>Retry</button></p> : loading ? (
         <div style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
           Loading escrow status…
         </div>
@@ -319,8 +311,8 @@ export default function PaymentsPage() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{m.targetUniversity || 'University of Toronto'}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{m.agencyName || 'Global Edu BD'}</div>
+                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{m.targetUniversity || 'Application'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{m.agencyName || ''}</div>
                     </td>
                     <td className={styles.amount}>৳{amountBDT.toLocaleString()}</td>
                     <td>
@@ -332,7 +324,7 @@ export default function PaymentsPage() {
                       <div style={{ display: 'flex', gap: '6px' }}>
                         {m.status === 'PENDING' && (
                           <Button size="sm" variant="emerald" glow onClick={() => setPayModalItem(m)}>
-                            Pay into Escrow
+                            Initiate Payment
                           </Button>
                         )}
                         {m.status === 'HELD' && (
@@ -429,9 +421,9 @@ export default function PaymentsPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>🔒 Deposit into Escrow</h3>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>Initiate Sandbox Payment</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Your funds will remain securely locked in the Ethos AI Escrow vault until the university milestone is satisfied.
+              Sandbox payments simulate a deposit without moving real money. This action only starts a pending payment.
             </p>
 
             <div style={{ background: 'var(--bg-elevated)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }}>
@@ -469,32 +461,12 @@ export default function PaymentsPage() {
               </div>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-                Wallet Phone Number / Account
-              </label>
-              <input
-                type="text"
-                value={walletPhone}
-                onChange={(e) => setWalletPhone(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '2px solid var(--border)',
-                  background: 'var(--bg-elevated)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                }}
-              />
-            </div>
-
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <Button size="sm" variant="outline" onClick={() => setPayModalItem(null)} disabled={isProcessing}>
                 Cancel
               </Button>
               <Button size="sm" variant="emerald" glow onClick={handleDeposit} disabled={isProcessing}>
-                {isProcessing ? 'Processing Escrow Hold…' : 'Confirm Escrow Deposit'}
+                {isProcessing ? 'Initiating…' : 'Initiate Sandbox Payment'}
               </Button>
             </div>
           </div>
@@ -684,9 +656,9 @@ export default function PaymentsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--border)', paddingBottom: '12px', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Ethos AI Digital Receipt</h3>
-                <span style={{ fontSize: '11px', color: 'var(--emerald)', fontWeight: 700 }}>✓ Tamper-Proof Cryptographic Certificate</span>
+                <span style={{ fontSize: '11px', color: 'var(--emerald)', fontWeight: 700 }}>Recorded ledger receipt</span>
               </div>
-              <Badge variant="verified">OFFICIAL RECEIPT</Badge>
+              <Badge variant="neutral">{activeReceipt.receipt.receiptNumber.startsWith('ETHOS-SANDBOX-') ? 'SANDBOX RECEIPT' : 'RECEIPT'}</Badge>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
@@ -694,10 +666,10 @@ export default function PaymentsPage() {
               <div><strong>Milestone Name:</strong> {activeReceipt.milestone?.name || 'Milestone Verification'}</div>
               <div><strong>Amount Paid:</strong> ৳{(Number(activeReceipt.receipt.amountPoisha) / 100).toLocaleString()} {activeReceipt.receipt.currency}</div>
               <div><strong>Date & Time:</strong> {formatDate(activeReceipt.receipt.generatedAt)}</div>
-              <div><strong>Ledger Tx Hash:</strong> <code style={{ fontSize: '11px', color: 'var(--blue-primary)', wordBreak: 'break-all' }}>{activeReceipt.ledger?.txHash || '0xa1b2c3d4e5f67890abcdef1234567890'}</code></div>
+              <div><strong>Ledger Tx Hash:</strong> <code style={{ fontSize: '11px', color: 'var(--blue-primary)', wordBreak: 'break-all' }}>{activeReceipt.ledger?.txHash || 'Unavailable'}</code></div>
               <div style={{ marginTop: '8px', padding: '10px', background: 'var(--bg-elevated)', borderRadius: '6px', border: '1px solid var(--border)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  This payment was held in escrow and released pursuant to the verified satisfaction of terms under Ethos AI trust protocols.
+                  Sandbox receipts document simulated activity and are not proof of a bank transfer.
                 </span>
               </div>
             </div>

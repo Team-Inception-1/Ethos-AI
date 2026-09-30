@@ -19,7 +19,9 @@ export async function GET(request: Request) {
     const receipts = ledgerEntries.flatMap(e => e.receipt ? [e.receipt] : []);
     const total = (status: string) => milestones.filter(m => m.status === status)
       .reduce((sum, m) => sum + m.amountPoisha, BigInt(0)).toString();
-    return new NextResponse(JSON.stringify({ milestones, ledgerEntries, receipts,
+    return new NextResponse(JSON.stringify({ milestones: milestones.map(m => ({ ...m,
+      targetUniversity: m.application.targetUniversity, agencyName: m.application.agency.name,
+    })), ledgerEntries, receipts,
       summary: { heldPoisha: total('HELD'), releasedPoisha: total('RELEASED'),
         pendingPoisha: total('PENDING'), disputedPoisha: total('DISPUTED'), refundedPoisha: total('REFUNDED') },
     }, (_key, value) => typeof value === 'bigint' ? value.toString() : value), {
