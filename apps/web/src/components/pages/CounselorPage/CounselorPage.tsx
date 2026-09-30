@@ -7,8 +7,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import {
-  evaluateCounselorProfile,
-  discoverLiveUniversities,
+  getVerifiedCounselorRecommendations,
   sendCounselorChatMessage,
   auditSOP,
   type CounselorEvaluationRequest,
@@ -21,7 +20,6 @@ import {
   type GroundingCitation,
   type VerifiedAgencyBrief,
 } from '@/lib/aiService';
-import { OFFLINE_DEMO_ENABLED } from '@/lib/ai/demo';
 import {
   VerifiedKnowledgeEngine,
   type VerifiedAgencyRecord,
@@ -366,9 +364,7 @@ export default function CounselorPage() {
     };
 
     try {
-      const result = OFFLINE_DEMO_ENABLED
-        ? await evaluateCounselorProfile(payload)
-        : await discoverLiveUniversities({ ...payload, enable_live_discovery: true });
+      const result = await getVerifiedCounselorRecommendations(payload);
       setEvalResult(result);
       setTimeout(() => {
         const el = document.getElementById('counselor-results');
@@ -490,7 +486,8 @@ export default function CounselorPage() {
 
   // Calculate total roadmap tasks completed
   const totalRoadmapTasks = evalResult?.roadmap.reduce((acc, m) => acc + m.tasks.length, 0) || 1;
-  const showingOfflineDemo = evalResult?.recommendations.some((recommendation) => !recommendation.is_live_grounded) ?? false;
+  const showingOfflineDemo = evalResult?.data_source === 'offline_demo';
+  const showingVerifiedDatabase = evalResult?.data_source === 'verified_database';
   const completedTaskCount = completedTasks.length;
   const completionPercent = Math.min(100, Math.round((completedTaskCount / totalRoadmapTasks) * 100));
 
@@ -761,12 +758,8 @@ export default function CounselorPage() {
         <div className={styles.wizardActions}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {lang === 'en'
-              ? (OFFLINE_DEMO_ENABLED
-                  ? 'Illustrative heuristic matching for explicitly enabled offline demonstrations'
-                  : 'Live Gemini-grounded university discovery')
-              : (OFFLINE_DEMO_ENABLED
-                  ? 'অফলাইন প্রদর্শনের জন্য নমুনাভিত্তিক বিশ্লেষণ'
-                  : 'উৎসসহ লাইভ জেমিনি-ভিত্তিক বিশ্ববিদ্যালয় অনুসন্ধান')}
+              ? 'Recommendations from agency-submitted, administrator-verified Neon records'
+              : 'এজেন্সি জমা দেওয়া ও অ্যাডমিন-যাচাইকৃত Neon রেকর্ড থেকে সুপারিশ'}
           </span>
           <Button
             type="button"
@@ -789,6 +782,11 @@ export default function CounselorPage() {
       {/* Results View */}
       {evalResult && (
         <div id="counselor-results" className={styles.resultsArea}>
+          {showingVerifiedDatabase && (
+            <div style={{ padding: '12px 14px', border: '2px solid var(--emerald, #047857)', borderRadius: '10px', background: '#ecfdf5', color: '#064e3b', fontSize: '13px', fontWeight: 700 }}>
+              ✓ Verified database results: each university record was submitted by a licensed agency and approved by an Ethos AI administrator. Open a card’s provenance panel to inspect the catalog source and audit reference.
+            </div>
+          )}
           {showingOfflineDemo && (
             <div style={{ padding: '12px 14px', border: '2px solid var(--amber, #b7791f)', borderRadius: '10px', background: '#fffbeb', color: '#713f12', fontSize: '13px', fontWeight: 700 }}>
               🧪 Offline demo results: universities, agencies, credentials, success rates, fees, and audit records shown below are illustrative static samples—not live or production-verified data. Confirm all details with official sources.
@@ -867,7 +865,7 @@ export default function CounselorPage() {
               const isTracked = trackedUnis.includes(uni.id);
               const agency = getAgencyForUni(uni);
               const fullAgency = agency && 'licenseStatus' in agency ? agency : undefined;
-              const provenance = agency ? VerifiedKnowledgeEngine.getFinancialProvenance(uni, fullAgency) : null;
+              const provenance = uni.financial_provenance ?? (agency ? VerifiedKnowledgeEngine.getFinancialProvenance(uni, fullAgency) : null);
 
               return (
                 <div key={uni.id} className={`${styles.uniCard} ${tierClass}`}>

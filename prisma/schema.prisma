@@ -148,6 +148,7 @@ model Agency {
   verificationReports VerificationReport[]
   subscriptions       Subscription[]
   feeSubmissions      AgencyFeeSubmission[]
+  courseCatalogSubmissions UniversityCourseCatalog[] @relation("AgencyCourseCatalogSubmissions")
 
   @@index([licenseStatus])
   @@index([riskScore])
@@ -888,8 +889,16 @@ model UniversityCourseCatalog {
 
   universityName String // e.g. "Technical University of Munich"
   country        String // e.g. "Germany"
+  city           String @default("")
   degreeLevel    String // "Bachelor", "Master", "PhD"
   programName    String // e.g. "M.Sc. in Informatics / Computer Science"
+  minimumGpa       Float    @default(3.0)
+  minimumIelts     Float    @default(6.5)
+  maxStudyGapYears Int      @default(5)
+  scholarshipInfo String?
+  acceptsMoi       Boolean  @default(false)
+  coopAvailable    Boolean  @default(false)
+  fieldTags        String[] @default([])
 
   annualTuitionLocal  Float // In local currency (e.g. 0 EUR, 45,000 CAD)
   currency            String // e.g. "EUR", "CAD", "USD"
@@ -901,6 +910,8 @@ model UniversityCourseCatalog {
 
   status            ProvenanceStatus @default(VERIFIED)
   isVerified        Boolean          @default(true)
+  submittedByAgencyId String?
+  submittedByAgency Agency?          @relation("AgencyCourseCatalogSubmissions", fields: [submittedByAgencyId], references: [id], onDelete: SetNull)
   verifiedByAdminId String?
   lastAuditedAt     DateTime         @default(now())
   createdAt         DateTime         @default(now())
@@ -909,6 +920,7 @@ model UniversityCourseCatalog {
   @@index([universityName])
   @@index([country])
   @@index([programName])
+  @@index([submittedByAgencyId])
 }
 
 model AgencyFeeSubmission {

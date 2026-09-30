@@ -10,6 +10,7 @@
  */
 
 import { OFFLINE_DEMO_ENABLED as OFFLINE_DEMO } from './ai/demo';
+import type { FinancialProvenance } from './verifiedKnowledgeStore';
 const AI_SERVICE_URL = '';
 
 export class AiServiceError extends Error {
@@ -538,6 +539,8 @@ export interface UniversityRecommendation {
   is_live_grounded?: boolean;
   grounding_citations?: GroundingCitation[];
   verified_agency?: VerifiedAgencyBrief;
+  data_source?: 'verified_database' | 'live' | 'offline_demo';
+  financial_provenance?: FinancialProvenance;
 }
 
 export interface VisaRiskFlag {
@@ -565,6 +568,7 @@ export interface RoadmapMilestone {
 }
 
 export interface CounselorEvaluationResponse {
+  data_source?: 'verified_database' | 'live' | 'offline_demo';
   profile_summary: {
     normalized_gpa: number;
     ielts_equivalent: number;
@@ -580,6 +584,23 @@ export interface CounselorEvaluationResponse {
   target_count: number;
   safe_count: number;
   live_discovery_active?: boolean;
+}
+
+/** Reads only agency-submitted and administrator-approved counselor records from Neon. */
+export async function getVerifiedCounselorRecommendations(
+  payload: CounselorEvaluationRequest
+): Promise<CounselorEvaluationResponse> {
+  const response = await fetch('/api/counselor/recommendations', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+  });
+  const body: unknown = await response.json();
+  if (!response.ok) {
+    const error = body && typeof body === 'object' && 'error' in body ? body.error : null;
+    const message = error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+      ? error.message : 'Verified counselor records are unavailable.';
+    throw new AiServiceError(message, response.status);
+  }
+  return (body as { data: CounselorEvaluationResponse }).data;
 }
 
 export interface GroundingCitation {
