@@ -26,6 +26,13 @@ const CATEGORIES = [
   'Scholarship',
 ];
 
+function getSafeAvatar(avatarUrl?: string | null, fallback = '/icon.svg'): string {
+  if (typeof avatarUrl === 'string' && avatarUrl.trim().length > 0) {
+    return avatarUrl.trim();
+  }
+  return fallback;
+}
+
 function HubFlagIcon({ code, size = 'sm' }: { code?: string; size?: 'sm' | 'lg' }) {
   const isLg = size === 'lg';
   const width = isLg ? 36 : 22;
@@ -450,7 +457,7 @@ export default function CommunityPage() {
 
         {/* Current Student Identity Card */}
         <div className={styles.userBadgeCard} title="Your current community profile">
-          <Image unoptimized width={48} height={48} src={currentUserAvatar || '/icon.svg'} alt={currentUserName} className={styles.userAvatar} />
+          <Image unoptimized width={48} height={48} src={getSafeAvatar(currentUserAvatar)} alt={currentUserName} className={styles.userAvatar} />
           <div className={styles.userInfo}>
             <span className={styles.userName}>{currentUserName}</span>
             <span className={styles.userStatusText}>
@@ -667,7 +674,7 @@ export default function CommunityPage() {
                         </div>
                       ) : (
                         <Image unoptimized width={48} height={48}
-                          src={post.authorAvatar || currentUserAvatar}
+                          src={getSafeAvatar(post.authorAvatar || currentUserAvatar)}
                           alt={post.authorName}
                           className={styles.authorAvatar}
                         />
@@ -938,7 +945,7 @@ export default function CommunityPage() {
               seniors.map((snr) => (
                 <div key={snr.id} className={styles.seniorItem}>
                   <div className={styles.seniorItemTop}>
-                    <Image unoptimized width={48} height={48} src={snr.avatar} alt={snr.name} className={styles.seniorAvatar} />
+                    <Image unoptimized width={48} height={48} src={getSafeAvatar(snr.avatar)} alt={snr.name} className={styles.seniorAvatar} />
                     <div className={styles.seniorMeta}>
                       <span className={styles.seniorName}>{snr.name}</span>
                       <span className={styles.seniorUni}>{snr.university}</span>
@@ -1158,7 +1165,7 @@ export default function CommunityPage() {
             <div className={styles.modalHeader}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Image unoptimized width={48} height={48}
-                  src={dmTarget.avatar || currentUserAvatar}
+                  src={getSafeAvatar(dmTarget.avatar || currentUserAvatar)}
                   alt={dmTarget.name}
                   style={{ width: '38px', height: '38px', borderRadius: '50%', border: '2px solid var(--border)' }}
                 />

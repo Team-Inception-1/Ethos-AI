@@ -763,7 +763,7 @@ export default function CounselorPage() {
             {lang === 'en'
               ? (OFFLINE_DEMO_ENABLED
                   ? 'Illustrative heuristic matching for explicitly enabled offline demonstrations'
-                  : 'Live Gemini-grounded university discovery with source citations')
+                  : 'Live Gemini-grounded university discovery')
               : (OFFLINE_DEMO_ENABLED
                   ? 'অফলাইন প্রদর্শনের জন্য নমুনাভিত্তিক বিশ্লেষণ'
                   : 'উৎসসহ লাইভ জেমিনি-ভিত্তিক বিশ্ববিদ্যালয় অনুসন্ধান')}
