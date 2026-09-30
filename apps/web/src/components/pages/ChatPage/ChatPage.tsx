@@ -153,7 +153,7 @@ export default function ChatPage() {
   const isAgency = user?.role?.toLowerCase() === 'agency';
   const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string>('');
-  const [messages, setMessages] = useState<ChatMessageItem[]>([]);
+  const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessageItem[]>>({});
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [exportData, setExportData] = useState<any | null>(null);
@@ -209,24 +209,28 @@ export default function ChatPage() {
   useEffect(() => {
     let cancelled = false;
     if (!activeThreadId) {
-      setMessages([]);
       return () => { cancelled = true; };
     }
-    fetchThreadMessages(activeThreadId)
+    const threadId = activeThreadId;
+    fetchThreadMessages(threadId)
       .then((res) => {
         if (!cancelled) {
-          setMessages(res.messages);
+          setMessagesByThread((previous) => ({ ...previous, [threadId]: res.messages }));
         }
       })
       .catch((e) => {
         console.warn('Could not load live messages:', e);
-        if (!cancelled) setMessages([]);
+        if (!cancelled) {
+          setMessagesByThread((previous) => ({ ...previous, [threadId]: [] }));
+        }
       });
 
     return () => {
       cancelled = true;
     };
   }, [activeThreadId]);
+
+  const messages = messagesByThread[activeThreadId] || [];
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -238,6 +242,7 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!activeThreadId || !input.trim() || isSending) return;
     const textToSend = input.trim();
+    const threadId = activeThreadId;
     const docToAttach = attachedDoc;
     setInput('');
     setAttachedDoc(null);
@@ -250,7 +255,7 @@ export default function ChatPage() {
     // Optimistic message addition
     const tempMsg: ChatMessageItem = {
       id: `msg-${Date.now()}`,
-      threadId: activeThreadId,
+      threadId,
       senderId,
       senderRole,
       body: textToSend,
@@ -260,17 +265,23 @@ export default function ChatPage() {
       sentAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, tempMsg]);
+    setMessagesByThread((previous) => ({
+      ...previous,
+      [threadId]: [...(previous[threadId] || []), tempMsg],
+    }));
 
     try {
       const realMsg = await sendChatMessage({
-        threadId: activeThreadId,
+        threadId,
         senderId,
         senderRole,
         body: textToSend,
         attachmentDocId: docToAttach || undefined,
       });
-      setMessages((prev) => prev.map((m) => (m.id === tempMsg.id ? realMsg : m)));
+      setMessagesByThread((previous) => ({
+        ...previous,
+        [threadId]: (previous[threadId] || []).map((m) => m.id === tempMsg.id ? realMsg : m),
+      }));
     } catch (err) {
       console.warn('Server send failed, keeping local message:', err);
     } finally {
