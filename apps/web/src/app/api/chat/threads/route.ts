@@ -9,35 +9,8 @@ export async function GET() {
   try {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
-    const accessWhere = applicationAccessWhere(authorization.user);
-
-    // Auto-provision chat thread for any accessible applications that do not yet have one
-    if (prisma.application?.findMany && prisma.chatThread?.upsert) {
-      const unprovisioned = await prisma.application.findMany({
-        where: {
-          AND: [
-            accessWhere,
-            { chatThread: null },
-          ],
-        },
-        select: { id: true, agencyId: true },
-      });
-
-      if (unprovisioned.length > 0) {
-        await Promise.all(
-          unprovisioned.map(app =>
-            prisma.chatThread.upsert({
-              where: { applicationId: app.id },
-              create: { applicationId: app.id, agencyId: app.agencyId },
-              update: {},
-            })
-          )
-        );
-      }
-    }
-
     const threads = await prisma.chatThread.findMany({
-      where: { application: accessWhere },
+      where: { application: applicationAccessWhere(authorization.user) },
       include: { application: { include: { student: { select: { name: true } } } },
         agency: { select: { name: true } }, messages: { orderBy: [{ sentAt: 'desc' }, { id: 'desc' }], take: 1 },
         _count: { select: { messages: { where: { isRead: false, senderId: { not: authorization.user.id } } } } } },

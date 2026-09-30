@@ -24,8 +24,8 @@ function ConversationWorkspace({ user }: { user: SignedInUser }) {
     let active = true;
     fetchChatThreads().then(result => {
       if (!active) return;
-      const params = new URLSearchParams(window.location.search);
-      const requested = params.get('threadId') || params.get('thread');
+      setThreads(result);
+      const requested = new URLSearchParams(window.location.search).get('threadId');
       setSelected(result.some(t => t.id === requested) ? requested! : result[0]?.id || '');
       setError('');
     }).catch(() => { if (active) setError('Conversations could not be loaded. Please retry.'); })

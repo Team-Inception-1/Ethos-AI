@@ -83,7 +83,6 @@ export async function POST(request: Request) {
         targetUniversity: input.targetUniversity,
         targetProgram: input.targetProgram,
         intakeSemester: input.intakeSemester,
-        chatThread: { create: { agencyId: agency.id } },
         stageEvents: { create: {
           stage: 'SUBMITTED', actorId: authorization.user.id, actorRole: 'STUDENT',
           note: 'Application started by the student through the verified agency directory.',
