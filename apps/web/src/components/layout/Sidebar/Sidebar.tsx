@@ -15,6 +15,7 @@ interface NavItem {
   icon: React.ReactNode;
   badge?: string;
   section?: string; // optional group label before this item
+  sectionBn?: string;
 }
 
 const LogoutIcon = () => (
@@ -276,6 +277,7 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <CounselorIcon />,
           badge: 'AI',
           section: 'AI Tools',
+          sectionBn: 'এআই টুলস',
         },
         {
           href: '/dashboard/fraud-checker',
@@ -346,6 +348,7 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <CounselorIcon />,
           badge: 'AI',
           section: 'AI Tools',
+          sectionBn: 'এআই টুলস',
         },
         {
           href: '/dashboard/scholar-finder',
@@ -474,7 +477,9 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
             return (
               <li key={`${item.href}-${item.label}`}>
                 {item.section && !collapsed && (
-                  <div className={styles.navSection}>{item.section}</div>
+                  <div className={styles.navSection}>
+                    <span>{lang === 'en' ? item.section : (item.sectionBn || item.section)}</span>
+                  </div>
                 )}
                 <Link
                   href={item.href}

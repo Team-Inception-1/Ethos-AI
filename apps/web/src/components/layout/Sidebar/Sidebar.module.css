@@ -82,6 +82,24 @@
   gap: 6px;
 }
 
+/* ── Section Header ── */
+.navSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  margin-bottom: 4px;
+  padding: 8px var(--space-3) 4px;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-subtle);
+  user-select: none;
+}
+
 .navItem {
   display: flex;
   align-items: center;
