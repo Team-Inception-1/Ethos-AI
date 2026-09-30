@@ -41,6 +41,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     if(t==='light'){document.documentElement.setAttribute('data-theme','light');}
   }catch(e){}
   try{
+    if(typeof window!=='undefined'){
+      window.addEventListener('error',function(e){
+        var src=(e.filename||'')+' '+((e.error&&e.error.stack)||'');
+        if(src.indexOf('chrome-extension://')!==-1||src.indexOf('moz-extension://')!==-1){
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      },true);
+      window.addEventListener('unhandledrejection',function(e){
+        var stack=(e.reason&&(e.reason.stack||e.reason.message))||'';
+        if(typeof stack==='string'&&(stack.indexOf('chrome-extension://')!==-1||stack.indexOf('moz-extension://')!==-1)){
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      },true);
+    }
+  }catch(e){}
+  try{
     if(typeof Element!=='undefined'&&Element.prototype){
       var origSetAttr=Element.prototype.setAttribute;
       Element.prototype.setAttribute=function(n,v){
