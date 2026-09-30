@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import GlassCard from '@/components/ui/GlassCard';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import {
   CommunityService,
@@ -125,10 +125,10 @@ function HubFlagIcon({ code, size = 'sm' }: { code?: string; size?: 'sm' | 'lg' 
 }
 
 export default function CommunityPage() {
-  const { user } = useAuth();
-  const currentUserId = user?.id || 'usr-student-01';
-  const currentUserName = user?.name || 'Riya Ahmed';
-  const currentUserAvatar = user?.avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150';
+  const { user, loading: authLoading } = useAuth();
+  const currentUserId = user?.id || '';
+  const currentUserName = user?.name || 'Not signed in';
+  const currentUserAvatar = user?.avatarUrl || '';
 
   // ── State ──
   const [hubs, setHubs] = useState<CountryHub[]>([]);
@@ -170,6 +170,7 @@ export default function CommunityPage() {
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
 
   // Toast
+  const [loadError, setLoadError] = useState('');
   const [toast, setToast] = useState<string | null>(null);
 
   // New Post Form
@@ -187,29 +188,25 @@ export default function CommunityPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Initial Data Load ──
+  // No bundled identities or localStorage memberships are trusted.
   useEffect(() => {
-    const loadedHubs = CommunityService.getHubs();
-    setHubs(loadedHubs);
-    const joined = CommunityService.getJoinedHubIds(currentUserId);
-    setJoinedHubIds(joined);
-    const blocked = CommunityService.getBlockedUsers(currentUserId);
-    setBlockedUsers(blocked);
+    if (!currentUserId) return;
+    let active = true;
+    Promise.all([CommunityService.getHubs(), CommunityService.getJoinedHubIds(currentUserId)]).then(([loadedHubs, joined]) => {
+      if (active) { setHubs(loadedHubs); setJoinedHubIds(joined); }
+    }).catch(() => { if (active) setLoadError('Community could not be loaded. Please retry.'); });
+    return () => { active = false; };
   }, [currentUserId]);
 
-  // Load Posts & Seniors whenever activeHub, category, filter, search, or blocked changes
   useEffect(() => {
-    const fetchedPosts = CommunityService.getPosts({
-      hubId: activeHubId,
-      category: selectedCategory,
-      seniorOnly: seniorOnlyFilter,
-      query: searchQuery,
-      currentUserId,
+    if (!currentUserId) return;
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) setPosts(CommunityService.getPosts({ hubId: activeHubId, category: selectedCategory, seniorOnly: seniorOnlyFilter, query: searchQuery, currentUserId }));
     });
-    setPosts(fetchedPosts);
-
-    const countrySeniors = CommunityService.getSeniorsByCountry(activeHubId);
-    setSeniors(countrySeniors);
+    CommunityService.getSeniorsByCountry(activeHubId).then(items => { if (active) setSeniors(items); })
+      .catch(() => { if (active) setLoadError('Mentors could not be loaded. Please retry.'); });
+    return () => { active = false; };
   }, [activeHubId, selectedCategory, seniorOnlyFilter, searchQuery, currentUserId, blockedUsers]);
 
   // Active Hub Object
@@ -222,14 +219,17 @@ export default function CommunityPage() {
   }, [joinedHubIds, activeHubId]);
 
   // ── Join / Leave Hub ──
-  const handleToggleJoin = () => {
-    const result = CommunityService.toggleJoinHub(currentUserId, activeHubId);
+  const handleToggleJoin = async () => {
+    try {
+    const result = await CommunityService.toggleJoinHub(currentUserId, activeHubId, isCurrentHubJoined);
+    setHubs(previous => previous.map(hub => hub.id === activeHubId ? { ...hub, memberCount: result.memberCount } : hub));
     setJoinedHubIds(result.joinedHubs);
     showToast(
       result.joined
         ? `Joined ${currentHub?.country} Hub! You are now connected with peers in this country.`
         : `Left ${currentHub?.country} Hub.`
     );
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Membership update failed.'); }
   };
 
   // ── Likes ──
@@ -410,8 +410,12 @@ export default function CommunityPage() {
     showToast('User unblocked.');
   };
 
+  if (authLoading) return <div className={styles.page}>Loading your session…</div>;
+  if (!user) return <div className={styles.page}>Sign in to access the Student Network Hub.</div>;
+
   return (
-    <div className={styles.page} suppressHydrationWarning>
+    <div className={styles.page}>
+      {loadError && <p role="alert">{loadError}</p>}
       {/* ── Page Header ── */}
       <div className={styles.header}>
         <div>
@@ -424,7 +428,7 @@ export default function CommunityPage() {
 
         {/* Current Student Identity Card */}
         <div className={styles.userBadgeCard} title="Your current community profile">
-          <img src={currentUserAvatar} alt={currentUserName} className={styles.userAvatar} />
+          <Image unoptimized width={48} height={48} src={currentUserAvatar} alt={currentUserName} className={styles.userAvatar} />
           <div className={styles.userInfo}>
             <span className={styles.userName}>{currentUserName}</span>
             <span className={styles.userStatusText}>
@@ -874,7 +878,7 @@ export default function CommunityPage() {
               seniors.map((snr) => (
                 <div key={snr.id} className={styles.seniorItem}>
                   <div className={styles.seniorItemTop}>
-                    <img src={snr.avatar} alt={snr.name} className={styles.seniorAvatar} />
+                    <Image unoptimized width={48} height={48} src={snr.avatar} alt={snr.name} className={styles.seniorAvatar} />
                     <div className={styles.seniorMeta}>
                       <span className={styles.seniorName}>{snr.name}</span>
                       <span className={styles.seniorUni}>{snr.university}</span>

@@ -5,6 +5,7 @@
  * and report/block functionality.
  */
 
+import { z } from 'zod';
 import initialCommunityData from '@/data/communityData.json';
 
 export type StudentStatusType = 'incoming' | 'current' | 'alumni';
@@ -20,6 +21,7 @@ export interface CountryHub {
   postCount: number;
   popularCities: string[];
   topUniversities: string[];
+  joined?: boolean;
   quickLinks: Array<{ title: string; url: string }>;
 }
 
@@ -103,7 +105,6 @@ export interface ReportedItem {
 
 // LocalStorage Keys for client-side persistence
 const STORAGE_PREFIX = 'ethos_community_';
-const KEY_JOINED_HUBS = `${STORAGE_PREFIX}joined_hubs`;
 const KEY_POSTS = `${STORAGE_PREFIX}posts`;
 const KEY_COMMENTS = `${STORAGE_PREFIX}comments`;
 const KEY_DMS = `${STORAGE_PREFIX}direct_messages`;
@@ -129,43 +130,38 @@ function setSafeLocalStorage<T>(key: string, value: T): void {
   }
 }
 
+
+const hubSchema = z.object({
+  id: z.string(), country: z.string(), countryCode: z.string(), flag: z.string(), tagline: z.string(), description: z.string(),
+  memberCount: z.number(), postCount: z.number(), joined: z.boolean(), popularCities: z.array(z.string()),
+  topUniversities: z.array(z.string()), quickLinks: z.array(z.object({ title: z.string(), url: z.string().url() })),
+});
+const mentorSchema = z.object({
+  id: z.string(), name: z.string(), avatar: z.string(), country: z.string(), countryId: z.string(), status: z.enum(['incoming', 'current', 'alumni']),
+  isVerified: z.boolean(), university: z.string(), program: z.string(), intake: z.string(), bio: z.string(),
+  helpedCount: z.number(), isAvailableForChat: z.boolean(),
+});
+const hubResponseSchema = z.object({ data: z.object({ hubs: z.array(hubSchema), seniors: z.array(mentorSchema) }) });
+async function hubRequest() {
+  const response = await fetch('/api/community/hubs', { credentials: 'same-origin', cache: 'no-store' });
+  if (!response.ok) throw new Error('Community could not be loaded. Sign in and retry.');
+  return hubResponseSchema.parse(await response.json()).data;
+}
+
 export class CommunityService {
   // ── Hubs ──────────────────────────────────────────────────────────
-  static getHubs(): CountryHub[] {
-    return initialCommunityData.hubs as CountryHub[];
+  static async getHubs(): Promise<CountryHub[]> { return (await hubRequest()).hubs; }
+  static async getJoinedHubIds(_userId: string): Promise<string[]> {
+    void _userId; // The server derives identity from the session.
+    return (await hubRequest()).hubs.filter(hub => hub.joined).map(hub => hub.id);
   }
-
-  static getHubById(hubId: string): CountryHub | undefined {
-    return this.getHubs().find((h) => h.id === hubId || h.country.toLowerCase() === hubId.toLowerCase());
-  }
-
-  // ── Joined Hubs ───────────────────────────────────────────────────
-  static getJoinedHubIds(userId: string): string[] {
-    const allJoined = getSafeLocalStorage<Record<string, string[]>>(KEY_JOINED_HUBS, {
-      'usr-student-01': ['hub-germany', 'hub-canada'],
+  static async toggleJoinHub(_userId: string, hubId: string, joined: boolean): Promise<{ joined: boolean; joinedHubs: string[]; memberCount: number }> {
+    const response = await fetch('/api/community/hubs/' + encodeURIComponent(hubId) + '/membership', {
+      method: joined ? 'DELETE' : 'POST', credentials: 'same-origin',
     });
-    return allJoined[userId] || ['hub-germany', 'hub-canada'];
-  }
-
-  static toggleJoinHub(userId: string, hubId: string): { joined: boolean; joinedHubs: string[] } {
-    const allJoined = getSafeLocalStorage<Record<string, string[]>>(KEY_JOINED_HUBS, {
-      'usr-student-01': ['hub-germany', 'hub-canada'],
-    });
-    const current = allJoined[userId] ? [...allJoined[userId]] : ['hub-germany'];
-    const index = current.indexOf(hubId);
-    let joined = false;
-
-    if (index > -1) {
-      current.splice(index, 1);
-      joined = false;
-    } else {
-      current.push(hubId);
-      joined = true;
-    }
-
-    allJoined[userId] = current;
-    setSafeLocalStorage(KEY_JOINED_HUBS, allJoined);
-    return { joined, joinedHubs: current };
+    if (!response.ok) throw new Error('Hub membership could not be updated. Please retry.');
+    const { data } = z.object({ data: z.object({ joined: z.boolean(), memberCount: z.number() }) }).parse(await response.json());
+    return { ...data, joinedHubs: await this.getJoinedHubIds(_userId) };
   }
 
   // ── Posts (Strict Country Group Isolation) ────────────────────────
@@ -363,13 +359,8 @@ export class CommunityService {
   }
 
   // ── Seniors & Mentors ("Ask a Senior") ────────────────────────────
-  static getSeniorsByCountry(countryId: string): SeniorMentor[] {
-    const seniors = initialCommunityData.seniors as SeniorMentor[];
-    return seniors.filter((s) => s.countryId === countryId);
-  }
-
-  static getAllSeniors(): SeniorMentor[] {
-    return initialCommunityData.seniors as SeniorMentor[];
+  static async getSeniorsByCountry(countryId: string): Promise<SeniorMentor[]> {
+    return (await hubRequest()).seniors.filter(senior => senior.countryId === countryId);
   }
 
   // ── 1-to-1 Peer Messaging ─────────────────────────────────────────
