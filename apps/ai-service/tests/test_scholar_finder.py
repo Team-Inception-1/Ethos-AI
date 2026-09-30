@@ -271,6 +271,32 @@ def test_paper_deconstruct_endpoint():
     assert len(data["prep_questions"]) >= 1
 
 
+def test_paper_deconstruct_is_available_without_offline_demo(monkeypatch):
+    """The deterministic paper deconstructor must not be gated as live AI."""
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.setenv("OFFLINE_DEMO", "false")
+    monkeypatch.setenv("AI_SERVICE_API_TOKEN", "offline-test-token")
+    get_settings.cache_clear()
+    try:
+        response = client.post(
+            "/api/ai/scholar/deconstruct-paper",
+            json={
+                "paper_title": "Generalist Robot Policies via Diffusion",
+                "professor_name": "Dr. Chelsea Finn",
+                "student_skills": ["PyTorch"],
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["model_used"] == "Ethos Academic Engine (Paper Deconstructor)"
+    finally:
+        monkeypatch.setenv("ENVIRONMENT", "test")
+        monkeypatch.setenv("OFFLINE_DEMO", "false")
+        get_settings.cache_clear()
+
+
 def test_live_search_endpoint():
     # Test query handling with fallback/live OpenAlex
     payload = {"query": "Robotics and Machine Learning", "limit": 3}

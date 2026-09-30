@@ -60,7 +60,9 @@ logger = logging.getLogger(__name__)
 
 def require_real_scholar_data(request: Request):
     if not get_settings().deterministic_allowed and request.url.path.rsplit('/scholar/', 1)[-1] not in {
-        "live-search", "parse-cv/file", "parse-cv/text",
+        # These endpoints use local, deterministic logic and do not require
+        # an LLM provider. Keep them available when live AI is disabled.
+        "deconstruct-paper", "live-search", "parse-cv/file", "parse-cv/text",
     }:
         raise HTTPException(status_code=503, detail="This tool currently requires explicit offline demo mode.")
 
