@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
 import styles from './AdminPanel.module.css';
 import { browserApi, errorMessage } from '@/lib/platform/browser';
 
@@ -817,7 +818,20 @@ export default function AdminPanel() {
               </tr>
             </thead>
             <tbody>
-              {filteredAgencies.map((agency) => {
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} aria-hidden="true">
+                    <td><Skeleton width="75%" height={16} /><Skeleton width="45%" height={12} style={{ marginTop: 4 }} /></td>
+                    <td><Skeleton width={110} height={14} /></td>
+                    <td><Skeleton width={120} height={14} /></td>
+                    <td><Skeleton width={80} height={14} /></td>
+                    <td><Skeleton width={60} height={20} rounded="full" /></td>
+                    <td><Skeleton width={75} height={22} rounded="md" /></td>
+                    <td><Skeleton width={85} height={30} rounded="md" /></td>
+                  </tr>
+                ))
+              ) : (
+                filteredAgencies.map((agency) => {
                 const isActionLoading = actionLoadingId === agency.id;
                 const riskClass =
                   agency.riskScore < 30
@@ -912,8 +926,8 @@ export default function AdminPanel() {
                     </td>
                   </tr>
                 );
-              })}
-              {filteredAgencies.length === 0 && (
+              }))}
+              {!loading && filteredAgencies.length === 0 && (
                 <tr>
                   <td colSpan={7}>
                     <div className={styles.emptyState}>
@@ -961,8 +975,22 @@ export default function AdminPanel() {
               </tr>
             </thead>
             <tbody>
-              {disputes
-                .filter((d) => {
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} aria-hidden="true">
+                    <td><Skeleton width={60} height={14} /></td>
+                    <td><Skeleton width={110} height={14} /><Skeleton width={140} height={12} style={{ marginTop: 4 }} /></td>
+                    <td><Skeleton width={110} height={14} /></td>
+                    <td><Skeleton width={130} height={14} /></td>
+                    <td><Skeleton width={100} height={14} /></td>
+                    <td><Skeleton width={80} height={14} /></td>
+                    <td><Skeleton width={70} height={20} rounded="full" /></td>
+                    <td><Skeleton width={90} height={30} rounded="md" /></td>
+                  </tr>
+                ))
+              ) : (
+                disputes
+                  .filter((d) => {
                   if (!searchQuery) return true;
                   const q = searchQuery.toLowerCase();
                   return (
@@ -1073,8 +1101,8 @@ export default function AdminPanel() {
                       </td>
                     </tr>
                   );
-                })}
-              {disputes.length === 0 && (
+                }))}
+              {!loading && disputes.length === 0 && (
                 <tr>
                   <td colSpan={8}>
                     <div className={styles.emptyState}>
@@ -1121,8 +1149,21 @@ export default function AdminPanel() {
               </tr>
             </thead>
             <tbody>
-              {scamAlerts
-                .filter((s) => {
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} aria-hidden="true">
+                    <td><Skeleton width={80} height={14} /><Skeleton width={55} height={18} rounded="full" style={{ marginTop: 4 }} /></td>
+                    <td><Skeleton width={140} height={16} /><Skeleton width={180} height={12} style={{ marginTop: 4 }} /></td>
+                    <td><Skeleton width={110} height={14} /></td>
+                    <td><Skeleton width={100} height={14} /></td>
+                    <td><Skeleton width={60} height={20} rounded="full" /></td>
+                    <td><Skeleton width={80} height={22} rounded="md" /></td>
+                    <td><Skeleton width={90} height={30} rounded="md" /></td>
+                  </tr>
+                ))
+              ) : (
+                scamAlerts
+                  .filter((s) => {
                   if (!searchQuery) return true;
                   const q = searchQuery.toLowerCase();
                   return (
@@ -1236,8 +1277,8 @@ export default function AdminPanel() {
                       </td>
                     </tr>
                   );
-                })}
-              {scamAlerts.length === 0 && (
+                }))}
+              {!loading && scamAlerts.length === 0 && (
                 <tr>
                   <td colSpan={7}>
                     <div className={styles.emptyState}>
@@ -1292,7 +1333,28 @@ export default function AdminPanel() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((u) => {
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} aria-hidden="true">
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Skeleton width={32} height={32} circle />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <Skeleton width={110} height={14} />
+                          <Skeleton width={140} height={12} />
+                        </div>
+                      </div>
+                    </td>
+                    <td><Skeleton width={90} height={14} /></td>
+                    <td><Skeleton width={60} height={20} rounded="full" /></td>
+                    <td><Skeleton width={70} height={20} rounded="md" /></td>
+                    <td><Skeleton width={110} height={14} /></td>
+                    <td><Skeleton width={80} height={14} /></td>
+                    <td><Skeleton width={85} height={30} rounded="md" /></td>
+                  </tr>
+                ))
+              ) : (
+                filteredUsers.map((u) => {
                 const isActionLoading = actionLoadingId === u.id;
                 return (
                   <tr key={u.id}>
@@ -1405,8 +1467,8 @@ export default function AdminPanel() {
                     </td>
                   </tr>
                 );
-              })}
-              {filteredUsers.length === 0 && (
+              }))}
+              {!loading && filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={7}>
                     <div className={styles.emptyState}>
@@ -1485,55 +1547,69 @@ export default function AdminPanel() {
               </tr>
             </thead>
             <tbody>
-              {ledgerEntries
-                .filter((e) => {
-                  if (!searchQuery) return true;
-                  const q = searchQuery.toLowerCase();
-                  return (
-                    e.id.toLowerCase().includes(q) ||
-                    e.milestoneId.toLowerCase().includes(q) ||
-                    e.provider.toLowerCase().includes(q)
-                  );
-                })
-                .map((entry) => (
-                  <tr key={entry.id}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 800 }}>{entry.id}</td>
-                    <td>
-                      <Badge
-                        variant={
-                          entry.type === 'HOLD'
-                            ? 'info'
-                            : entry.type === 'RELEASE'
-                            ? 'verified'
-                            : entry.type === 'REFUND'
-                            ? 'warning'
-                            : 'danger'
-                        }
-                        size="sm"
-                      >
-                        {entry.type}
-                      </Badge>
-                    </td>
-                    <td>
-                      <div style={{ fontFamily: 'monospace', fontWeight: 700 }}>{entry.milestoneId}</div>
-                      <div className={styles.subInfo}>{entry.note}</div>
-                    </td>
-                    <td className={styles.amount}>{entry.amountFormatted}</td>
-                    <td>
-                      <div style={{ fontWeight: 800 }}>{entry.provider}</div>
-                      <div className={styles.subInfo} style={{ fontFamily: 'monospace' }}>
-                        {entry.providerTxnId}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={styles.hashBadge} title={entry.txHash}>
-                        {entry.txHashShort || entry.txHash}
-                      </span>
-                    </td>
-                    <td className={styles.subInfo}>{new Date(entry.timestamp).toLocaleString()}</td>
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} aria-hidden="true">
+                    <td><Skeleton width={80} height={14} /></td>
+                    <td><Skeleton width={55} height={20} rounded="full" /></td>
+                    <td><Skeleton width={110} height={14} /><Skeleton width={140} height={12} style={{ marginTop: 4 }} /></td>
+                    <td><Skeleton width={80} height={14} /></td>
+                    <td><Skeleton width={80} height={14} /><Skeleton width={120} height={12} style={{ marginTop: 4 }} /></td>
+                    <td><Skeleton width={120} height={16} rounded="sm" /></td>
+                    <td><Skeleton width={100} height={14} /></td>
                   </tr>
-                ))}
-              {ledgerEntries.length === 0 && (
+                ))
+              ) : (
+                ledgerEntries
+                  .filter((e) => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    return (
+                      e.id.toLowerCase().includes(q) ||
+                      e.milestoneId.toLowerCase().includes(q) ||
+                      e.provider.toLowerCase().includes(q)
+                    );
+                  })
+                  .map((entry) => (
+                    <tr key={entry.id}>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 800 }}>{entry.id}</td>
+                      <td>
+                        <Badge
+                          variant={
+                            entry.type === 'HOLD'
+                              ? 'info'
+                              : entry.type === 'RELEASE'
+                              ? 'verified'
+                              : entry.type === 'REFUND'
+                              ? 'warning'
+                              : 'danger'
+                          }
+                          size="sm"
+                        >
+                          {entry.type}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div style={{ fontFamily: 'monospace', fontWeight: 700 }}>{entry.milestoneId}</div>
+                        <div className={styles.subInfo}>{entry.note}</div>
+                      </td>
+                      <td className={styles.amount}>{entry.amountFormatted}</td>
+                      <td>
+                        <div style={{ fontWeight: 800 }}>{entry.provider}</div>
+                        <div className={styles.subInfo} style={{ fontFamily: 'monospace' }}>
+                          {entry.providerTxnId}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={styles.hashBadge} title={entry.txHash}>
+                          {entry.txHashShort || entry.txHash}
+                        </span>
+                      </td>
+                      <td className={styles.subInfo}>{new Date(entry.timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))
+              )}
+              {!loading && ledgerEntries.length === 0 && (
                 <tr>
                   <td colSpan={7}>
                     <div className={styles.emptyState}>

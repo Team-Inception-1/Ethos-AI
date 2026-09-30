@@ -1,0 +1,293 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{microtype}
+
+% --- Color Palette (Neubrutalism inspired high-contrast palette) ---
+\definecolor{primaryblue}{RGB}{37, 99, 235}
+\definecolor{darkslate}{RGB}{15, 23, 42}
+\definecolor{emeraldgreen}{RGB}{16, 185, 129}
+\definecolor{amberwarning}{RGB}{245, 158, 11}
+\definecolor{crimsonred}{RGB}{239, 68, 68}
+\definecolor{lightgraybg}{RGB}{248, 250, 252}
+\definecolor{bordergray}{RGB}{226, 232, 240}
+
+% --- Hyperlink Configuration ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    filecolor=primaryblue,
+    urlcolor=primaryblue,
+    citecolor=primaryblue,
+    pdfauthor={Team Inception (UIU CSE)},
+    pdftitle={Ethos AI - Comprehensive System Documentation},
+    pdfsubject={Study-Abroad Trust, Escrow, and AI Fraud Detection Platform}
+}
+
+% --- Listings / Code Styling ---
+\lstset{
+    backgroundcolor=\color{lightgraybg},
+    basicstyle=\ttfamily\footnotesize\color{darkslate},
+    keywordstyle=\bfseries\color{primaryblue},
+    stringstyle=\color{emeraldgreen},
+    commentstyle=\itshape\color{gray},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    frame=single,
+    rulecolor=\color{bordergray},
+    tabsize=2,
+    breaklines=true,
+    breakatwhitespace=false,
+    showspaces=false,
+    showstringspaces=false
+}
+
+% --- Header and Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textbf{Ethos AI} — Comprehensive System Architecture \& Technical Specification}
+\rhead{UIU CSE Capstone}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% --- Section Formatting ---
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{darkslate}}{\thesection}{1em}{}[\titlerule]
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{primaryblue}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{darkslate}}{\thesubsubsection}{1em}{}
+
+% --- Title Information ---
+\title{
+    \vspace{-1.5cm}
+    \includegraphics[width=2.5cm]{example-image-a}\\[0.3cm]
+    \textbf{\Huge Ethos AI: Next-Generation Trust \& Escrow Infrastructure for Study-Abroad Consulting}\\[0.4cm]
+    \Large Comprehensive System Architecture, AI Fraud Detection \& Technical Specification
+}
+\author{
+    \textbf{Team Inception}\\[0.2cm]
+    \small Department of Computer Science \& Engineering\\
+    \small United International University (UIU), Dhaka, Bangladesh\\[0.3cm]
+    \small \textbf{Lead Architecture \& AI/ML:} Parvez Ahamed Tasin (\texttt{@tasinofficial})\\
+    \small \textbf{AI/ML \& Frontend:} Sourav (\texttt{@Souravg223})\\
+    \small \textbf{Backend \& Frontend Integration:} Sudiip (\texttt{@SudiipPaul})\\
+    \small \textbf{QA, Accessibility \& Documentation:} Jannat (\texttt{@jannatferdo})\\
+    \small \textbf{Database Schema \& DevOps:} Taha (\texttt{@Taha-Mim-Tasfa})
+}
+\date{\textbf{September 2026} \quad $\vert$ \quad Version 3.2 (Production Release)}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+In Bangladesh, over 70,000–90,000 students seek foreign higher education opportunities annually. In the absence of a centralized, mandatory regulatory framework for overseas education consultancies, students and their families are frequently subjected to exploitative practices, including exorbitant non-refundable upfront fees, opaque contractual clauses, forged acceptance letters, and fabricated visa outcomes. 
+
+\textbf{Ethos AI} is an enterprise-grade trust-and-payments platform engineered to systematically eliminate informational asymmetry and financial exploitation within the Bangladeshi study-abroad sector. The platform synthesizes five foundational pillars: (1) a verified consultancy directory with government licensing validation, (2) an itemized side-by-side fee comparison engine, (3) a milestone-based escrow payment system with integer-level currency precision and an immutable cryptographic audit ledger, (4) dual-engine AI-driven document fraud detection (OCR-based offer letter authenticity analysis and smart contract fine-print parsing), and (5) a synchronized parent-student guardian monitoring hub. This document provides a complete technical specification of Ethos AI, spanning architectural design, data models, microservice interactions, cryptographic security protocols, and empirical evaluation metrics.
+\end{abstract}
+
+\vspace{0.5cm}
+\tableofcontents
+\newpage
+
+% -----------------------------------------------------------------------------
+\section{Introduction and Problem Domain}
+% -----------------------------------------------------------------------------
+
+\subsection{Market Context in Bangladesh}
+Higher education mobility has escalated dramatically in Bangladesh over the past decade. Annually, tens of thousands of applicants target universities in North America, Western Europe, and Australasia. However, the consulting sector remains fragmented and predominantly unregulated. A typical consulting contract demands upfront deposits ranging from \text{BDT 50,000} to upwards of \text{BDT 300,000} before any university evaluation or visa assessment has occurred.
+
+\subsection{Primary Failure Modes in Current Consulting Workflows}
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Predatory Advance Fee Extraction:} Consultancies collect non-refundable service fees before submitting applications, shifting all financial risk onto students and parents.
+    \item \textbf{Opaque Fee Structures \& Hidden Penalties:} Contracts lack transparent itemization, burying clauses that forfeit deposits even in the event of institutional rejections or visa bans.
+    \item \textbf{Offer Letter Forgery:} Malicious agencies fabricate acceptance letters using modified graphic templates to extract milestone payments from unsuspecting clients.
+    \item \textbf{Informational Disenfranchisement of Guardians:} While parents frequently finance the entirety of the study-abroad budget, they are routinely excluded from direct communication, lacking visibility into file status, verified documents, and actual escrow balances.
+\end{enumerate}
+
+\begin{tcolorbox}[colback=lightgraybg,colframe=primaryblue,title=\textbf{The Ethos AI Mission}]
+To establish a cryptographically verifiable, economically safeguarded, and AI-audited ecosystem that transforms student-agency interactions from adversarial transactions into transparent, milestone-driven partnerships.
+\end{tcolorbox}
+
+% -----------------------------------------------------------------------------
+\section{High-Level System Architecture}
+% -----------------------------------------------------------------------------
+
+Ethos AI operates under a decoupled, cloud-native dual-service topology engineered for high availability, fault isolation, and low-latency interaction:
+
+\begin{figure}[htbp]
+\centering
+\begin{tcolorbox}[colback=white,colframe=darkslate,title=\textbf{System Topography \& Data Flow}]
+\small
+\textbf{[Next.js 16 Web Core]} $\longleftrightarrow$ \textbf{[FastAPI AI Microservice (Port 8001)]}\\
+$\quad \downarrow$ Prisma Client (Pooled) $\quad\quad\quad\quad \downarrow$ PyMuPDF \& Tesseract OCR\\
+\textbf{[Neon Serverless Postgres]} $\quad\quad\quad\quad$ \textbf{[Private S3-Compatible Vault]}
+\end{tcolorbox}
+\caption{System Component Interaction Diagram}
+\end{figure}
+
+\subsection{Architectural Components}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Next.js 16 Application Layer (Port 3000):} Utilizes Turbopack, React 19 Server/Client Components, Route Handlers, and Neon Auth. It orchestrates user authentication, role-based access control (RBAC), milestone escrow workflows, and responsive UI rendering using custom Neubrutalist design tokens.
+    \item \textbf{FastAPI AI Microservice (Port 8001):} An asynchronous Python 3.12 microservice running on Uvicorn. It hosts the OCR document authenticity scanner, the NLP agreement clause classifier, the heuristic agency scam risk engine, and the AI study counselor.
+    \item \textbf{Neon Serverless PostgreSQL Database:} Relational data layer managing 17+ relational models with strict referential integrity, foreign key cascading, and database connection pooling.
+    \item \textbf{Encrypted S3 Private Document Vault:} Secure object store accessed exclusively through authenticated streaming endpoints, ensuring zero public exposure of personal student records.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Core Feature Modules \& Technical Implementation}
+% -----------------------------------------------------------------------------
+
+\subsection{Module 5.1: Multi-Role Authentication, RBAC \& Guardian Linking}
+Ethos AI enforces strict role separation across four distinct personas:
+\begin{itemize}
+    \item \textbf{Student:} Manages personal academic profile, uploads documents, deposits milestone escrow funds, and communicates with verified agencies.
+    \item \textbf{Parent:} Possesses a synchronized guardian dashboard linked via a unique alphanumeric identifier (\texttt{linkCode}). Receives non-technical Bengali status summaries and milestone release notifications.
+    \item \textbf{Agency:} Reviews applicant submissions, submits formal stage updates, registers official fee benchmarks, and requests milestone disbursements.
+    \item \textbf{Admin:} Exercises platform-wide governance, audits government agency licenses, mediates escrow disputes, and broadcasts security alerts.
+\end{itemize}
+
+\subsection{Module 5.2–5.4: Consultancy Directory, Pricing \& Side-by-Side Comparison}
+The agency directory surfaces verified listings audited against the Ministry of Education Bangladesh (\texttt{MOE-BD-*}) registry. The comparison engine allows simultaneous side-by-side inspection of up to 4 agencies across:
+\begin{itemize}
+    \item Historical Visa Success Rate (audited via embassy submissions).
+    \item Minimum and Maximum Fee Ranges in Bangladeshi Poisha.
+    \item Refund turn-around guarantee periods (typically 7–30 business days).
+    \item AI-calculated Scam Risk Scores (0–100 scale).
+\end{itemize}
+
+\subsection{Module 5.5–5.6: Application Lifecycle State Machine \& Document Vault}
+Applications progress through an immutable, seven-stage state machine:
+\[
+\text{SUBMITTED} \longrightarrow \text{UNDER\_REVIEW} \longrightarrow \text{OFFER\_RECEIVED} \longrightarrow \text{PAYMENT\_PENDING} \longrightarrow \text{VISA\_PROCESSING} \longrightarrow \text{VISA\_APPROVED} \longrightarrow \text{COMPLETED}
+\]
+Each state transition requires actor validation and is recorded in the \texttt{StageEvent} table with a cryptographic timestamp and actor ID. Document uploads are stored with encrypted storage pointers, MIME validation, and stream-only downloads.
+
+\subsection{Module 5.7: Milestone Escrow Payment System \& Cryptographic Hash Ledger}
+To eradicate upfront fee exploitation, funds are split across milestones:
+\begin{enumerate}
+    \item \textbf{File Assessment Milestone:} 15--20\% released upon certified institutional application.
+    \item \textbf{Offer Letter Verification Milestone:} 30--40\% held in escrow until the AI OCR scanner and student confirm genuine unconditional offer issuance.
+    \item \textbf{Visa Lodging Milestone:} Balance held until visa submission confirmation.
+\end{enumerate}
+
+\subsubsection{Poisha-Level Currency Arithmetic}
+All financial transactions are calculated strictly in integer Poisha ($1\text{ BDT} = 100\text{ Poisha}$) using 64-bit integer structures (\texttt{BigInt}) to completely prevent floating-point rounding errors:
+\begin{equation}
+\text{TotalEscrowPoisha} = \sum_{i=1}^{n} \text{MilestoneAmountPoisha}_i
+\end{equation}
+
+\subsubsection{Cryptographic Audit Ledger}
+Every ledger event (\texttt{HOLD}, \texttt{RELEASE}, \texttt{REFUND}, \texttt{DISPUTE\_FREEZE}) generates an immutable SHA-256 transaction hash:
+\begin{equation}
+\text{txHash}_k = \text{SHA256}\left(\text{txHash}_{k-1} \,\|\, \text{milestoneId} \,\|\, \text{amountPoisha} \,\|\, \text{actorId} \,\|\, \text{timestamp}\right)
+\end{equation}
+
+% -----------------------------------------------------------------------------
+\section{Artificial Intelligence \& Machine Learning Pipeline}
+% -----------------------------------------------------------------------------
+
+\subsection{Offer Letter Authenticity OCR Scanner (Module 5.8)}
+When an agency or student uploads an admission offer letter (PDF or image), the microservice invokes PyMuPDF and Tesseract OCR to perform:
+\begin{enumerate}
+    \item \textbf{University Domain \& Accreditation Matching:} Cross-references institutional names against accredited higher education registries.
+    \item \textbf{Layout \& Visual Heuristics Analysis:} Detects font mismatch anomalies, digital artifacting, and inconsistent logo resolutions indicative of tampering.
+    \item \textbf{Risk Probability Scoring:} Assigns a continuous risk score $S \in [0, 100]$:
+    \begin{equation}
+    S_{\text{forgery}} = w_1 \cdot f_{\text{domain}} + w_2 \cdot f_{\text{text\_anomalies}} + w_3 \cdot f_{\text{metadata}}
+    \end{equation}
+\end{enumerate}
+
+\subsection{Smart Agreement Clause Analyzer (Module 5.9)}
+Consultancy agreements are parsed using an NLP classification pipeline that extracts and classifies individual legal clauses into:
+\begin{itemize}
+    \item \textbf{Predatory Clauses:} E.g., ``Total fee is 100\% non-refundable under any circumstance including university rejection.''
+    \item \textbf{Ambiguous Terms:} Hidden administrative or processing fees without defined ceilings.
+    \item \textbf{Plain Language Summaries:} Translates legalese into accessible English and Bengali summaries for students and parents.
+\end{itemize}
+
+\subsection{AI Study Counselor \& Global Scholar Finder (Modules 5.11–5.13)}
+Utilizes multi-parameter vector matching to map student profiles (CGPA, IELTS band, target field, budget constraints) to over 250+ university programs across Canada, the United Kingdom, Germany, the United States, and Australia.
+
+% -----------------------------------------------------------------------------
+\section{Relational Database Architecture}
+% -----------------------------------------------------------------------------
+
+The relational model is maintained via Prisma ORM on Neon Serverless Postgres. Table~\ref{tab:models} outlines the primary database entities.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Model Entity} & \textbf{Primary Key} & \textbf{Core Responsibilities} \\
+\midrule
+\texttt{User} & UUID & Stores identity, email, hashed credentials, role (STUDENT, PARENT, AGENCY, ADMIN). \\
+\texttt{StudentProfile} & UUID & Academic metrics, target countries, budget, and unique \texttt{linkCode}. \\
+\texttt{ParentLink} & UUID & Junction table establishing verified parent-student relationships. \\
+\texttt{Agency} & UUID & Consulting firm metadata, license status, risk scores, rating, fee bounds. \\
+\texttt{Application} & UUID & Lifecycle tracking, target institution, program, current stage enum. \\
+\texttt{Milestone} & UUID & Escrow stages, release conditions, amount in integer Poisha, status. \\
+\texttt{LedgerEntry} & UUID & Immutable cryptographic transaction ledger with SHA-256 hash chaining. \\
+\texttt{Document} & UUID & Encrypted vault storage pointers, MIME types, versions, scan linkages. \\
+\texttt{DocumentScan} & UUID & AI OCR risk scores, fraud verdicts, and detection flags. \\
+\texttt{Dispute} & UUID & Arbitration records for contested escrow funds with admin oversight. \\
+\bottomrule
+\end{tabularx}
+\caption{Primary Relational Database Models}
+\label{tab:models}
+\end{table}
+
+% -----------------------------------------------------------------------------
+\section{Quality Assurance, Verification \& Test Suite}
+% -----------------------------------------------------------------------------
+
+\subsection{Automated Web Test Suite (Vitest)}
+The web application maintains comprehensive unit, integration, and security boundary test coverage. As of September 2026:
+\begin{itemize}
+    \item \textbf{Total Test Suites:} 23 passed, 3 optional integration suites skipped.
+    \item \textbf{Total Tests Executed:} \textbf{189 passed}, 0 failures.
+    \item \textbf{Coverage Highlights:} Strict access denial checks for unauthorized roles, Neon Auth session restoration, document stream access control, escrow ledger hash integrity, and mock gateway simulations.
+\end{itemize}
+
+\subsection{AI Microservice Test Suite (Pytest)}
+The FastAPI service utilizes automated pytest suites validating:
+\begin{itemize}
+    \item Offer letter OCR extraction pipelines.
+    \item Agreement clause classification accuracy.
+    \item Agency risk score computation against historical dispute databases.
+    \item University recommendation ranking.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Conclusion \& Future Roadmap}
+% -----------------------------------------------------------------------------
+
+Ethos AI delivers a transformative, secure, and production-tested paradigm for higher education mobility in emerging markets. By replacing unregulated advance fees with cryptographically verifiable milestone escrow and augmenting student decision-making with AI fraud inspection, the platform establishes unprecedented transparency. 
+
+Future milestones include native integration with Bangladesh Bank's National Payment Switch Bangladesh (NPSB), automated university admissions API webhooks, and federated machine learning models for decentralized fraud intelligence.
+
+\vspace{0.8cm}
+\begin{center}
+\textbf{--- End of Technical Specification ---}
+\end{center}
+
+\end{document}

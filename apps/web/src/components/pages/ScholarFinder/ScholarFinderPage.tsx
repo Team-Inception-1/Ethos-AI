@@ -26,6 +26,7 @@ import {
   type PaperDeconstructResponse,
   type TARAStrategyResponse,
 } from '@/lib/aiService';
+import { OFFLINE_DEMO_ENABLED } from '@/lib/ai/demo';
 import styles from './ScholarFinderPage.module.css';
 
 interface PipelineItem {
@@ -150,7 +151,7 @@ export default function ScholarFinderPage() {
   const [activeTab, setActiveTab] = useState<'search' | 'email_studio' | 'pipeline' | 'guide'>('search');
 
   // Search Mode: 'curated' (top R1/U15 labs) or 'live' (OpenAlex Global Deep Search)
-  const [searchMode, setSearchMode] = useState<'curated' | 'live'>('curated');
+  const [searchMode, setSearchMode] = useState<'curated' | 'live'>(OFFLINE_DEMO_ENABLED ? 'curated' : 'live');
 
   // OpenAlex Search Entity Type: 'all' | 'works' | 'institutions' | 'authors'
   const [liveEntityType, setLiveEntityType] = useState<'all' | 'works' | 'institutions' | 'authors'>('all');
@@ -1029,14 +1030,16 @@ export default function ScholarFinderPage() {
         <section className={styles.searchSection}>
           {/* Search Mode Toggle (Curated R1/U15 vs Global Live OpenAlex) */}
           <div className={styles.searchModeToggle}>
-            <button
-              type="button"
-              className={`${styles.searchModeBtn} ${searchMode === 'curated' ? styles.searchModeActive : ''}`}
-              onClick={() => setSearchMode('curated')}
-            >
-              <span>🏛️</span>
-              <span>{lang === 'en' ? 'Curated R1 / U15 / TU9 Labs' : 'নির্বাচিত আর১ / ইউ১৫ ল্যাব'}</span>
-            </button>
+            {OFFLINE_DEMO_ENABLED && (
+              <button
+                type="button"
+                className={`${styles.searchModeBtn} ${searchMode === 'curated' ? styles.searchModeActive : ''}`}
+                onClick={() => setSearchMode('curated')}
+              >
+                <span>🏛️</span>
+                <span>{lang === 'en' ? 'Curated Demo Labs' : 'নির্বাচিত ডেমো ল্যাব'}</span>
+              </button>
+            )}
             <button
               type="button"
               className={`${styles.searchModeBtn} ${searchMode === 'live' ? styles.searchModeActive : ''}`}

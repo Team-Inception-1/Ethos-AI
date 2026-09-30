@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import styles from './DirectoryPage.module.css';
 import { getAgencyRiskScores, type AgencyRiskScore } from '@/lib/aiService';
+import { AgencyCardSkeleton } from '@/components/ui/Skeleton';
 
 // SVG Icons
 const SearchIcon = () => (
@@ -186,7 +187,6 @@ function DirectoryContent() {
         </div>
 
         {directoryError && <p role="alert">{directoryError}</p>}
-        {loading && <p role="status">Loading agency directory…</p>}
         {!loading && !directoryError && filtered.length === 0 && <p>No published agencies match your filters.</p>}
         {riskError && (
           <div className={styles.riskErrorToast} role="alert">
@@ -283,7 +283,12 @@ function DirectoryContent() {
 
           {/* Agency Grid */}
           <div className={styles.agencyGrid} aria-label="Agency listings" aria-live="polite">
-            {filtered.map(a => (
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <AgencyCardSkeleton key={i} />
+              ))
+            ) : (
+              filtered.map(a => (
               <div key={a.id} className={styles.agencyCard}>
                 {/* Header */}
                 <div className={styles.cardTop}>
@@ -366,7 +371,7 @@ function DirectoryContent() {
                   </button>
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         </div>
       </div>

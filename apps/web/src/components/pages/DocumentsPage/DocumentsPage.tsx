@@ -5,6 +5,7 @@ import { z } from 'zod';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
+import { DocumentVaultSkeleton } from '@/components/ui/Skeleton';
 import styles from './DocumentsPage.module.css';
 
 const documentSchema = z.object({ id: z.string(), name: z.string(),
@@ -42,7 +43,7 @@ const typeLabels: Record<string, string> = {
 
 export default function DocumentsPage() {
   const { user, loading } = useAuth();
-  if (loading) return <p role="status">Restoring your secure document session…</p>;
+  if (loading) return <div className={styles.page}><DocumentVaultSkeleton /></div>;
   if (!user) return <p role="alert">Sign in to access your document vault.</p>;
   return <DocumentVault key={user.id} />;
 }
@@ -394,9 +395,7 @@ function DocumentVault() {
 
       {/* ─── Document Grid ─── */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
-          Loading your documents…
-        </div>
+        <DocumentVaultSkeleton />
       ) : filteredDocs.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon} aria-hidden="true">📭</div>

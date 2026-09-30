@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import GlassCard from '@/components/ui/GlassCard';
 import { applicationListSchema, stageLabel, type ApplicationItem } from '@/lib/applications/contracts';
 import { useApplicationData } from '@/lib/applications/use-data';
+import { ApplicationListSkeleton } from '@/components/ui/Skeleton';
 import styles from './ApplicationsPage.module.css';
 
 type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'warning' | 'info';
@@ -85,7 +86,7 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
 
       {createdMessage && <div className={styles.successBanner} role="status">✓ {createdMessage}</div>}
 
-      {loading && <GlassCard padding="lg"><p role="status">Loading applications…</p></GlassCard>}
+      {loading && <ApplicationListSkeleton count={3} />}
 
       {error && (
         <GlassCard padding="lg">

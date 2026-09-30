@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import GlassCard from '@/components/ui/GlassCard';
 import { applicationDetailSchema, stageLabel } from '@/lib/applications/contracts';
 import { useApplicationData } from '@/lib/applications/use-data';
+import { ApplicationDetailSkeleton } from '@/components/ui/Skeleton';
 import styles from './ApplicationDetailPage.module.css';
 
 const STAGES = ['SUBMITTED', 'UNDER_REVIEW', 'OFFER_RECEIVED', 'PAYMENT_PENDING', 'VISA_PROCESSING', 'VISA_APPROVED', 'COMPLETED'] as const;
@@ -41,7 +42,7 @@ export default function ApplicationDetailPage({ id }: { id: string }) {
     <div className={styles.page}>
       <Link href="/dashboard/applications" className={styles.backLink}>← Back to applications</Link>
 
-      {loading && <GlassCard padding="lg"><p role="status">Loading application…</p></GlassCard>}
+      {loading && <ApplicationDetailSkeleton />}
       {error && (
         <GlassCard padding="lg">
           <p role="alert">{error}</p>
