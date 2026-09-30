@@ -1,7 +1,3 @@
-name: PR Deployment Pipeline — Lint / Typecheck / Build / Escrow QA
-# Issue #20 (K-20): Deployment Pipeline Checks for PRs
-# Assignee: @Taha-Mim-Tasfa
-# Gating every PR on: ESLint, TypeScript typecheck, escrow state machine QA, Next.js build.
 
 on:
   push:

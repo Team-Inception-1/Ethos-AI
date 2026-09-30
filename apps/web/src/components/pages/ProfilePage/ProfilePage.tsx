@@ -607,6 +607,6 @@ function ProfileEditor() {
             )}
           </GlassCard>
         </div>
-    </div>
+      </div>
   );
 }
