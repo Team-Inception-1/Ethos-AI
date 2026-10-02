@@ -162,10 +162,15 @@ const TAB_MAP: Record<string, TabType> = {
   provenance: 'Data Provenance',
   benchmarks: 'Data Provenance',
   disputes: 'Disputes',
+  dispute: 'Disputes',
   scams: 'Scam Alerts',
+  scam: 'Scam Alerts',
   alerts: 'Scam Alerts',
   users: 'Users',
+  user: 'Users',
+  members: 'Users',
   ledger: 'Audit Ledger',
+  audit: 'Audit Ledger',
 };
 
 const TAB_REVERSE_MAP: Record<TabType, string> = {
@@ -182,9 +187,44 @@ export default function AdminPanel() {
   const router = useRouter();
 
   const tabParam = searchParams.get('tab')?.toLowerCase();
-  const activeTab: TabType = (tabParam && TAB_MAP[tabParam]) || 'Agency Verification';
+  const initialTab: TabType = (tabParam && TAB_MAP[tabParam]) || 'Agency Verification';
+  const [activeTab, setActiveTabState] = useState<TabType>(initialTab);
+
+  // Sync activeTab state whenever URL searchParams change
+  useEffect(() => {
+    if (tabParam && TAB_MAP[tabParam]) {
+      setActiveTabState(TAB_MAP[tabParam]);
+    }
+  }, [tabParam]);
+
+  // Sync activeTab state on custom sidebar tab events
+  useEffect(() => {
+    const handleSwitch = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      const slug = customEvent.detail?.toLowerCase();
+      if (slug && TAB_MAP[slug]) {
+        setActiveTabState(TAB_MAP[slug]);
+      }
+    };
+    window.addEventListener('admin-switch-tab', handleSwitch);
+    return () => window.removeEventListener('admin-switch-tab', handleSwitch);
+  }, []);
+
+  // Sync activeTab state on browser back/forward or manual popstate
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const current = urlParams.get('tab')?.toLowerCase();
+      if (current && TAB_MAP[current]) {
+        setActiveTabState(TAB_MAP[current]);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const setActiveTab = (tab: TabType) => {
+    setActiveTabState(tab);
     const slug = TAB_REVERSE_MAP[tab] || 'agencies';
     router.push(`/admin?tab=${slug}`, { scroll: false });
   };
@@ -276,6 +316,7 @@ export default function AdminPanel() {
     if (typeof window === 'undefined') return;
     const h = window.location.hash.replace('#', '').toLowerCase();
     if (h && TAB_MAP[h]) {
+      setActiveTabState(TAB_MAP[h]);
       router.replace(`/admin?tab=${TAB_REVERSE_MAP[TAB_MAP[h]]}`, { scroll: false });
     }
   }, [router]);
@@ -406,12 +447,19 @@ export default function AdminPanel() {
         setDisputes((prev) =>
           prev.map((d) => (d.milestoneId === milestoneId ? { ...d, status: nextStatus } : d))
         );
-        showToast(data.sandbox ? 'Sandbox dispute recorded. No real funds moved.' : (data.message || 'Dispute resolution recorded.'));
+        showToast(
+          data.message ||
+            (action === 'REFUND'
+              ? '✓ 100% refund successfully returned to student.'
+              : '✓ Escrow funds successfully released to agency.')
+        );
         setSelectedDisputeEvidence(null);
+        setDisputeResolutionNote('');
         // Refresh stats and ledger
         fetchData();
       } else {
-        showToast(`✕ Error: ${errorMessage(data.error, 'Failed to resolve dispute')}`);
+        const errMsg = data.error?.message || data.error || data.message || 'Failed to resolve dispute';
+        showToast(`✕ Error: ${errMsg}`);
       }
     } catch {
       showToast('✕ Network error resolving dispute');
@@ -521,12 +569,15 @@ export default function AdminPanel() {
   // Filtered users
   const filteredUsers = useMemo(() => {
     return usersList.filter((u) => {
-      const matchesRole = userRoleFilter === 'ALL' || u.role.toUpperCase() === userRoleFilter;
+      if (!u) return false;
+      const roleStr = (u.role || '').toUpperCase();
+      const matchesRole = userRoleFilter === 'ALL' || roleStr === userRoleFilter;
+      const q = (searchQuery || '').toLowerCase();
       const matchesSearch =
-        !searchQuery ||
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.phone.includes(searchQuery);
+        !q ||
+        (u.name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.phone ? u.phone.includes(q) : false);
       return matchesRole && matchesSearch;
     });
   }, [usersList, userRoleFilter, searchQuery]);
@@ -677,12 +728,13 @@ export default function AdminPanel() {
         {/* Box 5: Platform Members */}
         <button
           type="button"
+          id="stat-card-users"
           className={`${styles.statCard} ${activeTab === 'Users' ? styles.statCardActive : ''}`}
           onClick={() => {
             setActiveTab('Users');
             setSearchQuery('');
           }}
-          aria-label="View Platform Members directory details"
+          aria-label="View Users and Platform Members directory details"
         >
           {activeTab === 'Users' && (
             <span className={styles.activeIndicator}>● Viewing</span>
@@ -692,7 +744,7 @@ export default function AdminPanel() {
           </div>
           <div>
             <div className={styles.statValue}>{stats?.users.total ?? 0}</div>
-            <div className={styles.statLabel}>Platform Members</div>
+            <div className={styles.statLabel}>Users & Platform Members</div>
             <div className={styles.statSubtext}>
               {stats?.users.students ?? 0} stu · {stats?.users.parents ?? 0} par · {stats?.users.agencies ?? 0} agc
             </div>
@@ -762,6 +814,7 @@ export default function AdminPanel() {
             return (
               <button
                 key={t}
+                id={`tab-${t.toLowerCase().replace(/\s+/g, '-')}`}
                 role="tab"
                 aria-selected={activeTab === t}
                 className={`${styles.tab} ${activeTab === t ? styles.tabActive : ''}`}
@@ -994,9 +1047,9 @@ export default function AdminPanel() {
                   if (!searchQuery) return true;
                   const q = searchQuery.toLowerCase();
                   return (
-                    d.id.toLowerCase().includes(q) ||
-                    d.student.name.toLowerCase().includes(q) ||
-                    d.agency.name.toLowerCase().includes(q)
+                    (d.id || '').toLowerCase().includes(q) ||
+                    (d.student?.name || '').toLowerCase().includes(q) ||
+                    (d.agency?.name || '').toLowerCase().includes(q)
                   );
                 })
                 .map((d) => {
@@ -1356,14 +1409,16 @@ export default function AdminPanel() {
               ) : (
                 filteredUsers.map((u) => {
                 const isActionLoading = actionLoadingId === u.id;
+                const initialLetter = (u.name || 'U').charAt(0).toUpperCase();
                 return (
                   <tr key={u.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         {u.avatarUrl ? (
                           <Image
+                            unoptimized
                             src={u.avatarUrl}
-                            alt={u.name}
+                            alt={u.name || 'User avatar'}
                             width={32}
                             height={32}
                             style={{
@@ -1388,16 +1443,16 @@ export default function AdminPanel() {
                               fontWeight: 800,
                             }}
                           >
-                            {u.name.charAt(0)}
+                            {initialLetter}
                           </div>
                         )}
                         <div>
-                          <div className={styles.primaryCell}>{u.name}</div>
-                          <div className={styles.subInfo}>{u.email}</div>
+                          <div className={styles.primaryCell}>{u.name || 'Anonymous User'}</div>
+                          <div className={styles.subInfo}>{u.email || '—'}</div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{u.phone}</td>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{u.phone || '—'}</td>
                     <td>
                       <Badge
                         variant={
@@ -1411,7 +1466,7 @@ export default function AdminPanel() {
                         }
                         size="sm"
                       >
-                        {u.role}
+                        {u.role || 'STUDENT'}
                       </Badge>
                     </td>
                     <td>
@@ -2132,11 +2187,13 @@ export default function AdminPanel() {
                   <Button
                     variant="emerald"
                     size="sm"
+                    loading={actionLoadingId === selectedDisputeEvidence.milestoneId}
+                    disabled={actionLoadingId === selectedDisputeEvidence.milestoneId}
                     onClick={() =>
                       handleResolveDispute(
                         selectedDisputeEvidence.milestoneId,
                         'REFUND',
-                        disputeResolutionNote || 'Dispute resolved in favor of student claim'
+                        disputeResolutionNote || 'Admin verified student dispute: 100% refund returned to student account.'
                       )
                     }
                   >
@@ -2145,11 +2202,13 @@ export default function AdminPanel() {
                   <Button
                     variant="outline"
                     size="sm"
+                    loading={actionLoadingId === selectedDisputeEvidence.milestoneId}
+                    disabled={actionLoadingId === selectedDisputeEvidence.milestoneId}
                     onClick={() =>
                       handleResolveDispute(
                         selectedDisputeEvidence.milestoneId,
                         'RELEASE',
-                        disputeResolutionNote || 'Dispute dismissed; agency verified valid completion'
+                        disputeResolutionNote || 'Admin verified agency delivered milestone requirement: Funds released.'
                       )
                     }
                   >

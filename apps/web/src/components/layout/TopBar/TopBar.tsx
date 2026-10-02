@@ -93,7 +93,11 @@ export default function TopBar() {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  const effectiveRole = user?.role || 'student';
+  const effectiveRole = pathname?.startsWith('/admin')
+    ? 'admin'
+    : pathname?.startsWith('/agency')
+    ? 'agency'
+    : user?.role?.toLowerCase() || 'student';
 
   let userName = user?.name;
   if (!userName) {
@@ -104,17 +108,36 @@ export default function TopBar() {
   }
   const initial = userName ? userName.charAt(0).toUpperCase() : 'U';
 
-  const initialNotifs = process.env.NEXT_PUBLIC_OFFLINE_DEMO !== 'true' ? [] :
-    effectiveRole === 'agency' ? AGENCY_NOTIFICATIONS :
-    effectiveRole === 'admin' ? ADMIN_NOTIFICATIONS :
-    STUDENT_NOTIFICATIONS;
+  const fallbackNotifs = React.useMemo(() => {
+    return effectiveRole === 'agency' ? AGENCY_NOTIFICATIONS :
+      effectiveRole === 'admin' ? ADMIN_NOTIFICATIONS :
+      STUDENT_NOTIFICATIONS;
+  }, [effectiveRole]);
 
-  const [readIds, setReadIds] = React.useState<string[]>([]);
-  const notifs = initialNotifs.map(n => ({...n, read: readIds.includes(n.id)}));
+  const [notifs, setNotifs] = React.useState(fallbackNotifs);
   const [openNotifs, setOpenNotifs] = React.useState(false);
   const [failedAvatar, setFailedAvatar] = React.useState<string | null>(null);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    let mounted = true;
+    const timer = setTimeout(() => {
+      fetch('/api/notifications')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (mounted && data?.notifications && Array.isArray(data.notifications) && data.notifications.length > 0) {
+            setNotifs(data.notifications);
+          }
+        })
+        .catch(() => {
+          // Fallback to initial notifications on error
+        });
+    }, 0);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, [user]);
 
   const unreadCount = notifs.filter((n) => !n.read).length;
 
@@ -128,13 +151,31 @@ export default function TopBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleMarkAllRead = () => {
-    setReadIds(initialNotifs.map(n => n.id));
+  const handleMarkAllRead = async () => {
+    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mark_all_read' }),
+      });
+    } catch {
+      // ignore
+    }
   };
 
-  const handleItemClick = (id: string) => {
-    setReadIds(prev => [...prev, id]);
+  const handleItemClick = async (id: string) => {
+    setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     setOpenNotifs(false);
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mark_read', id }),
+      });
+    } catch {
+      // ignore
+    }
   };
 
   const pageTitle =

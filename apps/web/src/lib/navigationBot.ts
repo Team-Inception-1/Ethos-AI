@@ -140,12 +140,12 @@ export function getContextualSuggestions(pathname: string, lang: 'en' | 'bn'): {
   return lang === 'en'
     ? [
         { text: 'How to find verified consultancies?', action: { label: 'Find Agencies', labelBn: 'এজেন্সি খুঁজুন', href: '/directory', icon: '🏢' } },
-        { text: 'Test offer letter or contract for fraud', action: { label: 'AI Fraud Tools', labelBn: 'এআই টুলস', href: '/ai-tools', icon: '🛡️' } },
+        { text: 'Test offer letter or contract for fraud', action: { label: 'AI Fraud Tools', labelBn: 'এআই ফ্রড চেকার', href: '/dashboard/fraud-checker', icon: '🛡️' } },
         { text: 'How does Escrow protect my money?', action: { label: 'Escrow Payments', labelBn: 'এসক্রো পেমেন্ট', href: '/dashboard/payments', icon: '🔒' } },
       ]
     : [
         { text: 'বিশ্বস্ত ও লাইসেন্সপ্রাপ্ত এজেন্সি কীভাবে খুঁজব?', action: { label: 'এজেন্সি খুঁজুন', labelBn: 'এজেন্সি খুঁজুন', href: '/directory', icon: '🏢' } },
-        { text: 'অফার লেটার ও চুক্তির শর্ত যাচাই করার উপায় কী?', action: { label: 'এআই টুলস', labelBn: 'এআই টুলস', href: '/ai-tools', icon: '🛡️' } },
+        { text: 'অফার লেটার ও চুক্তির শর্ত যাচাই করার উপায় কী?', action: { label: 'এআই ফ্রড চেকার', labelBn: 'এআই ফ্রড চেকার', href: '/dashboard/fraud-checker', icon: '🛡️' } },
         { text: 'এসক্রো পেমেন্ট কীভাবে টাকা প্রতারণা থেকে বাঁচায়?', action: { label: 'এসক্রো পেমেন্ট', labelBn: 'এসক্রো পেমেন্ট', href: '/dashboard/payments', icon: '🔒' } },
       ];
 }
@@ -196,7 +196,7 @@ export function queryNavigationAssistant(query: string, currentPath: string = '/
       textBn: 'সঠিক বিভাগ খুঁজে নিতে সাহায্য করতে পারি। এজেন্সির তথ্যের জন্য প্রকাশিত ডিরেক্টরি এবং নথি বিশ্লেষণের জন্য এআই টুল ব্যবহার করুন। বর্তমান খরচ ও পেমেন্টের শর্ত অফিসিয়াল উৎস থেকে যাচাই করুন।',
       actions: (destinations.length ? destinations : QUICK_CATEGORIES.slice(0, 3)).map(item => ({
         label: item.titleEn, labelBn: item.titleBn, icon: item.icon,
-        href: ({ directory: '/directory', compare: '/compare', 'ai-tools': '/ai-tools', counselor: '/counselor', escrow: '/dashboard/escrow', guardian: '/dashboard' } as Record<string, string>)[item.id] || '/directory',
+        href: ({ directory: '/directory', compare: '/compare', 'ai-tools': '/dashboard/fraud-checker', counselor: '/counselor', escrow: '/dashboard/escrow', guardian: '/dashboard' } as Record<string, string>)[item.id] || '/directory',
       })),
     };
   }
@@ -457,7 +457,7 @@ Ethos AI-তে টাকা ধাপে ধাপে মাইলস্টো�
         {
           label: 'Scan Promotional Claims',
           labelBn: 'বিজ্ঞাপন যাচাই করুন',
-          href: '/ai-tools',
+          href: '/dashboard/fraud-checker',
           icon: '🛡️',
           description: 'Test agency claims for scam red flags.',
           descriptionBn: 'এজেন্সির কোনো দাবি ভুয়া কি না স্ক্যান করুন।',
@@ -533,7 +533,7 @@ Any consultancy claiming a '100% Guaranteed Visa' is making a fraudulent claim. 
         {
           label: 'Scan Scam Claims',
           labelBn: 'বিজ্ঞাপন যাচাই করুন',
-          href: '/ai-tools',
+          href: '/dashboard/fraud-checker',
           icon: '🛡️',
           description: 'Scan marketing claims for fraud red flags.',
           descriptionBn: 'চটকদার বিজ্ঞাপনের ঝুঁকি পরীক্ষা করুন।',
@@ -759,7 +759,7 @@ Here are the key capabilities I provide:
 ৫. কাউন্সেলর অ্যানালাইসিস: আপনার সিজিপিএ ও আইইএলটিএস অনুযায়ী ড্রিম, টার্গেট ও সেফ বিশ্ববিদ্যালয় বাছাই করা।`,
       actions: [
         { label: 'Browse Agencies', labelBn: 'এজেন্সি ডিরেক্টরি', href: '/directory', icon: '🏢' },
-        { label: 'AI Fraud Tools', labelBn: 'এআই ফ্রড টুলস', href: '/ai-tools', icon: '🛡️' },
+        { label: 'AI Fraud Tools', labelBn: 'এআই ফ্রড চেকার', href: '/dashboard/fraud-checker', icon: '🛡️' },
         { label: 'AI University Counselor', labelBn: 'বিশ্ববিদ্যালয় কাউন্সেলর', href: '/counselor', icon: '🎓' },
       ],
       suggestions: [
@@ -947,8 +947,8 @@ Would you like to browse verified agencies handling ${countryName}, or evaluate 
       actions: [
         {
           label: 'Open AI Fraud Tools',
-          labelBn: 'এআই ফ্রড টুলস খুলুন',
-          href: '/ai-tools',
+          labelBn: 'এআই ফ্রড চেকার খুলুন',
+          href: '/dashboard/fraud-checker',
           icon: '🛡️',
           description: 'Upload your offer letter PDF or paste consultancy agreement text to inspect risk score.',
           descriptionBn: 'আপনার অফার লেটার বা চুক্তির টেক্সট আপলোড করে তাৎক্ষণিক রিস্ক স্কোর দেখুন।',
@@ -1303,7 +1303,7 @@ The tool also features a Visa Solvency Calculator to verify embassy fund require
 ৫. বিশ্ববিদ্যালয় ভর্তি সম্ভাবনা: সিজিপিএ ও আইইএলটিএস দিয়ে উপযুক্ত বিশ্ববিদ্যালয়ের ক্যাটাগরি বিশ্লেষণ করুন।`,
     actions: [
       { label: 'Browse Agencies', labelBn: 'এজেন্সি খুঁজুন', href: '/directory', icon: '🏢' },
-      { label: 'AI Fraud Tools', labelBn: 'এআই ফ্রড টুলস', href: '/ai-tools', icon: '🛡️' },
+      { label: 'AI Fraud Tools', labelBn: 'এআই ফ্রড চেকার', href: '/dashboard/fraud-checker', icon: '🛡️' },
       { label: 'AI Counselor', labelBn: 'এআই কাউন্সেলর', href: '/counselor', icon: '🎓' },
       { label: 'Escrow Payments', labelBn: 'এসক্রো পেমেন্ট', href: '/dashboard/payments', icon: '🔒' },
     ],

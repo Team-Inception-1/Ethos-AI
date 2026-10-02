@@ -78,3 +78,109 @@
 .milestoneName { font-weight: 700; }
 .amount { font-weight: 800; font-family: 'Space Grotesk', sans-serif; }
 .date, .ref { font-size: 12px; color: var(--text-muted); }
+
+.agencyBanner {
+  background: var(--bg-surface, #ffffff);
+  border: 2.5px solid var(--ink);
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px 20px;
+  box-shadow: 4px 4px 0 0 var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.agencyBannerInfo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.agencyIcon {
+  font-size: 28px;
+  background: rgba(79, 142, 247, 0.12);
+  padding: 8px;
+  border-radius: 10px;
+  border: 1.5px solid var(--ink);
+}
+
+.clearFilterBtn {
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.clearFilterBtn:hover {
+  background: var(--bg-hover);
+  border-color: var(--ink);
+}
+
+.applyWithEscrowCard {
+  background: var(--bg-surface, #ffffff);
+  border: 2.5px solid var(--ink);
+  border-radius: var(--radius-lg, 12px);
+  padding: 24px;
+  box-shadow: 4px 4px 0 0 var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.applyCardHeader h3 {
+  font-size: 18px;
+  font-weight: 800;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.applyCardHeader p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.badgeShield {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--emerald);
+  border: 1.5px solid var(--emerald);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.applyCardActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.viewExistingBtn {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.viewExistingBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
