@@ -35,12 +35,19 @@ export async function GET(request: Request) {
     } else if (authorization.user.role === 'AGENCY') {
       const managedApps = await prisma.application.findMany({
         where: { agency: { ownerUserId: authorization.user.id, licenseStatus: 'VERIFIED' } },
-        select: { id: true },
+        select: { id: true, studentId: true },
       });
       const managedAppIds = managedApps.map(a => a.id);
       if (requestedAppId) {
         if (!managedAppIds.includes(requestedAppId)) return forbiddenResponse();
-        whereClause = { applicationId: requestedAppId };
+        const currentApp = managedApps.find(a => a.id === requestedAppId);
+        whereClause = {
+          OR: [
+            { applicationId: requestedAppId },
+            { ownerId: authorization.user.id },
+            ...(currentApp ? [{ ownerId: currentApp.studentId }] : []),
+          ],
+        };
       } else {
         whereClause = {
           OR: [
@@ -52,7 +59,7 @@ export async function GET(request: Request) {
     } else {
       whereClause = {
         ownerId: authorization.user.id,
-        ...(requestedAppId ? { applicationId: requestedAppId } : {}),
+        ...(requestedAppId ? { OR: [{ applicationId: requestedAppId }, { applicationId: null }] } : {}),
       };
     }
 
