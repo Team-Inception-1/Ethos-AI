@@ -20,7 +20,7 @@ import { GET as threadsGet } from '@/app/api/chat/threads/route';
 
 const context = { params: Promise.resolve({ id: 'thread' }) };
 const post = (body: unknown) => new Request('http://localhost/api/chat/threads/thread/messages', {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://localhost' }, body: JSON.stringify(body),
 });
 beforeEach(() => {
   vi.resetAllMocks();

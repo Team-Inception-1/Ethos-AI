@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/auth/authorization';
 import { profileDTO, profileInclude } from '@/lib/auth/profile';
+import { sameOrigin } from '@/lib/auth/registration';
 import { apiError, handleApiError } from '@/lib/api/response';
 
 const profileUpdates = z.object({
@@ -13,8 +14,13 @@ const profileUpdates = z.object({
     targetField: z.string().trim().max(200).optional(),
     budgetRange: z.string().trim().max(100).optional(),
     ieltsScore: z.string().trim().max(100).optional(),
-  }).optional(),
-}); // Identity, role, verification, relationships and avatar keys are not writable here.
+  }).strict().optional(),
+  agencyDetails: z.object({
+    agencyName: z.string().trim().min(2).max(160),
+    licenseNo: z.string().trim().min(2).max(100),
+    countriesServed: z.array(z.string().trim().min(2).max(100)).max(50),
+  }).strict().optional(),
+}).strict(); // Identity, role, verification, relationships and avatar keys are not writable here.
 
 export async function GET() {
   try {
@@ -30,11 +36,20 @@ export async function PUT(request: Request) {
   try {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
-    const { studentDetails, ...updates } = profileUpdates.parse(await request.json());
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
+    const { studentDetails, agencyDetails, ...updates } = profileUpdates.parse(await request.json());
     if (studentDetails && authorization.user.role !== 'STUDENT') return apiError('FORBIDDEN', 'Only students can update student details.', 403);
+    if (agencyDetails && authorization.user.role !== 'AGENCY') return apiError('FORBIDDEN', 'Only agencies can update agency details.', 403);
     const user = await prisma.user.update({ where: { id: authorization.user.id }, data: {
       ...updates,
       ...(studentDetails ? { studentProfile: { update: studentDetails } } : {}),
+      ...(agencyDetails ? { agencyProfile: { update: {
+        name: agencyDetails.agencyName,
+        licenseNo: agencyDetails.licenseNo,
+        countriesServed: agencyDetails.countriesServed,
+        // Changes to legal credentials must be reviewed again by an administrator.
+        licenseStatus: 'PENDING',
+      } } } : {}),
     }, include: profileInclude });
     return NextResponse.json({ data: profileDTO(user) });
   } catch (error) { return handleApiError(error); }

@@ -1,0 +1,372 @@
+The cleanest four-person split is by subsystem ownership, with only one person controlling Prisma migrations to avoid schema conflicts.
+
+## Person 1 — Database, authentication, and authorization
+
+**Primary role:** Backend foundation owner
+
+### Responsibilities
+
+- Correct `schema.prisma` and all migrations.
+- Own Prisma Client generation.
+- Create the isolated Neon validation branch.
+- Implement consistent same-origin/CSRF protection.
+- Maintain Neon Auth integration.
+- Implement agency-profile persistence.
+- Implement parent/student relationship workflows:
+  - Link request
+  - Approval/rejection
+  - Unlinking
+  - Relationship-scoped authorization
+- Add server-side route protection.
+- Review database queries written by the other members.
+
+### Assigned defects
+
+- AUD-004
+- AUD-009
+- AUD-010
+- AUD-029
+- AUD-030
+- Schema portions of AUD-005, AUD-008, AUD-021, AUD-022, and AUD-023
+
+### Owned files
+
+- `prisma/schema.prisma`
+- `prisma/migrations/**`
+- `src/lib/prisma.ts`
+- `src/lib/auth/**`
+- `src/context/AuthContext.tsx`
+- `src/app/api/registration/**`
+- `src/app/api/user/**`
+- New guardian/relationship APIs
+
+### First deliverables
+
+1. Correct counselor schema drift.
+2. Add missing persistent models.
+3. Validate migrations against an isolated Neon database.
+4. Fix agency profile saving.
+5. Make linked students and parents load from the backend.
+6. Add security guards to all mutation APIs.
+
+### Dependencies
+
+This person starts first. The other three should not create migrations independently. They provide their required fields to Person 1.
+
+---
+
+## Person 2 — Directory, Counselor, Scholar Finder, and Campus data
+
+**Primary role:** Search, recommendation, and data-feature owner
+
+### Responsibilities
+
+#### Agency directory
+
+- Implement database-backed agency detail API.
+- Replace static agency profiles.
+- Replace static agency comparison.
+- Implement reviews, pricing, refund, risk, and provenance projections.
+- Return proper 404 responses.
+
+#### Counselor
+
+- Connect UI to the Neon recommendation API.
+- Implement complete filtering and scoring.
+- Persist shortlists and roadmap completion.
+- Correct source labels and verification wording.
+- Remove business data from `localStorage`.
+
+#### Scholar Finder
+
+- Integrate live academic search through the backend.
+- Cache selected professors in PostgreSQL.
+- Implement Professor Outreach CRUD.
+- Persist pipeline stages, emails, notes, and follow-ups.
+- Hydrate the signed-in student’s profile.
+
+#### Campus Living
+
+- Replace runtime JSON usage with backend/database queries.
+- Store costs, locations, exchange rates, sources, and audit dates.
+- Add provenance information.
+
+### Assigned defects
+
+- AUD-001 through AUD-008
+- AUD-021
+- AUD-022 directory-related portion
+- AUD-031
+
+### Owned files
+
+- `src/components/pages/DirectoryPage/**`
+- `src/app/directory/**`
+- `src/components/pages/ComparePage/**`
+- `src/app/compare/**`
+- `src/components/pages/CounselorPage/**`
+- `src/app/api/counselor/**`
+- `src/components/pages/ScholarFinder/**`
+- New Professor/Outreach APIs
+- `src/components/pages/CampusLivingPage/**`
+- `src/app/api/campus-living/**`
+- Related AI-service Counselor and Scholar modules
+
+### Dependencies
+
+- Needs the corrected Prisma schema from Person 1.
+- Needs the agency-profile contract from Person 1.
+- Must finish the live agency API before Counselor embeds agency recommendations.
+- Must coordinate Campus schema requirements with Person 1.
+
+---
+
+## Person 3 — Applications, documents, and chat
+
+**Primary role:** Student–agency workflow owner
+
+### Responsibilities
+
+#### Documents
+
+- Implement parent-authorized document listing.
+- Let verified agencies attach files to their applications.
+- Keep object storage and PostgreSQL consistent.
+- Clean up replaced avatar objects.
+- Implement attachment selection from real application documents.
+
+#### Applications
+
+- Validate that the selected agency has approved pricing.
+- Create application, stage event, milestones, audit record, and chat thread transactionally.
+- Prevent zero-milestone success responses.
+- Maintain application stage transition rules.
+
+#### Chat
+
+- Replace static attachment records.
+- Fix `thread`/`threadId` navigation.
+- Add sending, sent, failed, and retry states.
+- Implement read timestamps and unread counts.
+- Implement cursor pagination.
+- Add authenticated SSE, WebSockets, or bounded polling.
+- Generate transcripts only on the server.
+- Verify transcript integrity without fabricated certification.
+
+### Assigned defects
+
+- AUD-011 through AUD-018
+- AUD-025
+- AUD-026 through AUD-028
+
+### Owned files
+
+- `src/app/api/documents/**`
+- `src/lib/documents/**`
+- `src/lib/storage.ts`
+- `src/components/pages/DocumentsPage/**`
+- `src/app/api/applications/**`
+- `src/lib/applications/**`
+- `src/components/pages/ApplicationsPage/**`
+- `src/components/pages/ApplicationDetailPage/**`
+- `src/app/api/chat/**`
+- `src/lib/chatClient.ts`
+- `src/components/pages/ChatPage/**`
+
+### Dependencies
+
+- Parent document access depends on Person 1’s relationship authorization.
+- Application creation depends on Person 2’s approved agency-pricing contract.
+- Chat attachments depend on the document authorization work.
+- Chat realtime work comes after basic send/retry/pagination is correct.
+
+---
+
+## Person 4 — Payments, admin, notifications, QA, and deployment
+
+**Primary role:** Platform integration and release owner
+
+### Responsibilities
+
+#### Payments
+
+- Select and integrate the real payment gateway.
+- Implement provider checkout initiation.
+- Verify signed callbacks.
+- Reconcile amount, currency, milestone, and provider transaction.
+- Implement idempotency and expiry.
+- Implement release, dispute, refund, and receipt workflows.
+- Fix directory/application/payment navigation.
+
+#### Admin and notifications
+
+- Implement database-backed notifications.
+- Generate notifications from real domain events.
+- Complete admin workflows for:
+  - Agency verification
+  - Fee approval
+  - Disputes
+  - Fraud alerts
+  - Provenance
+- Implement or remove incomplete reviews, complaints, subscriptions, and verification-report features.
+
+#### Quality and deployment
+
+- Restore Python locally and in CI.
+- Fix repository-wide lint gates.
+- Maintain integration and E2E tests.
+- Test migrations against the Neon validation branch.
+- Own deployment configuration and environment documentation.
+- Remove dead links and unsupported product claims.
+- Rewrite README and presentation documentation.
+
+### Assigned defects
+
+- AUD-019
+- AUD-020
+- AUD-022
+- AUD-023
+- AUD-024
+- AUD-032 through AUD-038
+
+### Owned files
+
+- `src/lib/payments/**`
+- `src/app/api/escrow/**`
+- `src/app/api/payments/**`
+- `src/components/pages/PaymentsPage/**`
+- `src/app/api/admin/**`
+- `src/components/pages/AdminPanel/**`
+- `src/components/layout/TopBar/**`
+- Notification APIs and components
+- CI workflow files
+- Test configuration
+- `README.md`
+- `docs/**`
+
+### Dependencies
+
+- Payments depend on Person 3’s application and milestone creation.
+- Notifications depend on events exposed by all three other members.
+- Final E2E tests begin after the basic APIs stabilize, but Person 4 should prepare test infrastructure immediately.
+- A real gateway requires merchant/test credentials supplied by the team.
+
+## Dependency flow
+
+```text
+Person 1: Schema, auth, relationships
+       │
+       ├──────────────► Person 2: Directory and data features
+       │                        │
+       │                        └──► Verified agency/pricing contract
+       │                                      │
+       └──────────────► Person 3: Documents ◄─┘
+                                │
+                                └──► Applications and chat
+                                             │
+                                             ▼
+                               Person 4: Payments and notifications
+                                             │
+                                             ▼
+                                  Final integration and deployment
+```
+
+## Suggested sprint sequence
+
+### Sprint 1 — Foundation
+
+**Person 1**
+
+- Prisma schema and migrations
+- Authentication/security
+- Agency profile persistence
+- Guardian relationship API
+
+**Person 2**
+
+- Design directory and Counselor API contracts
+- Build database-backed agency detail
+- Remove incorrect static fallbacks
+
+**Person 3**
+
+- Correct document permissions
+- Implement storage consistency
+- Prepare transactional application creation
+
+**Person 4**
+
+- Restore Python and CI
+- Research and configure payment provider
+- Add missing integration-test infrastructure
+
+### Sprint 2 — Core workflows
+
+**Person 1**
+
+- Finish relationship authorization
+- Review all new database queries
+- Support migrations required by other members
+
+**Person 2**
+
+- Complete comparison
+- Complete Counselor database integration
+- Implement persistent Counselor shortlist
+
+**Person 3**
+
+- Create application, milestones, and chat thread transactionally
+- Implement real attachments
+- Fix chat delivery and navigation
+
+**Person 4**
+
+- Implement provider checkout and webhook
+- Implement notification storage
+- Expand admin workflows
+
+### Sprint 3 — Secondary data features
+
+**Person 1**
+
+- Security review and migration validation
+
+**Person 2**
+
+- Scholar Outreach persistence
+- Campus Living database migration
+
+**Person 3**
+
+- Chat pagination, read state, and realtime updates
+- Server transcript export
+
+**Person 4**
+
+- Payment reconciliation, disputes, refunds, and receipts
+- Cross-feature E2E tests
+
+### Sprint 4 — Integration and project-show readiness
+
+All four members jointly test the golden flow, but Person 4 owns the release decision.
+
+- Remove all static production fallbacks.
+- Remove all business data from browser storage.
+- Run database integration tests.
+- Run the complete browser workflow.
+- Correct UI trust and verification claims.
+- Finish documentation.
+- Deploy frontend, backend, Neon migrations, AI service, and object storage.
+- Rehearse the complete presentation using freshly created accounts.
+
+## Collaboration rules
+
+- Only Person 1 edits `schema.prisma` and migration history.
+- Every API change must include a validation schema and authorization test.
+- Every member writes tests for their own feature; Person 4 does not become the sole test writer.
+- Shared DTOs should be agreed before UI work starts.
+- Do not merge UI-only success behavior before the backend endpoint exists.
+- Use one feature branch per subsystem, not one branch per person for the entire project.
+- Merge in dependency order: Person 1 foundation → Person 2/3 core APIs → Person 4 integrations → final UI and E2E.
+- No member should silently add a static or browser-storage fallback when an API fails.

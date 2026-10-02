@@ -2,11 +2,13 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/authorization';
 import { apiError } from '@/lib/api/response';
 import { identifier, platformError, success } from '@/lib/platform/http';
+import { sameOrigin } from '@/lib/auth/registration';
 
-export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireRole(['AGENCY']);
     if (auth.response) return auth.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const id = identifier.parse((await context.params).id);
     const deleted = await prisma.$transaction(async tx => {
       const result = await tx.agencyPricing.deleteMany({ where: { id, agency: { ownerUserId: auth.user.id } } });

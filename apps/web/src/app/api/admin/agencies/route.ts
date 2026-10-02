@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/authorization';
 import { identifier, platformError, success } from '@/lib/platform/http';
+import { sameOrigin } from '@/lib/auth/registration';
+import { apiError } from '@/lib/api/response';
 
 export async function GET() {
   try {
@@ -21,6 +23,7 @@ export async function POST(request: Request) {
   try {
     const auth = await requireRole(['ADMIN']);
     if (auth.response) return auth.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const input = z.object({ agencyId: identifier, action: z.enum(['VERIFIED', 'REJECTED', 'PENDING', 'SUSPENDED']),
       note: z.string().trim().max(10000).optional() }).parse(await request.json());
     const agency = await prisma.$transaction(async tx => {

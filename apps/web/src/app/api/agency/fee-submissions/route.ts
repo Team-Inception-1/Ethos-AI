@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth/authorization';
 import { apiError } from '@/lib/api/response';
 import { feeDto } from '@/lib/platform/fees';
 import { moneyBdt, parseFeeStatus, platformError, publicUrl, shortText, success, toPoisha } from '@/lib/platform/http';
+import { sameOrigin } from '@/lib/auth/registration';
 
 const submissionSchema = z.object({
   country: shortText, serviceName: shortText, amountBdt: moneyBdt,
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
   try {
     const auth = await requireRole(['AGENCY']);
     if (auth.response) return auth.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const input = submissionSchema.parse(await request.json());
     const agency = await prisma.agency.findUnique({ where: { ownerUserId: auth.user.id }, select: { id: true } });
     if (!agency) return apiError('NOT_FOUND', 'No agency profile is linked to this account.', 404);

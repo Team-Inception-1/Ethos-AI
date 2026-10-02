@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { requireUser, forbiddenResponse } from '@/lib/auth/authorization';
 import { applicationAccessWhere } from '@/lib/auth/relationships';
-import { handleApiError } from '@/lib/api/response';
+import { apiError, handleApiError } from '@/lib/api/response';
+import { sameOrigin } from '@/lib/auth/registration';
 import { success } from '@/lib/platform/http';
 
 export async function GET() {
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
   try {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const { applicationId } = z.object({ applicationId: z.string().min(1) }).parse(await request.json());
     const application = await prisma.application.findFirst({
       where: { AND: [{ id: applicationId }, applicationAccessWhere(authorization.user)] },

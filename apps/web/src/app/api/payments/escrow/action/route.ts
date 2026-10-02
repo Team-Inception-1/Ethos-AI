@@ -4,11 +4,13 @@ import { POST as dispute } from '@/app/api/escrow/dispute/route';
 import { requireRole } from '@/lib/auth/authorization';
 import { apiError, handleApiError } from '@/lib/api/response';
 import { z } from 'zod';
+import { sameOrigin } from '@/lib/auth/registration';
 
 export async function POST(request: Request) {
   try {
     const authorization = await requireRole(['STUDENT', 'ADMIN']);
     if (authorization.response) return authorization.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const body = z.object({
       action: z.enum(['deposit', 'release', 'dispute']), milestoneId: z.string().min(1),
       provider: z.enum(['SSLCOMMERZ', 'BKASH', 'NAGAD']).optional(),

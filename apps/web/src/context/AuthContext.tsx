@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { currentUserSchema, type User, type UserRole } from '@/lib/auth/contracts';
+import { currentUserSchema, type User, type UserRole, type RelationshipUser, type ProfileUpdate } from '@/lib/auth/contracts';
 import { postAuth, authFailure, type AuthResult } from '@/lib/auth/client-request';
 export type { User, UserRole, StudentDetails, AgencyDetails } from '@/lib/auth/contracts';
 
@@ -13,7 +13,7 @@ type Registration = { name: string; email: string; phone: string; role: UserRole
 interface AuthContextValue {
   user: User | null; isAuthenticated: boolean; loading: boolean;
   pendingRegistration: Partial<User> | null; otpSent: boolean; otpCountdown: number; otpEmail: string;
-  linkedStudents: User[]; linkedParents: User[]; neonAuthStatus: NeonAuthStatus;
+  linkedStudents: RelationshipUser[]; linkedParents: RelationshipUser[]; neonAuthStatus: NeonAuthStatus;
   signInWithPassword: (email: string, password: string) => Promise<AuthResult<User>>;
   signUp: (data: Registration) => Promise<AuthResult>;
   verifyOtp: (code: string) => Promise<AuthResult<User>>; resendOtp: () => Promise<AuthResult>;
@@ -21,9 +21,11 @@ interface AuthContextValue {
   requestPasswordResetOtp: (email: string) => Promise<AuthResult>;
   resetPasswordWithOtp: (email: string, otp: string, newPassword: string) => Promise<AuthResult>;
   signOut: () => Promise<AuthResult>; logout: () => Promise<AuthResult>; refreshSession: () => Promise<User | null>;
-  updateProfile: (updates: Partial<User>) => Promise<boolean>;
-  linkStudent: (identifier: string) => { success: boolean; message: string };
-  unlinkStudent: (studentId: string) => void;
+  updateProfile: (updates: ProfileUpdate) => Promise<boolean>;
+  linkStudent: (identifier: string) => Promise<{ success: boolean; message: string }>;
+  unlinkStudent: (studentId: string) => Promise<{ success: boolean; message: string }>;
+  unlinkRelationship: (linkId: string) => Promise<{ success: boolean; message: string }>;
+  respondToGuardianRequest: (linkId: string, approve: boolean) => Promise<{ success: boolean; message: string }>;
   checkNeonAuth: () => Promise<NeonAuthStatus>;
 }
 
@@ -196,7 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return result;
   };
 
-  const updateProfile = async (updates: Partial<User>) => {
+  const updateProfile = async (updates: ProfileUpdate) => {
     try {
       const response = await fetch('/api/user/me', { method: 'PUT', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) });
@@ -206,13 +208,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch { return false; }
   };
 
+  const relationshipRequest = async (method: 'POST' | 'PATCH' | 'DELETE', body: unknown) => {
+    try {
+      const response = await fetch('/api/relationships', { method, credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const payload = await response.json().catch(() => null) as { data?: { message?: string }; error?: { message?: string } } | null;
+      if (!response.ok) return { success: false, message: payload?.error?.message ?? 'The relationship could not be updated.' };
+      await refreshSession();
+      return { success: true, message: payload?.data?.message ?? 'Relationship updated.' };
+    } catch { return { success: false, message: 'Could not reach the server. Check your connection and retry.' }; }
+  };
+
+  const linkStudent = (identifier: string) => relationshipRequest('POST', { identifier });
+  const unlinkStudent = (studentId: string) => relationshipRequest('DELETE', { studentId });
+  const unlinkRelationship = (linkId: string) => relationshipRequest('DELETE', { linkId });
+  const respondToGuardianRequest = (linkId: string, approve: boolean) => relationshipRequest('PATCH', { linkId, decision: approve ? 'approve' : 'reject' });
+
   return <AuthContext.Provider value={{
     user, loading, isAuthenticated: !!user, pendingRegistration, otpSent, otpCountdown, otpEmail,
-    linkedStudents: [], linkedParents: [], neonAuthStatus, signInWithPassword, signUp, verifyOtp, resendOtp,
+    linkedStudents: user?.linkedStudents ?? [], linkedParents: user?.linkedParents ?? [], neonAuthStatus, signInWithPassword, signUp, verifyOtp, resendOtp,
     signOut, logout: signOut, refreshSession, updateProfile, checkNeonAuth, requestSignInOtp,
     requestPasswordResetOtp, resetPasswordWithOtp,
-    linkStudent: () => ({ success: false, message: 'Guardian linking requires a server-approved relationship.' }),
-    unlinkStudent: () => {},
+    linkStudent, unlinkStudent, unlinkRelationship, respondToGuardianRequest,
   }}>{children}</AuthContext.Provider>;
 }
 

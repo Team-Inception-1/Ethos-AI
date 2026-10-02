@@ -14,7 +14,7 @@ export default function ProfilePage() {
 }
 
 function ProfileEditor() {
-  const { user, updateProfile, linkStudent, unlinkStudent, linkedStudents, linkedParents, logout, refreshSession } = useAuth();
+  const { user, updateProfile, linkStudent, unlinkStudent, unlinkRelationship, respondToGuardianRequest, linkedStudents, linkedParents, logout, refreshSession } = useAuth();
 
   const [copied, setCopied] = useState(false);
   const [linkInput, setLinkInput] = useState('');
@@ -128,7 +128,6 @@ function ProfileEditor() {
       agencyDetails: {
         agencyName: agencyName.trim(),
         licenseNo: agencyLicense.trim(),
-        licenseStatus: user?.agencyDetails?.licenseStatus || 'pending',
         countriesServed: agencyCountries.split(',').map((s) => s.trim()).filter(Boolean),
       },
     });
@@ -146,7 +145,6 @@ function ProfileEditor() {
         budgetRange,
         ieltsScore,
         targetCountries: targetCountriesStr.split(',').map((s) => s.trim()),
-        linkCode: user.studentDetails?.linkCode || '',
       },
     });
     if (!saved) { setSaveError('Changes were not saved. Please try again.'); return; }
@@ -154,10 +152,10 @@ function ProfileEditor() {
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
-  const handleLinkSubmit = (e: React.FormEvent) => {
+  const handleLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLinkMessage(null);
-    const res = linkStudent(linkInput);
+    const res = await linkStudent(linkInput);
     setLinkMessage({ success: res.success, text: res.message });
     if (res.success) setLinkInput('');
   };
@@ -377,7 +375,7 @@ function ProfileEditor() {
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <span className={styles.linkCodeVal}>{user.studentDetails?.linkCode || 'ETHOS-STU-8821'}</span>
+                    <span className={styles.linkCodeVal}>{user.studentDetails?.linkCode || 'Not assigned'}</span>
                     <Button size="sm" variant="outline" onClick={handleCopyLinkCode}>
                       {copied ? '✓ Copied' : 'Copy'}
                     </Button>
@@ -386,6 +384,28 @@ function ProfileEditor() {
 
                 {/* Linked Parents */}
                 <div>
+                  {user.pendingGuardianRequests.length > 0 && (
+                    <div className={styles.guardianList} style={{ marginBottom: 'var(--space-4)' }}>
+                      <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Pending guardian requests</h3>
+                      {user.pendingGuardianRequests.map((request) => (
+                        <div key={request.id} className={styles.guardianCard}>
+                          <div className={styles.guardianInfo}>
+                            <div className={styles.guardianAvatar}>👨‍👧</div>
+                            <div>
+                              <div style={{ fontWeight: 700 }}>{request.parent.name}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {request.parent.email} • {request.relationship}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                            <Button size="sm" onClick={() => void respondToGuardianRequest(request.id, true)}>Approve</Button>
+                            <Button size="sm" variant="ghost" onClick={() => void respondToGuardianRequest(request.id, false)}>Reject</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: 'var(--space-3)' }}>
                     Linked Guardian Parents ({linkedParents.length})
                   </h3>
@@ -402,7 +422,12 @@ function ProfileEditor() {
                               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{p.email} • {p.phone}</div>
                             </div>
                           </div>
-                          <Badge variant="verified">Guardian Verified</Badge>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <Badge variant="verified">Guardian Verified</Badge>
+                            {p.relationshipId && (
+                              <Button size="sm" variant="ghost" onClick={() => void unlinkRelationship(p.relationshipId!)}>Unlink</Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -522,7 +547,7 @@ function ProfileEditor() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                             <Badge variant="verified">Linked Child</Badge>
-                            <Button size="sm" variant="ghost" onClick={() => unlinkStudent(st.id)}>
+                            <Button size="sm" variant="ghost" onClick={() => void unlinkStudent(st.id)}>
                               Unlink
                             </Button>
                           </div>

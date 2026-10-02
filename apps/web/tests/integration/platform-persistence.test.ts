@@ -22,7 +22,7 @@ import { POST as catalogPost, GET as catalogsGet } from '@/app/api/provenance/ca
 import { GET as validateGet } from '@/app/api/provenance/validate/route';
 
 const request = (path: string, body: unknown) => new Request(`http://localhost/api/${path}`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://localhost' }, body: JSON.stringify(body),
 });
 const fee = { serviceName: 'Admission', country: 'Canada', amountBdt: 123.45, whenCharged: 'On offer',
   refundable: true, refundPolicy: 'Refund if no offer', proofDocumentUrls: ['https://agency.example/license.pdf'] };
