@@ -28,8 +28,13 @@ export async function DELETE(request: Request, context: Context) {
     if (!await canAccessDocument(authorization.user, id, true)) return forbiddenResponse();
     const document = await prisma.document.findUnique({ where: { id } });
     if (!document) return apiError('NOT_FOUND', 'Document not found.', 404);
-    await deleteDocumentFile(document.storageKey);
+    // Delete database record first so storage failure never leaves an orphan DB row (AUD-027)
     await prisma.document.delete({ where: { id } });
+    try {
+      await deleteDocumentFile(document.storageKey);
+    } catch (storageError) {
+      console.warn('Storage file deletion failed after database record was removed:', storageError);
+    }
     return NextResponse.json({ data: { id } });
   } catch (error) { return handleApiError(error); }
 }

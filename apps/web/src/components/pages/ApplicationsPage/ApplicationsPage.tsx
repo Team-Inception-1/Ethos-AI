@@ -14,7 +14,14 @@ import styles from './ApplicationsPage.module.css';
 type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'warning' | 'info';
 
 const agencyListSchema = z.object({ agencies: z.array(z.object({ id: z.string(), name: z.string() })) });
-const mutationSchema = z.object({ data: z.object({ application: z.object({ id: z.string() }) }) });
+const mutationSchema = z.object({
+  data: z.object({
+    application: z.object({
+      id: z.string(),
+      milestoneCount: z.number().optional().default(0),
+    }),
+  }),
+});
 const mutationErrorSchema = z.object({ error: z.object({ message: z.string() }) });
 
 type ApplicationsPageProps = { initialAgencyId?: string };
@@ -63,7 +70,12 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
         throw new Error(failure.success ? failure.data.error.message : 'Could not create the application.');
       }
       const created = mutationSchema.parse(body);
-      setCreatedMessage(`Application ${created.data.application.id.slice(0, 8)} was created and its escrow milestones are ready.`);
+      const count = created.data.application.milestoneCount;
+      setCreatedMessage(
+        count > 0
+          ? `Application ${created.data.application.id.slice(0, 8)} was created and ${count} escrow milestone${count === 1 ? '' : 's'} are ready.`
+          : `Application ${created.data.application.id.slice(0, 8)} was created.`
+      );
       setIsFormOpen(false);
       setForm(value => ({ ...value, targetUniversity: '', targetProgram: '' }));
       retry();
