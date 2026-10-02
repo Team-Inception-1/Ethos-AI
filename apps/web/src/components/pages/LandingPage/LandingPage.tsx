@@ -241,7 +241,7 @@ export default function LandingPage() {
       {/* ── Features ── */}
       <section className={styles.featuresSection} aria-label="Features" ref={featuresRef}>
         <div className="container">
-          <div className={`${styles.sectionHeader} ${featuresVisible ? 'animate-fade-up' : 'opacity-0'}`}>
+          <div className={`${styles.sectionHeader} ${styles.reveal} ${featuresVisible ? styles.revealVisible : ''}`}>
             <h2>{lang === 'en' ? 'Everything You Need to Study Safely' : 'নিরাপদে পড়াশোনার জন্য সবকিছু'}</h2>
             <p className={styles.sectionSubtitle}>
               {lang === 'en'
@@ -253,7 +253,7 @@ export default function LandingPage() {
             {features.map((f, i) => (
               <div 
                 key={f.title} 
-                className={`${featuresVisible ? 'animate-fade-up' : 'opacity-0'}`}
+                className={`${styles.reveal} ${styles.featureReveal} ${featuresVisible ? styles.revealVisible : ''}`}
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
                 <Link href={f.href || '#'} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
@@ -279,7 +279,7 @@ export default function LandingPage() {
             {stats.map((s, i) => (
               <div
                 key={s.label}
-                className={`${statsVisible ? 'animate-fade-up' : 'opacity-0'}`}
+                className={`${styles.reveal} ${statsVisible ? styles.revealVisible : ''}`}
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
                 <StatCard {...s} lang={lang} trigger={statsVisible} />
@@ -292,7 +292,7 @@ export default function LandingPage() {
       {/* ── How It Works ── */}
       <section className={styles.stepsSection} id="how" aria-label="How it works" ref={stepsRef}>
         <div className="container">
-          <div className={`${styles.sectionHeader} ${stepsVisible ? 'animate-fade-up' : 'opacity-0'}`}>
+          <div className={`${styles.sectionHeader} ${styles.reveal} ${stepsVisible ? styles.revealVisible : ''}`}>
             <h2>{lang === 'en' ? 'How Ethos AI Works' : 'Ethos AI কীভাবে কাজ করে'}</h2>
             <p className={styles.sectionSubtitle}>
               {lang === 'en' ? 'Four simple steps to a safer study-abroad journey.' : 'নিরাপদ বিদেশ যাত্রার চারটি সহজ ধাপ।'}
@@ -302,7 +302,7 @@ export default function LandingPage() {
             {steps.map((s, i) => (
               <div 
                 key={s.n} 
-                className={`${styles.step} ${stepsVisible ? 'animate-fade-up' : 'opacity-0'}`}
+                className={`${styles.step} ${styles.reveal} ${styles.stepReveal} ${stepsVisible ? styles.revealVisible : ''}`}
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
                 <div className={styles.stepNumber} aria-hidden="true">{s.n}</div>
@@ -320,7 +320,7 @@ export default function LandingPage() {
       {/* ── Agency CTA ── */}
       <section className={styles.agencyCtaSection} aria-label="Agency CTA" ref={ctaRef}>
         <div className="container">
-          <div className={`${ctaVisible ? 'animate-fade-up' : 'opacity-0'}`}>
+          <div className={`${styles.reveal} ${styles.ctaReveal} ${ctaVisible ? styles.revealVisible : ''}`}>
             <GlassCard glow padding="lg" className={styles.agencyCta} variant="frosted">
               <div className={styles.agencyCtaContent}>
                 <div>
