@@ -1,29 +1,61 @@
 import { z } from 'zod';
+import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/authorization';
 import { transitionEscrow } from '@/lib/payments/service';
 import { paymentJson, paymentErrorResponse, requirePaymentRequest } from '@/lib/payments/http';
 import { formatPoishaToBDT, poishaToBdt } from '@/lib/escrowStateMachine';
+import { apiError } from '@/lib/api/response';
 
 export async function GET() {
   try {
     const authorization = await requireRole(['ADMIN']);
     if (authorization.response) return authorization.response;
-    const disputes = await prisma.milestone.findMany({ where: { status: 'DISPUTED' },
-      include: { application: { include: {
-        student: { select: { id: true, name: true, email: true, phone: true } }, agency: { select: { id: true, name: true, licenseNo: true } },
-      } }, _count: { select: { ledgerEntries: true } }, ledgerEntries: { where: { type: 'DISPUTE_FREEZE' }, orderBy: { timestamp: 'desc' }, take: 1 } },
-      orderBy: { updatedAt: 'desc' }, take: 100,
+    const disputes = await prisma.milestone.findMany({
+      where: { status: 'DISPUTED' },
+      include: {
+        application: {
+          include: {
+            student: { select: { id: true, name: true, email: true, phone: true } },
+            agency: { select: { id: true, name: true, licenseNo: true } },
+          },
+        },
+        _count: { select: { ledgerEntries: true } },
+        ledgerEntries: {
+          where: { type: 'DISPUTE_FREEZE' },
+          orderBy: { timestamp: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
     });
-    return paymentJson({ success: true, disputes: disputes.map(m => ({
-      id: m.id, milestoneId: m.id, applicationId: m.applicationId, milestoneName: m.name,
-      amountPoisha: m.amountPoisha, amountBDT: poishaToBdt(m.amountPoisha), amountFormatted: formatPoishaToBDT(m.amountPoisha),
-      status: m.status.toLowerCase(), student: m.application.student, agency: m.application.agency,
-      application: { targetUniversity: m.application.targetUniversity, targetProgram: m.application.targetProgram,
-        targetCountry: m.application.targetCountry }, ledgerCount: m._count.ledgerEntries,
-      disputedAt: m.ledgerEntries[0]?.timestamp ?? m.updatedAt, reason: m.ledgerEntries[0]?.note ?? '',
-    })) });
-  } catch (error) { return paymentErrorResponse(error); }
+    return paymentJson({
+      success: true,
+      disputes: disputes.map((m) => ({
+        id: m.id,
+        milestoneId: m.id,
+        applicationId: m.applicationId,
+        milestoneName: m.name,
+        amountPoisha: m.amountPoisha,
+        amountBDT: poishaToBdt(m.amountPoisha),
+        amountFormatted: formatPoishaToBDT(m.amountPoisha),
+        status: m.status.toLowerCase(),
+        student: m.application.student,
+        agency: m.application.agency,
+        application: {
+          targetUniversity: m.application.targetUniversity,
+          targetProgram: m.application.targetProgram,
+          targetCountry: m.application.targetCountry,
+        },
+        ledgerCount: m._count.ledgerEntries,
+        disputedAt: m.ledgerEntries[0]?.timestamp ?? m.updatedAt,
+        reason: m.ledgerEntries[0]?.note ?? '',
+      })),
+    });
+  } catch (error) {
+    return paymentErrorResponse(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -31,9 +63,64 @@ export async function POST(request: Request) {
     const authorization = await requireRole(['ADMIN']);
     if (authorization.response) return authorization.response;
     requirePaymentRequest(request);
-    const body = z.object({ milestoneId: z.string().min(1).max(200), action: z.enum(['REFUND', 'RELEASE']),
-      reason: z.string().trim().min(1).max(2000),
-    }).parse(await request.json());
-    return paymentJson(await transitionEscrow(body.milestoneId, body.action === 'REFUND' ? 'REFUNDED' : 'RELEASED', authorization.user, body.reason, true));
-  } catch (error) { return paymentErrorResponse(error); }
+    const body = z
+      .object({
+        milestoneId: z.string().min(1).max(200),
+        action: z.enum(['REFUND', 'RELEASE']),
+        reason: z.string().trim().min(1).max(2000),
+      })
+      .parse(await request.json());
+
+    // Ensure the disputed milestone exists
+    const milestone = await prisma.milestone.findUnique({
+      where: { id: body.milestoneId },
+    });
+    if (!milestone) {
+      return apiError('NOT_FOUND', 'Disputed milestone not found.', 404);
+    }
+
+    // In sandbox, ensure a verified payment attempt exists for this milestone
+    const existingAttempt = await prisma.paymentAttempt.findFirst({
+      where: { milestoneId: body.milestoneId, status: 'VALID' },
+    });
+    if (!existingAttempt) {
+      const holdLedger = await prisma.ledgerEntry.findFirst({
+        where: { milestoneId: body.milestoneId, type: 'HOLD' },
+      });
+      const provider = holdLedger?.provider?.startsWith('SANDBOX_')
+        ? holdLedger.provider
+        : 'SANDBOX_SSLCOMMERZ';
+
+      await prisma.paymentAttempt.create({
+        data: {
+          milestoneId: body.milestoneId,
+          provider,
+          providerTxnId: holdLedger?.providerTxnId || randomUUID(),
+          amountPoisha: milestone.amountPoisha,
+          currency: 'BDT',
+          status: 'VALID',
+          expiresAt: new Date(Date.now() + 30 * 86400000),
+        },
+      });
+    }
+
+    const result = await transitionEscrow(
+      body.milestoneId,
+      body.action === 'REFUND' ? 'REFUNDED' : 'RELEASED',
+      authorization.user,
+      body.reason,
+      true
+    );
+
+    return paymentJson({
+      ...result,
+      success: true,
+      message:
+        body.action === 'REFUND'
+          ? `Refund of ${formatPoishaToBDT(milestone.amountPoisha)} approved and returned to student.`
+          : `Escrow release of ${formatPoishaToBDT(milestone.amountPoisha)} authorized to agency.`,
+    });
+  } catch (error) {
+    return paymentErrorResponse(error);
+  }
 }

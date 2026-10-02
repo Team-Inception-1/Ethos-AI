@@ -42,7 +42,7 @@ export default function AIBubble() {
       actions: [
         { label: 'Browse Agencies', labelBn: 'এজেন্সি ডিরেক্টরি', href: '/directory', icon: '🏢' },
         { label: 'Compare Fees', labelBn: 'ফি তুলনা করুন', href: '/compare', icon: '⚖️' },
-        { label: 'AI Fraud Tools', labelBn: 'এআই ফ্রড টুলস', href: '/ai-tools', icon: '🛡️' },
+        { label: 'AI Fraud Tools', labelBn: 'এআই ফ্রড চেকার', href: '/dashboard/fraud-checker', icon: '🛡️' },
         { label: 'AI Counselor', labelBn: 'এআই কাউন্সেলর', href: '/counselor', icon: '🎓' },
       ],
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -122,6 +122,7 @@ export default function AIBubble() {
 
   const handleActionClick = (href: string) => {
     router.push(href);
+    setOpen(false);
   };
 
   const handleResetChat = () => {

@@ -9,8 +9,15 @@ export async function GET(request: Request) {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
     const applicationId = new URL(request.url).searchParams.get('applicationId') ?? undefined;
+    const agencyId = new URL(request.url).searchParams.get('agencyId') ?? undefined;
     const milestones = await prisma.milestone.findMany({
-      where: { applicationId, application: applicationAccessWhere(authorization.user) },
+      where: {
+        applicationId,
+        application: {
+          ...applicationAccessWhere(authorization.user),
+          ...(agencyId ? { agencyId } : {}),
+        },
+      },
       include: { ledgerEntries: { include: { receipt: true } }, application: {
         include: { student: { select: { id: true, name: true } }, agency: { select: { id: true, name: true } } },
       } }, take: 100, orderBy: { orderIndex: 'asc' },
@@ -21,6 +28,7 @@ export async function GET(request: Request) {
       .reduce((sum, m) => sum + m.amountPoisha, BigInt(0)).toString();
     return new NextResponse(JSON.stringify({ milestones: milestones.map(m => ({ ...m,
       targetUniversity: m.application.targetUniversity, agencyName: m.application.agency.name,
+      agencyId: m.application.agency.id,
     })), ledgerEntries, receipts,
       summary: { heldPoisha: total('HELD'), releasedPoisha: total('RELEASED'),
         pendingPoisha: total('PENDING'), disputedPoisha: total('DISPUTED'), refundedPoisha: total('REFUNDED') },

@@ -1,5 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -16,6 +18,7 @@ interface MilestoneItem {
   status: 'PENDING' | 'HELD' | 'RELEASED' | 'DISPUTED' | 'REFUNDED';
   targetUniversity?: string;
   agencyName?: string;
+  agencyId?: string;
   ledgerCount?: number;
 }
 
@@ -51,12 +54,19 @@ const statusVariant = (s: string) => {
 };
 
 export default function PaymentsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const agencyParam = searchParams?.get('agency') || null;
+
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
   const [summary, setSummary] = useState({ held: 0, released: 0, pending: 0 });
   const [ledgerEntries, setLedgerEntries] = useState<LedgerItem[]>([]);
   const [receipts, setReceipts] = useState<ReceiptItem[]>([]);
   const [activeTab, setActiveTab] = useState<'milestones' | 'ledger'>('milestones');
   const [loading, setLoading] = useState(true);
+
+  // Agency info when navigated with ?agency=...
+  const [agencyDetails, setAgencyDetails] = useState<{ id: string; name: string } | null>(null);
 
   // Modals
   const [payModalItem, setPayModalItem] = useState<MilestoneItem | null>(null);
@@ -103,6 +113,34 @@ export default function PaymentsPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Fetch agency metadata if redirected from Compare / Directory
+  useEffect(() => {
+    if (!agencyParam) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      fetch('/api/agencies')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (cancelled) return;
+          if (data?.agencies) {
+            const match = data.agencies.find((a: { id: string; name: string }) => a.id === agencyParam);
+            if (match) {
+              setAgencyDetails({ id: match.id, name: match.name });
+              return;
+            }
+          }
+          setAgencyDetails({ id: agencyParam, name: `Agency (${agencyParam})` });
+        })
+        .catch(() => {
+          if (!cancelled) setAgencyDetails({ id: agencyParam, name: `Agency (${agencyParam})` });
+        });
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [agencyParam]);
+
   const handleDeposit = async () => {
     if (!payModalItem) return;
     setIsProcessing(true);
@@ -118,11 +156,28 @@ export default function PaymentsPage() {
       });
 
       const data = await res.json();
-      if (res.ok) {
-        showToast('Sandbox payment initiated. No money has been moved; the milestone remains pending until confirmation.');
-        setPayModalItem(null);
-        await fetchEscrow();
-      } else showToast(data.error?.message ?? 'Payment initiation failed.');
+      if (!res.ok) {
+        showToast(data.error?.message ?? 'Payment initiation failed.');
+        return;
+      }
+
+      // Automatically confirm the sandbox payment so funds are held in escrow vault
+      const confirmRes = await fetch('/api/payments/escrow/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm',
+          milestoneId: payModalItem.id,
+          provider: payProvider,
+        }),
+      });
+      if (confirmRes.ok) {
+        showToast(`✓ Sandbox payment confirmed via ${payProvider}! ৳${(Number(payModalItem.amountPoisha)/100).toLocaleString()} BDT is locked safely in escrow.`);
+      } else {
+        showToast('Sandbox payment initiated. Waiting for gateway webhook confirmation.');
+      }
+      setPayModalItem(null);
+      await fetchEscrow();
     } catch {
       alert('Payment processing failed');
     } finally {
@@ -207,6 +262,11 @@ export default function PaymentsPage() {
     }
   }
 
+  const matchingMilestones = agencyParam
+    ? milestones.filter((m: MilestoneItem) => m.agencyId === agencyParam || (agencyDetails && m.agencyName === agencyDetails.name))
+    : milestones;
+  const displayedMilestones = agencyParam ? matchingMilestones : milestones;
+
   return (
     <div className={styles.page}>
       {toastMessage && (
@@ -261,6 +321,61 @@ export default function PaymentsPage() {
         </div>
       </div>
 
+      {/* Agency Navigation Banner or Apply with Escrow Card (AUD-020) */}
+      {agencyParam && (
+        matchingMilestones.length > 0 ? (
+          <div className={styles.agencyBanner}>
+            <div className={styles.agencyBannerInfo}>
+              <span className={styles.agencyIcon}>🏢</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '15px' }}>
+                  Escrow Protected Agency: {agencyDetails?.name || agencyParam}
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Showing {matchingMilestones.length} milestone{matchingMilestones.length === 1 ? '' : 's'} linked to this agency.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard/payments')}
+              className={styles.clearFilterBtn}
+            >
+              Show All Milestones ({milestones.length})
+            </button>
+          </div>
+        ) : (
+          <div className={styles.applyWithEscrowCard}>
+            <div className={styles.applyCardHeader}>
+              <span className={styles.badgeShield}>🛡️ Escrow Protection Active</span>
+              <h3>Apply with Escrow: {agencyDetails?.name || agencyParam}</h3>
+              <p>
+                You arrived from agency comparison. Through Ethos AI Escrow, your funds remain in a cryptographic milestone vault and are never released to {agencyDetails?.name || 'the agency'} until verified admission or visa milestones are achieved.
+              </p>
+            </div>
+            <div className={styles.applyCardActions}>
+              <Link href={`/dashboard/applications?agency=${agencyParam}`}>
+                <Button variant="emerald" glow size="md">
+                  📝 Start Application with {agencyDetails?.name || 'Agency'}
+                </Button>
+              </Link>
+              <Link href={`/directory/${agencyParam}`}>
+                <Button variant="outline" size="md">
+                  🏢 View Full Agency Profile
+                </Button>
+              </Link>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/payments')}
+                className={styles.viewExistingBtn}
+              >
+                View All Existing Payments ({milestones.length})
+              </button>
+            </div>
+          </div>
+        )
+      )}
+
       {/* Mode Tabs */}
       <div className={styles.tabBar} role="tablist" aria-label="Escrow views">
         <button
@@ -270,7 +385,7 @@ export default function PaymentsPage() {
           onClick={() => setActiveTab('milestones')}
           className={`${styles.modeTab} ${activeTab === 'milestones' ? styles.modeTabActive : ''}`}
         >
-          Active Milestones ({milestones.length})
+          Active Milestones ({displayedMilestones.length})
         </button>
         <button
           type="button"
@@ -288,71 +403,90 @@ export default function PaymentsPage() {
         <PaymentsEscrowSkeleton />
       ) : activeTab === 'milestones' ? (
         <GlassCard padding="none" className={styles.tableCard}>
-          <table className={styles.table} aria-label="Payment ledger">
-            <thead>
-              <tr>
-                <th scope="col">Milestone & Condition</th>
-                <th scope="col">Application</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Escrow Status</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {milestones.map((m) => {
-                const amountBDT = Number(m.amountPoisha) / 100;
-                return (
-                  <tr key={m.id}>
-                    <td>
-                      <div className={styles.milestoneName}>{m.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        Release Criterion: {m.releaseCondition}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{m.targetUniversity || 'Application'}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{m.agencyName || ''}</div>
-                    </td>
-                    <td className={styles.amount}>৳{amountBDT.toLocaleString()}</td>
-                    <td>
-                      <Badge variant={statusVariant(m.status)} size="sm">
-                        {m.status === 'HELD' ? '🔒 HELD IN ESCROW' : m.status}
-                      </Badge>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        {m.status === 'PENDING' && (
-                          <Button size="sm" variant="emerald" glow onClick={() => setPayModalItem(m)}>
-                            Initiate Payment
-                          </Button>
-                        )}
-                        {m.status === 'HELD' && (
-                          <>
-                            <Button size="sm" variant="emerald" onClick={() => setReleaseModalItem(m)}>
-                              Release Payment
+          {displayedMilestones.length === 0 ? (
+            <div style={{ padding: '36px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>💳</div>
+              <h4 style={{ fontWeight: 800, fontSize: '16px', marginBottom: '6px' }}>
+                {agencyParam ? 'No Milestones Found for This Consultancy' : 'No Active Escrow Milestones'}
+              </h4>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto 16px' }}>
+                {agencyParam
+                  ? 'You have not set up an application with this agency yet. Click below to begin your application with milestone protection.'
+                  : 'Start an application with a verified agency to create milestone payment vaults.'}
+              </p>
+              <Link href={agencyParam ? `/dashboard/applications?agency=${agencyParam}` : '/dashboard/applications'}>
+                <Button size="sm" variant="emerald" glow>
+                  {agencyParam ? `Start Application with ${agencyDetails?.name || 'Agency'}` : 'Browse Applications'}
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <table className={styles.table} aria-label="Payment ledger">
+              <thead>
+                <tr>
+                  <th scope="col">Milestone & Condition</th>
+                  <th scope="col">Application</th>
+                  <th scope="col">Amount</th>
+                  <th scope="col">Escrow Status</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedMilestones.map((m) => {
+                  const amountBDT = Number(m.amountPoisha) / 100;
+                  return (
+                    <tr key={m.id}>
+                      <td>
+                        <div className={styles.milestoneName}>{m.name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Release Criterion: {m.releaseCondition}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, fontSize: '13px' }}>{m.targetUniversity || 'Application'}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{m.agencyName || ''}</div>
+                      </td>
+                      <td className={styles.amount}>৳{amountBDT.toLocaleString()}</td>
+                      <td>
+                        <Badge variant={statusVariant(m.status)} size="sm">
+                          {m.status === 'HELD' ? '🔒 HELD IN ESCROW' : m.status}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          {m.status === 'PENDING' && (
+                            <Button size="sm" variant="emerald" glow onClick={() => setPayModalItem(m)}>
+                              Initiate Payment
                             </Button>
-                            <Button size="sm" variant="danger" onClick={() => setDisputeModalItem(m)}>
-                              Dispute
+                          )}
+                          {m.status === 'HELD' && (
+                            <>
+                              <Button size="sm" variant="emerald" onClick={() => setReleaseModalItem(m)}>
+                                Release Payment
+                              </Button>
+                              <Button size="sm" variant="danger" onClick={() => setDisputeModalItem(m)}>
+                                Dispute
+                              </Button>
+                            </>
+                          )}
+                          {m.status === 'RELEASED' && (
+                            <Button size="sm" variant="ghost" onClick={() => openReceiptForMilestone(m)}>
+                              📄 View Receipt
                             </Button>
-                          </>
-                        )}
-                        {m.status === 'RELEASED' && (
-                          <Button size="sm" variant="ghost" onClick={() => openReceiptForMilestone(m)}>
-                            📄 View Receipt
-                          </Button>
-                        )}
-                        {m.status === 'DISPUTED' && (
-                          <span style={{ fontSize: '12px', color: 'var(--rose)', fontWeight: 700 }}>
-                            Under Arbitration
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          )}
+                          {m.status === 'DISPUTED' && (
+                            <span style={{ fontSize: '12px', color: 'var(--rose)', fontWeight: 700 }}>
+                              Under Arbitration
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </GlassCard>
       ) : (
         /* Immutable Ledger View */

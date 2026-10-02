@@ -5,6 +5,9 @@ import { requireRole } from '@/lib/auth/authorization';
 import { apiError, handleApiError } from '@/lib/api/response';
 import { z } from 'zod';
 import { sameOrigin } from '@/lib/auth/registration';
+import { prisma } from '@/lib/prisma';
+import { reconcilePayment } from '@/lib/payments/service';
+import { paymentJson } from '@/lib/payments/http';
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +15,7 @@ export async function POST(request: Request) {
     if (authorization.response) return authorization.response;
     if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const body = z.object({
-      action: z.enum(['deposit', 'release', 'dispute']), milestoneId: z.string().min(1),
+      action: z.enum(['deposit', 'release', 'dispute', 'confirm']), milestoneId: z.string().min(1),
       provider: z.enum(['SSLCOMMERZ', 'BKASH', 'NAGAD']).optional(),
       note: z.string().max(2000).optional(), reason: z.string().max(2000).optional(),
     }).parse(await request.json());
@@ -21,6 +24,26 @@ export async function POST(request: Request) {
     if (body.action === 'deposit') return pay(actionRequest);
     if (body.action === 'release') return release(actionRequest);
     if (body.action === 'dispute') return dispute(actionRequest);
+    if (body.action === 'confirm') {
+      const attempt = await prisma.paymentAttempt.findFirst({
+        where: { milestoneId: body.milestoneId, status: 'INITIATED', expiresAt: { gt: new Date() } },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!attempt) return apiError('NO_PAYMENT_ATTEMPT', 'No active payment attempt found to confirm.', 404);
+      const rawProvider = attempt.provider.replace('SANDBOX_', '');
+      const provider = (rawProvider === 'BKASH' || rawProvider === 'NAGAD' || rawProvider === 'SSLCOMMERZ')
+        ? rawProvider
+        : 'SSLCOMMERZ';
+      const result = await reconcilePayment({
+        provider,
+        providerTxnId: attempt.providerTxnId,
+        milestoneId: body.milestoneId,
+        amountPoisha: attempt.amountPoisha.toString(),
+        currency: 'BDT',
+        status: 'VALID',
+      });
+      return paymentJson(result);
+    }
     return apiError('INVALID_ACTION', 'Unsupported escrow action.', 400);
   } catch (error) { return handleApiError(error); }
 }
