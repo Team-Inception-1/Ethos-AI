@@ -35,7 +35,7 @@ def test_request_limits_and_cors():
 @pytest.mark.parametrize('factory', [get_agreement_llm, get_scam_llm, get_counselor_llm])
 def test_missing_production_provider_never_returns_fake(factory):
     with pytest.raises(HTTPException) as error:
-        factory(Settings(_env_file=None, environment='production', offline_demo=False, gemini_api_key=None))
+        factory(Settings(environment='production', offline_demo=False, gemini_api_key=None))
     assert error.value.status_code == 503
 
 

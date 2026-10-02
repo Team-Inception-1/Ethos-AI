@@ -38,11 +38,15 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Best-effort demo seeding for the Directory UI (#25) — see
-    # app/services/seed_demo_risk_events.py for rationale. Failures here must
-    # never prevent the service from starting.
-    if settings.offline_demo:
+    # Always seed demo risk events for the Directory UI (#25) — the
+    # AgencyRiskStore is in-memory and starts empty each restart.
+    # Running real scans at startup ensures the Directory always shows
+    # meaningful risk scores, regardless of offline_demo mode.
+    # Failures here are silenced and must never block service startup.
+    try:
         await seed_demo_risk_events(get_agency_risk_store())
+    except Exception:
+        logger.warning("Risk event seeding failed at startup; directory risk scores will show as 0", exc_info=True)
     yield
 
 

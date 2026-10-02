@@ -31,7 +31,11 @@ from app.schemas import (
     ScanContentRequest,
     ScanContentResponse,
 )
-from app.services.agency_risk_store import AgencyRiskStore, get_agency_risk_store
+from app.services.agency_risk_store import (
+    AgencyRiskStore,
+    AnyAgencyRiskStore,
+    get_agency_risk_store,
+)
 from app.services.scam_classifier import ScamClassifierService
 
 logger = logging.getLogger(__name__)
@@ -52,7 +56,7 @@ def get_classifier_service() -> ScamClassifierService:
     return ScamClassifierService(llm=get_scam_llm())
 
 
-def get_risk_store() -> AgencyRiskStore:
+def get_risk_store() -> AnyAgencyRiskStore:
     return get_agency_risk_store()
 
 
@@ -60,7 +64,7 @@ def get_risk_store() -> AgencyRiskStore:
 async def scan_content(
     payload: ScanContentRequest,
     service: ScamClassifierService = Depends(get_classifier_service),
-    store: AgencyRiskStore = Depends(get_risk_store),
+    store: AnyAgencyRiskStore = Depends(get_risk_store),
 ) -> ScanContentResponse:
     result = await service.scan(payload.text, language=payload.language)
 
@@ -79,7 +83,7 @@ async def scan_content(
 @router.get("/agencies/{agency_id}/risk-score", response_model=AgencyRiskScore)
 def get_agency_risk_score(
     agency_id: str,
-    store: AgencyRiskStore = Depends(get_risk_store),
+    store: AnyAgencyRiskStore = Depends(get_risk_store),
 ) -> AgencyRiskScore:
     return store.get_score(agency_id)
 
@@ -88,7 +92,7 @@ def get_agency_risk_score(
 def record_agency_risk_event(
     agency_id: str,
     payload: RecordRiskEventRequest,
-    store: AgencyRiskStore = Depends(get_risk_store),
+    store: AnyAgencyRiskStore = Depends(get_risk_store),
 ) -> AgencyRiskScore:
     return store.record_event(
         agency_id=agency_id,

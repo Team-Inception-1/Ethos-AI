@@ -13,6 +13,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from typing import Any
+
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:  # pragma: no cover
+    genai = None  # type: ignore[assignment]
+    types = None  # type: ignore[assignment]
 
 from app.schemas import FlagSeverity, ScamCategory, ScamFlag, ScamFlagSource
 from .scam_base import ScamLLM, ScamLLMError
@@ -67,18 +75,23 @@ _RESPONSE_SCHEMA = {
 class GeminiScamLLM(ScamLLM):
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str = "gemini-3.6-flash") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-flash-latest") -> None:
         if not api_key:
             raise ScamLLMError("GEMINI_API_KEY is not set; cannot construct GeminiScamLLM")
         self._api_key = api_key
         self._model = model
-        self._client = None  # lazy-init so import of this module never requires network/creds
+        self._client: Any = None  # lazy-init so import of this module never requires network/creds
 
-    def _get_client(self):
+    def _get_client(self) -> Any:
         if self._client is None:
-            from google import genai  # local import: keep SDK optional at module load time
-
-            self._client = genai.Client(api_key=self._api_key)
+            if genai is not None:
+                self._client = genai.Client(api_key=self._api_key)
+            else:
+                try:
+                    from google import genai as _genai
+                    self._client = _genai.Client(api_key=self._api_key)
+                except ImportError as exc:
+                    raise ScamLLMError("google-genai SDK is not installed") from exc
         return self._client
 
     async def classify(self, text: str, *, language: str = "en") -> list[ScamFlag]:
@@ -94,8 +107,6 @@ class GeminiScamLLM(ScamLLM):
             raise ScamLLMError(f"Gemini request failed: {exc}") from exc
 
     def _classify_sync(self, text: str, language: str) -> list[ScamFlag]:
-        from google.genai import types
-
         client = self._get_client()
 
         lang_note = (
@@ -104,40 +115,63 @@ class GeminiScamLLM(ScamLLM):
             else "Write flag messages in English."
         )
 
+        config_kwargs: dict[str, Any] = {
+            "system_instruction": _SYSTEM_INSTRUCTION,
+            "response_mime_type": "application/json",
+            "response_schema": _RESPONSE_SCHEMA,
+            "temperature": 0.1,
+        }
+
+        if types is not None:
+            config = types.GenerateContentConfig(**config_kwargs)
+        else:
+            try:
+                from google.genai import types as _types
+                config = _types.GenerateContentConfig(**config_kwargs)
+            except ImportError:
+                config = config_kwargs  # type: ignore
+
         response = client.models.generate_content(
             model=self._model,
             contents=(
                 f"{lang_note}\n\n--- BEGIN TEXT TO SCAN ---\n{text}\n--- END TEXT TO SCAN ---"
             ),
-            config=types.GenerateContentConfig(
-                system_instruction=_SYSTEM_INSTRUCTION,
-                response_mime_type="application/json",
-                response_schema=_RESPONSE_SCHEMA,
-                temperature=0.1,
-            ),
+            config=config,
         )
+
 
         raw = response.text
         if not raw:
             raise ScamLLMError("Gemini returned an empty response")
 
+        clean_raw = raw.strip()
+        if clean_raw.startswith("```json"):
+            clean_raw = clean_raw[7:]
+        elif clean_raw.startswith("```"):
+            clean_raw = clean_raw[3:]
+        if clean_raw.endswith("```"):
+            clean_raw = clean_raw[:-3]
+        clean_raw = clean_raw.strip()
+
         try:
-            payload = json.loads(raw)
+            payload = json.loads(clean_raw)
         except json.JSONDecodeError as exc:
             raise ScamLLMError(f"Gemini returned non-JSON output: {exc}") from exc
 
-        flags_raw = payload.get("flags", [])
+        flags_raw = payload.get("flags", []) if isinstance(payload, dict) else []
         flags: list[ScamFlag] = []
         for item in flags_raw:
+            if not isinstance(item, dict):
+                continue
             try:
                 flags.append(
                     ScamFlag(
-                        tag=item["tag"],
+                        tag=item.get("tag", "Scam Indicator"),
                         category=ScamCategory(item.get("category", "other")),
                         severity=FlagSeverity(item.get("severity", "info")),
                         source=ScamFlagSource.LLM,
-                        matched_text=item["matched_text"],
-                        message_en=item["message_en"],
+                        matched_text=item.get("matched_text", ""),
+                        message_en=item.get("message_en", ""),
                     )
                 )
             except (KeyError, ValueError) as exc:

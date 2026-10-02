@@ -107,7 +107,7 @@ _SOP_AUDIT_RESPONSE_SCHEMA = {
 class GeminiCounselorLLM(CounselorLLM):
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-flash-latest") -> None:
         if not api_key:
             raise CounselorLLMError("GEMINI_API_KEY is not set; cannot construct GeminiCounselorLLM")
         self._api_key = api_key
@@ -153,7 +153,7 @@ class GeminiCounselorLLM(CounselorLLM):
         messages: list[CounselorChatMessage],
         profile_context: CounselorEvaluationRequest | None,
         language: str,
-    ) -> tuple[str, list[str], str]:
+    ) -> tuple[str, list[str], str, list[dict] | None]:
         from google.genai import types
 
         client = self._get_client()
@@ -173,7 +173,8 @@ class GeminiCounselorLLM(CounselorLLM):
 
         convo_lines = []
         for m in messages:
-            convo_lines.append(f"{m.role.value.upper()}: {m.content}")
+            r = m.role.value if hasattr(m.role, "value") else str(m.role)
+            convo_lines.append(f"{r.upper()}: {m.content}")
 
         convo_text = "\n".join(convo_lines)
         last_msg = messages[-1].content if messages else ""
@@ -246,7 +247,8 @@ class GeminiCounselorLLM(CounselorLLM):
 
         convo_lines = []
         for m in messages:
-            convo_lines.append(f"{m.role.value.upper()}: {m.content}")
+            r = m.role.value if hasattr(m.role, "value") else str(m.role)
+            convo_lines.append(f"{r.upper()}: {m.content}")
         convo_text = "\n".join(convo_lines)
         last_msg = messages[-1].content if messages else ""
 

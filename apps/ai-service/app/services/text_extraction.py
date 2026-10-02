@@ -189,6 +189,11 @@ def _ocr_pdf_bytes(content: bytes) -> str:
 def _ocr_image_bytes(content: bytes) -> str:
     try:
         from PIL import Image
+    except Exception:
+        from app.services.vision_ocr import extract_text_google_vision_sync
+        return extract_text_google_vision_sync(content) or ""
+
+    try:
         image = Image.open(io.BytesIO(content))
         if image.width * image.height > MAX_IMAGE_PIXELS:
             raise HTTPException(status_code=413, detail="Image exceeds 20 megapixels.")
