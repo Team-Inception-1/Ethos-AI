@@ -145,19 +145,47 @@ export default function CounselorPage() {
     'What are the best scholarships for Bangladeshi students?',
   ]);
 
-  // Load tracked applications & completed roadmap tasks from localStorage
+  // Load tracked applications & completed roadmap tasks from database API (with guest fallback)
   useEffect(() => {
-    const timer = setTimeout(() => {
-    try {
-      const savedTracked = localStorage.getItem('ethos_tracked_unis');
-      if (savedTracked) setTrackedUnis(z.array(z.string()).parse(JSON.parse(savedTracked)));
-      const savedTasks = localStorage.getItem('ethos_counselor_completed_tasks');
-      if (savedTasks) setCompletedTasks(z.array(z.string()).parse(JSON.parse(savedTasks)));
-    } catch {
-      // Ignore localStorage errors
+    let cancelled = false;
+    async function loadAccountData() {
+      try {
+        const [shortlistRes, roadmapRes] = await Promise.all([
+          fetch('/api/counselor/shortlist'),
+          fetch('/api/counselor/roadmap'),
+        ]);
+
+        if (shortlistRes.ok) {
+          const data = await shortlistRes.json();
+          if (!cancelled && Array.isArray(data.trackedIds)) {
+            setTrackedUnis(data.trackedIds);
+          }
+        } else {
+          const savedTracked = localStorage.getItem('ethos_tracked_unis');
+          if (!cancelled && savedTracked) setTrackedUnis(z.array(z.string()).parse(JSON.parse(savedTracked)));
+        }
+
+        if (roadmapRes.ok) {
+          const data = await roadmapRes.json();
+          if (!cancelled && Array.isArray(data.completedTasks)) {
+            setCompletedTasks(data.completedTasks);
+          }
+        } else {
+          const savedTasks = localStorage.getItem('ethos_counselor_completed_tasks');
+          if (!cancelled && savedTasks) setCompletedTasks(z.array(z.string()).parse(JSON.parse(savedTasks)));
+        }
+      } catch {
+        const savedTracked = localStorage.getItem('ethos_tracked_unis');
+        if (!cancelled && savedTracked) setTrackedUnis(z.array(z.string()).parse(JSON.parse(savedTracked)));
+        const savedTasks = localStorage.getItem('ethos_counselor_completed_tasks');
+        if (!cancelled && savedTasks) setCompletedTasks(z.array(z.string()).parse(JSON.parse(savedTasks)));
+      }
     }
-    }, 0);
-    return () => clearTimeout(timer);
+
+    void loadAccountData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Prime voices on mount
@@ -279,50 +307,57 @@ export default function CounselorPage() {
     }
   };
 
-  // Track university into student's applications
-  const handleToggleTrackUni = (uni: UniversityRecommendation) => {
+  // Track university into student's applications (persisted via Neon API)
+  const handleToggleTrackUni = async (uni: UniversityRecommendation) => {
     const isTracked = trackedUnis.includes(uni.id);
-    let updatedIds: string[];
-    let currentShortlist: z.infer<typeof shortlistSchema> = [];
-    try {
-      const raw = localStorage.getItem('ethos_counselor_shortlist');
-      if (raw) currentShortlist = shortlistSchema.parse(JSON.parse(raw));
-    } catch {}
+    const updatedIds = isTracked
+      ? trackedUnis.filter((id) => id !== uni.id)
+      : [...trackedUnis, uni.id];
 
-    if (isTracked) {
-      updatedIds = trackedUnis.filter((id) => id !== uni.id);
-      currentShortlist = currentShortlist.filter((u) => u.id !== uni.id);
-    } else {
-      updatedIds = [...trackedUnis, uni.id];
-      currentShortlist.push({
-        id: uni.id,
-        name: uni.university_name,
-        country: uni.country,
-        city: uni.city,
-        odds: uni.admission_chance_percent,
-        tier: uni.tier,
-      });
-    }
+    setTrackedUnis(updatedIds);
+
     try {
-      localStorage.setItem('ethos_tracked_unis', JSON.stringify(updatedIds));
-      localStorage.setItem('ethos_counselor_shortlist', JSON.stringify(currentShortlist));
-      setTrackedUnis(updatedIds);
-      showToast(`${isTracked ? 'Removed' : 'Added'} ${uni.university_name} ${isTracked ? 'from' : 'to'} your browser shortlist.`);
+      if (isTracked) {
+        await fetch(`/api/counselor/shortlist?catalogId=${encodeURIComponent(uni.id)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else {
+        await fetch('/api/counselor/shortlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ catalogId: uni.id }),
+        });
+      }
+      showToast(`${isTracked ? 'Removed' : 'Added'} ${uni.university_name} ${isTracked ? 'from' : 'to'} your saved shortlist.`);
     } catch {
-      showToast('Could not save the shortlist in this browser. Please retry.');
+      // Backup to localStorage for offline
+      try {
+        localStorage.setItem('ethos_tracked_unis', JSON.stringify(updatedIds));
+      } catch {}
+      showToast(`${isTracked ? 'Removed' : 'Added'} ${uni.university_name} ${isTracked ? 'from' : 'to'} your shortlist.`);
     }
   };
 
-  // Toggle milestone task checkbox
-  const handleToggleTask = (taskKey: string) => {
-    const updated = completedTasks.includes(taskKey)
+  // Toggle milestone task checkbox (persisted via Neon API)
+  const handleToggleTask = async (taskKey: string) => {
+    const isCompleted = completedTasks.includes(taskKey);
+    const updated = isCompleted
       ? completedTasks.filter((k) => k !== taskKey)
       : [...completedTasks, taskKey];
+
+    setCompletedTasks(updated);
+
     try {
-      localStorage.setItem('ethos_counselor_completed_tasks', JSON.stringify(updated));
-      setCompletedTasks(updated);
+      await fetch('/api/counselor/roadmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskKey, completed: !isCompleted }),
+      });
     } catch {
-      showToast('Could not save the checklist in this browser. Please retry.');
+      try {
+        localStorage.setItem('ethos_counselor_completed_tasks', JSON.stringify(updated));
+      } catch {}
     }
   };
 
@@ -366,9 +401,28 @@ export default function CounselorPage() {
     };
 
     try {
-      const result = OFFLINE_DEMO_ENABLED
-        ? await evaluateCounselorProfile(payload)
-        : await discoverLiveUniversities({ ...payload, enable_live_discovery: true });
+      let result: CounselorEvaluationResponse;
+      if (OFFLINE_DEMO_ENABLED) {
+        result = await evaluateCounselorProfile(payload);
+      } else {
+        // First try the live Neon-backed verified recommendation route
+        try {
+          const res = await fetch('/api/counselor/recommendations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            result = data.data;
+          } else {
+            // Fall back to live discovery endpoint if no verified catalog matches or unavailable
+            result = await discoverLiveUniversities({ ...payload, enable_live_discovery: true });
+          }
+        } catch {
+          result = await discoverLiveUniversities({ ...payload, enable_live_discovery: true });
+        }
+      }
       setEvalResult(result);
       setTimeout(() => {
         const el = document.getElementById('counselor-results');
@@ -490,7 +544,8 @@ export default function CounselorPage() {
 
   // Calculate total roadmap tasks completed
   const totalRoadmapTasks = evalResult?.roadmap.reduce((acc, m) => acc + m.tasks.length, 0) || 1;
-  const showingOfflineDemo = evalResult?.recommendations.some((recommendation) => !recommendation.is_live_grounded) ?? false;
+  const isVerifiedDb = evalResult?.data_source === 'verified_database';
+  const showingOfflineDemo = !isVerifiedDb && (evalResult?.recommendations.some((recommendation) => !recommendation.is_live_grounded) ?? false);
   const completedTaskCount = completedTasks.length;
   const completionPercent = Math.min(100, Math.round((completedTaskCount / totalRoadmapTasks) * 100));
 
@@ -789,6 +844,11 @@ export default function CounselorPage() {
       {/* Results View */}
       {evalResult && (
         <div id="counselor-results" className={styles.resultsArea}>
+          {isVerifiedDb && (
+            <div style={{ padding: '12px 14px', border: '2px solid var(--emerald, #10b981)', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.08)', color: 'var(--emerald-dark, #065f46)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🛡️ Verified Ethos Registry: Program records, tuition figures, and agency credentials below are audited by Ethos AI administrators and backed by official government citations.
+            </div>
+          )}
           {showingOfflineDemo && (
             <div style={{ padding: '12px 14px', border: '2px solid var(--amber, #b7791f)', borderRadius: '10px', background: '#fffbeb', color: '#713f12', fontSize: '13px', fontWeight: 700 }}>
               🧪 Offline demo results: universities, agencies, credentials, success rates, fees, and audit records shown below are illustrative static samples—not live or production-verified data. Confirm all details with official sources.

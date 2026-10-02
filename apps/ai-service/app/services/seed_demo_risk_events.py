@@ -23,7 +23,7 @@ from __future__ import annotations
 import logging
 
 from app.llm.scam_factory import get_scam_llm
-from app.services.agency_risk_store import AgencyRiskStore
+from app.services.agency_risk_store import AgencyRiskStore, AnyAgencyRiskStore
 from app.services.scam_classifier import ScamClassifierService
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ _DEMO_AGENCY_COPY: list[tuple[str, str]] = [
 ]
 
 
-async def seed_demo_risk_events(store: AgencyRiskStore) -> None:
+async def seed_demo_risk_events(store: AnyAgencyRiskStore) -> None:
     """Run real scans against demo agency copy and record the results.
 
     Idempotent-ish: safe to call more than once (each call just adds one

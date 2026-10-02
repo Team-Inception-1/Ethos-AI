@@ -109,10 +109,13 @@ function DirectoryContent() {
         if (cancelled) return;
         setAgenciesList(agencies);
         setLoading(false);
-        const scores = await getAgencyRiskScores(agencies.map(a => a.id));
-        if (cancelled) return;
-        setRiskScores(scores);
-        if (Object.keys(scores).length < agencies.length) setRiskError('Some risk scores are unavailable. Sign in to access risk analysis.');
+        // Fetch risk scores from AI microservice — silently fall back if unavailable.
+        try {
+          const scores = await getAgencyRiskScores(agencies.map(a => a.id));
+          if (!cancelled) setRiskScores(scores);
+        } catch {
+          if (!cancelled) setRiskScores({});
+        }
       } catch {
         if (!cancelled) {
           setDirectoryError('The agency directory is temporarily unavailable. Please try again later.');

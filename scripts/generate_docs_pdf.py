@@ -6,6 +6,7 @@ Renders a publication-grade LaTeX-styled technical specification PDF using Repor
 
 import sys
 import os
+from typing import Any
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import inch
@@ -20,13 +21,17 @@ OUTPUT_PDF = r"d:\Ethos AI\Ethos-AI\docs\Ethos_AI_Detailed_Documentation.pdf"
 
 # --- Numbered Canvas for Two-Pass Page Counts (Page X of Y) ---
 class NumberedCanvas(canvas.Canvas):
+    _pageNumber: int
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._saved_page_states = []
 
     def showPage(self):
         self._saved_page_states.append(dict(self.__dict__))
-        self._startPage()
+        start_page_fn = getattr(self, "_startPage", None)
+        if callable(start_page_fn):
+            start_page_fn()
 
     def save(self):
         num_pages = len(self._saved_page_states)
@@ -162,7 +167,7 @@ def build_pdf():
         textColor=colors.HexColor("#334155"),
     )
 
-    story = []
+    story: list[Any] = []
 
     # =========================================================================
     # COVER / HEADER BLOCK

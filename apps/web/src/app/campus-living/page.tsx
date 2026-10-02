@@ -1,5 +1,12 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+import CampusLivingPage from '@/components/pages/CampusLivingPage/CampusLivingPage';
 
-export default function CampusLivingRedirect() {
-  redirect('/dashboard/campus-living');
+export const metadata: Metadata = {
+  title: 'Off-Campus Housing & Living Costs | Ethos AI',
+  description:
+    'Explore real-life off-campus apartment rental costs, food, transit, and monthly living expenses near your applied universities.',
+};
+
+export default function PublicCampusLivingPage() {
+  return <CampusLivingPage />;
 }

@@ -536,6 +536,7 @@ export interface UniversityRecommendation {
   field_tags?: string[];
   website_url?: string | null;
   is_live_grounded?: boolean;
+  data_source?: string;
   grounding_citations?: GroundingCitation[];
   verified_agency?: VerifiedAgencyBrief;
 }
@@ -565,6 +566,7 @@ export interface RoadmapMilestone {
 }
 
 export interface CounselorEvaluationResponse {
+  data_source?: string;
   profile_summary: {
     normalized_gpa: number;
     ielts_equivalent: number;

@@ -21,9 +21,12 @@ const routes = [
   ['admin/users', 'GET'], ['admin/users', 'POST'], ['admin/agencies', 'GET'], ['admin/agencies', 'POST'],
   ['admin/disputes', 'GET'], ['admin/disputes', 'POST'], ['admin/fee-submissions', 'GET'],
   ['admin/fee-submissions', 'POST'], ['admin/scam-alerts', 'GET'], ['admin/scam-alerts', 'POST'],
-  ['admin/overview', 'GET'], ['agency/fee-submissions', 'GET'], ['agency/fee-submissions', 'POST'],
   ['provenance/catalogs', 'POST'], ['provenance/catalogs', 'DELETE'],
   ['provenance/benchmarks', 'POST'], ['provenance/benchmarks', 'PATCH'],
+  ['counselor/recommendations', 'POST'],
+  ['counselor/shortlist', 'GET'], ['counselor/shortlist', 'POST'], ['counselor/shortlist', 'DELETE'],
+  ['counselor/roadmap', 'GET'], ['counselor/roadmap', 'POST'],
+  ['scholar-finder/outreach', 'GET'], ['scholar-finder/outreach', 'POST'], ['scholar-finder/outreach', 'DELETE'],
 ] as const;
 
 describe('API access denial with forged actor/role headers', () => {

@@ -25,8 +25,10 @@ def test_single_danger_event_moves_score_up_sharply():
 
 def test_score_stays_within_bounds():
     store = AgencyRiskStore()
+    score = None
     for _ in range(50):
         score = store.record_event("agt-002", source="scan", weight=100.0, reason="x")
+    assert score is not None
     assert 0.0 <= score.risk_score <= 100.0
     score2 = store.record_event("agt-003", source="scan", weight=0.0, reason="y")
     assert 0.0 <= score2.risk_score <= 100.0
@@ -36,8 +38,10 @@ def test_repeated_clean_events_pull_score_toward_zero():
     store = AgencyRiskStore()
     store.record_event("agt-004", source="scan", weight=90.0, reason="bad")
     high = store.get_score("agt-004").risk_score
+    score = None
     for _ in range(10):
         score = store.record_event("agt-004", source="scan", weight=0.0, reason="clean scan")
+    assert score is not None
     assert score.risk_score < high
 
 
