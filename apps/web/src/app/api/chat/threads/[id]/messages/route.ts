@@ -57,9 +57,22 @@ export async function POST(request: Request, context: Context) {
     }).parse(await request.json());
     if (body.attachmentDocId) {
       if (!await canAccessDocument(authorization.user, body.attachmentDocId)) return forbiddenResponse();
-      const attachment = await prisma.document.findFirst({ where: {
+      let attachment = await prisma.document.findFirst({ where: {
         id: body.attachmentDocId, applicationId: thread.applicationId,
-      }, select: { id: true } });
+      }, select: { id: true, applicationId: true } });
+      if (!attachment) {
+        const vaultDoc = await prisma.document.findFirst({
+          where: { id: body.attachmentDocId, applicationId: null },
+          select: { id: true, applicationId: true, ownerId: true },
+        });
+        if (vaultDoc && (vaultDoc.ownerId === authorization.user.id || authorization.user.role === 'AGENCY')) {
+          await prisma.document.update({
+            where: { id: vaultDoc.id },
+            data: { applicationId: thread.applicationId },
+          });
+          attachment = vaultDoc;
+        }
+      }
       if (!attachment) return forbiddenResponse();
     }
     const sentAt = new Date();

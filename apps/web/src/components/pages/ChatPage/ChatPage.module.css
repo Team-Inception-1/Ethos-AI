@@ -484,6 +484,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 18px;
+  padding-right: 110px;
 }
 
 .input {
@@ -564,6 +565,7 @@
   font-size: 11px;
   color: var(--text-muted);
   padding: 8px 18px;
+  padding-right: 110px;
   background: var(--bg-elevated);
   border-top: 1px dashed var(--border);
   flex-shrink: 0;
