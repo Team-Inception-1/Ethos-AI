@@ -4,6 +4,7 @@ import { getAuthenticatedUser, requireRole } from '@/lib/auth/authorization';
 import { apiError } from '@/lib/api/response';
 import { catalogDto } from '@/lib/platform/provenance';
 import { identifier, moneyBdt, platformError, publicUrl, shortText, success, toPoisha } from '@/lib/platform/http';
+import { sameOrigin } from '@/lib/auth/registration';
 
 export async function GET(request: Request) {
   try {
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
   try {
     const auth = await requireRole(['ADMIN']);
     if (auth.response) return auth.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const { id, ...input } = z.object({ id: identifier.optional(), universityName: shortText, country: shortText,
       degreeLevel: z.enum(['Bachelor', 'Master', 'PhD']), programName: shortText, annualTuitionLocal: moneyBdt,
       currency: z.string().regex(/^[A-Z]{3}$/), officialCatalogUrl: publicUrl, officialSourceTitle: shortText,
@@ -57,6 +59,7 @@ export async function DELETE(request: Request) {
   try {
     const auth = await requireRole(['ADMIN']);
     if (auth.response) return auth.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const id = identifier.parse(new URL(request.url).searchParams.get('id'));
     await prisma.$transaction(async tx => {
       await tx.universityCourseCatalog.delete({ where: { id } });

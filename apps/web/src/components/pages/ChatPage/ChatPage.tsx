@@ -11,6 +11,7 @@ import {
   exportDisputeTranscript,
   type ChatThreadSummary,
   type ChatMessageItem,
+  type ChatTranscript,
 } from '@/lib/chatClient';
 import styles from './ChatPage.module.css';
 
@@ -156,24 +157,13 @@ export default function ChatPage() {
   const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessageItem[]>>({});
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [exportData, setExportData] = useState<any | null>(null);
+  const [exportData, setExportData] = useState<ChatTranscript | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportModalTab, setExportModalTab] = useState<'cert' | 'json'>('cert');
   const [isExporting, setIsExporting] = useState(false);
   const [attachedDoc, setAttachedDoc] = useState<string | null>(null);
   const [showVaultSelector, setShowVaultSelector] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Check URL parameters for direct thread activation
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tid = params.get('threadId');
-      if (tid) {
-        setActiveThreadId(tid);
-      }
-    }
-  }, []);
 
   // Load threads on mount / user change
   useEffect(() => {
@@ -296,34 +286,9 @@ export default function ChatPage() {
       setExportData(data);
       setShowExportModal(true);
     } catch {
-      // Fallback local export format
-      const fallbackExport = {
-        header: {
-          platform: 'Ethos AI Trust & Safety Dispute Evidence System',
-          documentType: 'CERTIFIED_CHAT_TRANSCRIPT',
-          auditSignature: `ETHOS-DISPUTE-SIG-${Date.now().toString(16).toUpperCase()}-VERIFIED`,
-          exportedAt: new Date().toISOString(),
-          tamperEvident: true,
-        },
-        context: {
-          threadId: activeThreadId,
-          applicationId: activeThread?.applicationId || 'app-001',
-          agencyName: activeThread?.agencyName || 'Global Edu BD',
-          studentName: activeThread?.studentName || 'Riya Ahmed',
-          targetUniversity: activeThread?.targetUniversity || 'University of Toronto',
-        },
-        messageCount: messages.length,
-        transcript: messages.map((m, i) => ({
-          sequence: i + 1,
-          senderRole: m.senderRole,
-          sentAt: m.sentAt,
-          body: m.body,
-          attachmentDocId: m.attachmentDocId,
-          integrityHash: m.msgHash,
-        })),
-      };
-      setExportData(fallbackExport);
-      setShowExportModal(true);
+      // Dispute evidence must come from the authorized server export.
+      setExportData(null);
+      setShowExportModal(false);
     } finally {
       setIsExporting(false);
     }
@@ -612,10 +577,10 @@ export default function ChatPage() {
               <div>
                 <h3 className={styles.modalTitle}>
                   <span>🛡️</span>
-                  <span>Certified Dispute Evidence Transcript</span>
+                  <span>Dispute Evidence Transcript</span>
                 </h3>
                 <div style={{ fontSize: '11px', color: 'var(--emerald)', fontWeight: 700, marginTop: '2px' }}>
-                  Signature: {exportData.header?.auditSignature}
+                  Integrity digest: {exportData.digest}
                 </div>
               </div>
               <button className={styles.modalClose} onClick={() => setShowExportModal(false)} aria-label="Close modal">
@@ -647,38 +612,38 @@ export default function ChatPage() {
                     <div className={styles.certHeader}>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: '14px' }}>
-                          Official Ethos AI Dispute Record
+                          Server-generated Ethos AI integrity record
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          BFIU &amp; Ministry of Education grievance compliance standard
+                          Verify the digest against the server export before relying on this record.
                         </div>
                       </div>
-                      <Badge variant="verified" size="sm">✓ Tamper-Evident</Badge>
+                      <Badge variant="verified" size="sm">✓ SHA-256 digest</Badge>
                     </div>
 
                     <div className={styles.certGrid}>
                       <div className={styles.certItem}>
                         <span className={styles.certLabel}>Student</span>
                         <span className={styles.certVal}>
-                          {exportData.context?.studentName || exportData.context?.student?.name || 'Riya Ahmed'}
+                          {activeThread?.studentName || 'Unavailable'}
                         </span>
                       </div>
                       <div className={styles.certItem}>
                         <span className={styles.certLabel}>Consultancy Agency</span>
                         <span className={styles.certVal}>
-                          {exportData.context?.agencyName || exportData.context?.agency?.name || 'Global Edu BD'}
+                          {activeThread?.agencyName || 'Unavailable'}
                         </span>
                       </div>
                       <div className={styles.certItem}>
                         <span className={styles.certLabel}>Target University</span>
                         <span className={styles.certVal}>
-                          {exportData.context?.targetUniversity || exportData.context?.application?.targetUniversity || 'University of Toronto'}
+                          {activeThread?.targetUniversity || 'Unavailable'}
                         </span>
                       </div>
                       <div className={styles.certItem}>
                         <span className={styles.certLabel}>Application ID</span>
                         <span className={styles.certVal}>
-                          {exportData.context?.applicationId || 'app-001'}
+                          {activeThread?.applicationId || 'Unavailable'}
                         </span>
                       </div>
                     </div>
@@ -699,9 +664,9 @@ export default function ChatPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {exportData.transcript?.map((entry: any) => (
-                          <tr key={entry.sequence}>
-                            <td><strong>{entry.sequence}</strong></td>
+                        {exportData.transcript?.map((entry, index) => (
+                          <tr key={entry.id}>
+                            <td><strong>{index + 1}</strong></td>
                             <td>
                               <Badge
                                 variant={entry.senderRole?.toUpperCase() === 'AGENCY' ? 'warning' : 'info'}
@@ -723,7 +688,7 @@ export default function ChatPage() {
                             </td>
                             <td>
                               <code style={{ fontSize: '10px' }}>
-                                {entry.integrityHash?.slice(0, 12)}…
+                                {entry.msgHash?.slice(0, 12)}…
                               </code>
                             </td>
                           </tr>

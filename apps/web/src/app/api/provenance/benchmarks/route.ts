@@ -4,6 +4,7 @@ import { getAuthenticatedUser, requireRole } from '@/lib/auth/authorization';
 import { apiError } from '@/lib/api/response';
 import { benchmarkData, benchmarkDto, benchmarkInput } from '@/lib/platform/provenance';
 import { identifier, PlatformConflict, platformError, shortText, success } from '@/lib/platform/http';
+import { sameOrigin } from '@/lib/auth/registration';
 
 export async function GET(request: Request) {
   try {
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
   try {
     const auth = await requireRole(['AGENCY', 'ADMIN']);
     if (auth.response) return auth.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const input = benchmarkInput.parse(await request.json());
     // Proposals preserve the published benchmark until an administrator approves.
     const proposal = await prisma.$transaction(async tx => {
@@ -52,6 +54,7 @@ export async function PATCH(request: Request) {
   try {
     const auth = await requireRole(['ADMIN']);
     if (auth.response) return auth.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const input = z.object({ id: identifier, isVerified: z.boolean() }).parse(await request.json());
     const row = await prisma.$transaction(async tx => {
       const proposal = await tx.countryBenchmarkSubmission.findUnique({ where: { id: input.id } });

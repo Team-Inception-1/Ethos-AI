@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ user: vi.fn(), update: vi.fn() }));
+const mocks = vi.hoisted(() => ({ user: vi.fn(), update: vi.fn(), role: 'STUDENT' as 'STUDENT' | 'AGENCY' }));
 vi.mock('@/lib/auth/authorization', () => ({ requireUser: async () => ({ user: {
-  id: 'session-owner', role: 'STUDENT', email: 'owner@example.test', isVerified: true,
+  id: 'session-owner', role: mocks.role, email: 'owner@example.test', isVerified: true,
 }, response: null }) }));
 vi.mock('@/lib/prisma', () => ({ prisma: { user: { findUnique: mocks.user, update: mocks.update } } }));
 import { GET, PUT } from './route';
@@ -11,7 +11,11 @@ const profile = {
   role: 'STUDENT', isVerified: false, createdAt: new Date(), passwordHash: 'never-expose',
   parentLinksAsParent: [], parentLinksAsStudent: [], studentProfile: null, agencyProfile: null,
 };
-beforeEach(() => { vi.resetAllMocks(); mocks.user.mockResolvedValue(profile); mocks.update.mockResolvedValue(profile); });
+beforeEach(() => { vi.resetAllMocks(); mocks.role = 'STUDENT'; mocks.user.mockResolvedValue(profile); mocks.update.mockResolvedValue(profile); });
+
+const updateRequest = (body: unknown, origin = 'http://localhost') => new Request('http://localhost/api/user/me', {
+  method: 'PUT', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify(body),
+});
 
 it('returns only the session’s profile and omits password hashes', async () => {
   const response = await GET();
@@ -21,17 +25,34 @@ it('returns only the session’s profile and omits password hashes', async () =>
   expect(mocks.user).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'session-owner' } }));
 });
 
-it('ignores caller-selected ID/email, role, verification, avatar and relationship fields', async () => {
-  const response = await PUT(new Request('http://localhost/api/user/me', { method: 'PUT', body: JSON.stringify({
+it('rejects caller-selected identity, role, verification, avatar and relationship fields', async () => {
+  const response = await PUT(updateRequest({
     id: 'victim', email: 'victim@example.test', role: 'ADMIN', isVerified: true, avatarUrl: 'javascript:bad',
     linkedStudentIds: ['victim'], name: 'New Name',
-  }) }));
-  expect(response.status).toBe(200);
-  expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'session-owner' }, data: { name: 'New Name' } }));
+  }));
+  expect(response.status).toBe(400);
+  expect(mocks.update).not.toHaveBeenCalled();
 });
 
 it('rejects malformed profile updates before database writes', async () => {
-  const response = await PUT(new Request('http://localhost/api/user/me', { method: 'PUT', body: JSON.stringify({ phone: 'not-a-phone' }) }));
+  const response = await PUT(updateRequest({ phone: 'not-a-phone' }));
   expect(response.status).toBe(400);
   expect(mocks.update).not.toHaveBeenCalled();
+});
+
+it('rejects cross-origin profile writes', async () => {
+  const response = await PUT(updateRequest({ name: 'New Name' }, 'https://attacker.example'));
+  expect(response.status).toBe(403);
+  expect(mocks.update).not.toHaveBeenCalled();
+});
+
+it('persists agency details and returns legal credentials to pending review', async () => {
+  mocks.role = 'AGENCY';
+  const response = await PUT(updateRequest({ agencyDetails: {
+    agencyName: 'North Star Education', licenseNo: 'LIC-2026-1', countriesServed: ['Canada'],
+  } }));
+  expect(response.status).toBe(200);
+  expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ data: { agencyProfile: { update: {
+    name: 'North Star Education', licenseNo: 'LIC-2026-1', countriesServed: ['Canada'], licenseStatus: 'PENDING',
+  } } } }));
 });

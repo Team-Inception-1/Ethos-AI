@@ -5,6 +5,7 @@ import { forbiddenResponse, requireUser } from '@/lib/auth/authorization';
 import { applicationAccessWhere, canAccessDocument } from '@/lib/auth/relationships';
 import { apiError, handleApiError } from '@/lib/api/response';
 import { success } from '@/lib/platform/http';
+import { sameOrigin } from '@/lib/auth/registration';
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -36,6 +37,7 @@ export async function POST(request: Request, context: Context) {
   try {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const { id } = await context.params;
     const thread = await prisma.chatThread.findFirst({ where: {
       id, application: applicationAccessWhere(authorization.user),

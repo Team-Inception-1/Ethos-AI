@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/authorization';
 import { apiError } from '@/lib/api/response';
 import { identifier, platformError, success } from '@/lib/platform/http';
+import { sameOrigin } from '@/lib/auth/registration';
 
 const publicFields = { id: true, name: true, email: true, phone: true, role: true, isVerified: true,
   avatarUrl: true, createdAt: true } as const;
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
   try {
     const auth = await requireRole(['ADMIN']);
     if (auth.response) return auth.response;
+    if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const { userId, ...data } = z.object({ userId: identifier, isVerified: z.boolean().optional(),
       role: z.enum(['STUDENT', 'PARENT', 'AGENCY', 'ADMIN']).optional(),
     }).refine(value => value.role !== undefined || value.isVerified !== undefined, 'Specify a change.').parse(await request.json());
