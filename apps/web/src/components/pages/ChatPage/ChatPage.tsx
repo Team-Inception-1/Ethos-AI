@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
@@ -9,123 +9,12 @@ import {
   fetchThreadMessages,
   sendChatMessage,
   exportDisputeTranscript,
+  createChatThread,
   type ChatThreadSummary,
   type ChatMessageItem,
   type ChatTranscript,
 } from '@/lib/chatClient';
 import styles from './ChatPage.module.css';
-
-// Fallback initial thread data for offline/standalone execution
-const DEFAULT_THREADS: ChatThreadSummary[] = [
-  {
-    id: 'thd-001',
-    applicationId: 'app-001',
-    agencyId: 'agt-001',
-    agencyName: 'Global Edu BD',
-    studentName: 'Riya Ahmed',
-    targetUniversity: 'University of Toronto',
-    targetCountry: 'Canada 🇨🇦',
-    lastMessage: {
-      text: 'Great, thank you! Please also share the visa processing timeline.',
-      time: '2026-07-25T11:00:00Z',
-      senderRole: 'STUDENT',
-    },
-    unreadCount: 0,
-    createdAt: '2026-07-10T11:05:00Z',
-    updatedAt: '2026-07-25T11:00:00Z',
-  },
-  {
-    id: 'thd-002',
-    applicationId: 'app-002',
-    agencyId: 'agt-002',
-    agencyName: 'Dream Abroad Ltd',
-    studentName: 'Riya Ahmed',
-    targetUniversity: 'TU Munich',
-    targetCountry: 'Germany 🇩🇪',
-    lastMessage: {
-      text: 'Your German blocked account documents are verified.',
-      time: '2026-08-01T09:30:00Z',
-      senderRole: 'AGENCY',
-    },
-    unreadCount: 1,
-    createdAt: '2026-08-01T09:00:00Z',
-    updatedAt: '2026-08-01T09:30:00Z',
-  },
-];
-
-const DEFAULT_MESSAGES: Record<string, ChatMessageItem[]> = {
-  'thd-001': [
-    {
-      id: 'msg-001',
-      threadId: 'thd-001',
-      senderId: 'usr-agency-01',
-      senderRole: 'AGENCY',
-      body: 'Hello Riya! We have received your application for U of Toronto and are reviewing your academic transcripts.',
-      msgHash: '8f48a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-07-25T10:00:00Z',
-    },
-    {
-      id: 'msg-002',
-      threadId: 'thd-001',
-      senderId: 'usr-student-01',
-      senderRole: 'STUDENT',
-      body: 'Thank you! When can I expect the official offer letter?',
-      msgHash: '7e37a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-07-25T10:15:00Z',
-    },
-    {
-      id: 'msg-003',
-      threadId: 'thd-001',
-      senderId: 'usr-agency-01',
-      senderRole: 'AGENCY',
-      body: 'We expect to receive the official letter within 5-7 business days. We will upload it directly to your Document Vault.',
-      msgHash: '6d26a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-07-25T10:18:00Z',
-    },
-    {
-      id: 'msg-004',
-      threadId: 'thd-001',
-      senderId: 'usr-student-01',
-      senderRole: 'STUDENT',
-      body: 'Great, thank you! Please also share the visa processing timeline.',
-      msgHash: '5c15a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-07-25T11:00:00Z',
-    },
-  ],
-  'thd-002': [
-    {
-      id: 'msg-201',
-      threadId: 'thd-002',
-      senderId: 'usr-agency-02',
-      senderRole: 'AGENCY',
-      body: 'Welcome! We have started reviewing your application for TU Munich.',
-      msgHash: '4b14a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-08-01T09:00:00Z',
-    },
-    {
-      id: 'msg-202',
-      threadId: 'thd-002',
-      senderId: 'usr-agency-02',
-      senderRole: 'AGENCY',
-      body: 'Your German blocked account documents are verified.',
-      msgHash: '3a13a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: false,
-      sentAt: '2026-08-01T09:30:00Z',
-    },
-  ],
-};
-
-const VAULT_DOCS = [
-  { id: 'Offer_Letter_U_of_Toronto_Fall2026.pdf', name: '📄 Offer Letter (U of Toronto)', size: '1.2 MB' },
-  { id: 'Signed_Agreement_Global_Edu_BD.pdf', name: '📋 Signed Agreement (Global Edu)', size: '856 KB' },
-  { id: 'Passport_Copy_Riya_Ahmed.pdf', name: '🛂 Passport Copy (Riya Ahmed)', size: '320 KB' },
-  { id: 'Academic_Transcript_HSC_Viqarunnisa.pdf', name: '🎓 Academic Transcript (HSC)', size: '2.1 MB' },
-];
 
 const STUDENT_PROMPTS = [
   '📅 What is the visa appointment timeline?',
@@ -149,88 +38,212 @@ function formatTime(iso: string): string {
   }
 }
 
+interface VaultDocSummary {
+  id: string;
+  name: string;
+  size: string;
+}
+
 export default function ChatPage() {
   const { user } = useAuth();
   const isAgency = user?.role?.toLowerCase() === 'agency';
   const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessageItem[]>>({});
+  const [nextCursorByThread, setNextCursorByThread] = useState<Record<string, string | null>>({});
+  const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [exportData, setExportData] = useState<ChatTranscript | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportModalTab, setExportModalTab] = useState<'cert' | 'json'>('cert');
   const [isExporting, setIsExporting] = useState(false);
-  const [attachedDoc, setAttachedDoc] = useState<string | null>(null);
+  const [attachedDoc, setAttachedDoc] = useState<VaultDocSummary | null>(null);
   const [showVaultSelector, setShowVaultSelector] = useState(false);
+  const [vaultDocs, setVaultDocs] = useState<VaultDocSummary[]>([]);
+  const [loadingVaultDocs, setLoadingVaultDocs] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load threads on mount / user change
+  // Load threads on mount / user change with query navigation (AUD-017)
   useEffect(() => {
-    let cancelled = false;
-    const roleParam = isAgency ? 'AGENCY' : (user?.role?.toUpperCase() || 'STUDENT');
-    const userIdParam = user?.id || (isAgency ? 'usr-agency-01' : 'usr-student-01');
+    let isMounted = true;
+    fetchChatThreads()
+      .then(async (res) => {
+        if (!isMounted) return;
+        setThreads(res);
 
-    fetchChatThreads(userIdParam, roleParam)
-      .then((res) => {
-        if (!cancelled) {
-          setThreads(res);
-          const requested = typeof window === 'undefined'
-            ? ''
-            : new URLSearchParams(window.location.search).get('threadId') || '';
-          const nextThread = res.find((t) => t.id === requested) || res[0];
-          setActiveThreadId(nextThread?.id || '');
+        if (typeof window !== 'undefined') {
+          const search = new URLSearchParams(window.location.search);
+          const reqThread = search.get('thread') || search.get('threadId') || '';
+          const reqApp = search.get('application') || search.get('applicationId') || '';
+          const reqAgency = search.get('agency') || search.get('agencyId') || '';
+
+          let matched = res.find((t) => t.id === reqThread);
+          if (!matched && reqApp) {
+            matched = res.find((t) => t.applicationId === reqApp);
+            if (!matched) {
+              try {
+                const created = await createChatThread(reqApp);
+                if (!isMounted) return;
+                const refreshed = await fetchChatThreads();
+                if (!isMounted) return;
+                setThreads(refreshed);
+                matched = refreshed.find((t) => t.id === created.id) || created;
+              } catch (err) {
+                console.warn('Could not auto-provision chat thread for application:', err);
+              }
+            }
+          }
+          if (!matched && reqAgency) {
+            matched = res.find((t) => t.agencyId === reqAgency);
+          }
+          const nextThread = matched || res[0];
+          if (nextThread?.id) {
+            setActiveThreadId(nextThread.id);
+          }
         }
       })
       .catch((e) => {
         console.warn('Could not load live threads:', e);
-        if (!cancelled) {
-          setThreads([]);
-          setActiveThreadId('');
-        }
       });
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
-  }, [user, isAgency]);
+  }, [user?.id]);
 
   // Load messages whenever active thread changes
   useEffect(() => {
-    let cancelled = false;
-    if (!activeThreadId) {
-      return () => { cancelled = true; };
-    }
+    let isMounted = true;
+    if (!activeThreadId) return;
     const threadId = activeThreadId;
+
     fetchThreadMessages(threadId)
       .then((res) => {
-        if (!cancelled) {
-          setMessagesByThread((previous) => ({ ...previous, [threadId]: res.messages }));
-        }
+        if (!isMounted) return;
+        setMessagesByThread((previous) => ({
+          ...previous,
+          [threadId]: res.messages.map((m) => ({ ...m, status: 'sent' as const })),
+        }));
+        setNextCursorByThread((previous) => ({
+          ...previous,
+          [threadId]: res.nextCursor || null,
+        }));
       })
       .catch((e) => {
         console.warn('Could not load live messages:', e);
-        if (!cancelled) {
-          setMessagesByThread((previous) => ({ ...previous, [threadId]: [] }));
-        }
       });
 
     return () => {
-      cancelled = true;
+      isMounted = false;
     };
   }, [activeThreadId]);
 
-  const messages = messagesByThread[activeThreadId] || [];
+  // Bounded Polling for real-time delivery and unread count synchronization (AUD-018)
+  useEffect(() => {
+    if (!activeThreadId) return;
+
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+
+      fetchThreadMessages(activeThreadId)
+        .then((res) => {
+          setMessagesByThread((prev) => {
+            const currentList = prev[activeThreadId] || [];
+            const serverMsgs = res.messages.map((m) => ({ ...m, status: 'sent' as const }));
+
+            const localPending = currentList.filter(
+              (m) => m.status === 'sending' || m.status === 'failed'
+            );
+
+            const serverIds = new Set(serverMsgs.map((m) => m.id));
+            const merged = [
+              ...serverMsgs,
+              ...localPending.filter((m) => !serverIds.has(m.id)),
+            ];
+            return { ...prev, [activeThreadId]: merged };
+          });
+        })
+        .catch(() => {});
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [activeThreadId]);
+
+  // Periodic thread unread count refresh
+  useEffect(() => {
+    const threadInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchChatThreads()
+        .then((refreshed) => setThreads(refreshed))
+        .catch(() => {});
+    }, 12000);
+
+    return () => clearInterval(threadInterval);
+  }, []);
+
+  const activeThread = useMemo(
+    () => threads.find((t) => t.id === activeThreadId) || threads[0],
+    [threads, activeThreadId]
+  );
+
+  // Lazy-load real documents for this application on attachment button click (AUD-014)
+  const handleToggleVaultSelector = () => {
+    const nextOpen = !showVaultSelector;
+    setShowVaultSelector(nextOpen);
+    if (nextOpen && activeThread?.applicationId) {
+      setLoadingVaultDocs(true);
+      fetch(`/api/documents?applicationId=${encodeURIComponent(activeThread.applicationId)}`)
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Fetch failed'))))
+        .then((body: { documents: { id: string; name: string; size: string }[] }) => {
+          setVaultDocs(body.documents || []);
+        })
+        .catch(() => setVaultDocs([]))
+        .finally(() => setLoadingVaultDocs(false));
+    }
+  };
+
+  const messages = useMemo(() => {
+    return messagesByThread[activeThreadId] || [];
+  }, [messagesByThread, activeThreadId]);
+
+  const nextCursor = nextCursorByThread[activeThreadId] ?? null;
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages.length]);
 
-  const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
+  // Load earlier messages with cursor pagination (AUD-018)
+  const handleLoadEarlier = async () => {
+    if (!activeThreadId || !nextCursor || isLoadingEarlier) return;
+    setIsLoadingEarlier(true);
+    try {
+      const res = await fetchThreadMessages(activeThreadId, nextCursor);
+      setMessagesByThread((prev) => {
+        const existing = prev[activeThreadId] || [];
+        const older = res.messages.map((m) => ({ ...m, status: 'sent' as const }));
+        const existingIds = new Set(existing.map((m) => m.id));
+        const filteredOlder = older.filter((m) => !existingIds.has(m.id));
+        return {
+          ...prev,
+          [activeThreadId]: [...filteredOlder, ...existing],
+        };
+      });
+      setNextCursorByThread((prev) => ({
+        ...prev,
+        [activeThreadId]: res.nextCursor || null,
+      }));
+    } catch (err) {
+      console.warn('Could not load earlier messages:', err);
+    } finally {
+      setIsLoadingEarlier(false);
+    }
+  };
 
   const handleSend = async () => {
-    if (!activeThreadId || !input.trim() || isSending) return;
+    if (!activeThreadId || (!input.trim() && !attachedDoc) || isSending) return;
     const textToSend = input.trim();
     const threadId = activeThreadId;
     const docToAttach = attachedDoc;
@@ -239,20 +252,26 @@ export default function ChatPage() {
     setShowVaultSelector(false);
     setIsSending(true);
 
-    const senderRole = (isAgency ? 'AGENCY' : (user?.role?.toUpperCase() || 'STUDENT')) as 'STUDENT' | 'PARENT' | 'AGENCY' | 'ADMIN';
+    const senderRole = (isAgency ? 'AGENCY' : (user?.role?.toUpperCase() || 'STUDENT')) as
+      | 'STUDENT'
+      | 'PARENT'
+      | 'AGENCY'
+      | 'ADMIN';
     const senderId = user?.id || (isAgency ? 'usr-agency-01' : 'usr-student-01');
 
-    // Optimistic message addition
+    // Optimistic message with 'sending' status (AUD-015)
+    const tempId = `temp-${Date.now()}`;
     const tempMsg: ChatMessageItem = {
-      id: `msg-${Date.now()}`,
+      id: tempId,
       threadId,
       senderId,
       senderRole,
-      body: textToSend,
-      attachmentDocId: docToAttach,
-      msgHash: `sha256-sim-${Math.random().toString(36).substring(2, 10)}`,
+      body: textToSend || (docToAttach ? `Attached document: ${docToAttach.name}` : ''),
+      attachmentDocId: docToAttach?.id || null,
+      msgHash: 'pending',
       isRead: true,
       sentAt: new Date().toISOString(),
+      status: 'sending',
     };
 
     setMessagesByThread((previous) => ({
@@ -265,30 +284,80 @@ export default function ChatPage() {
         threadId,
         senderId,
         senderRole,
-        body: textToSend,
-        attachmentDocId: docToAttach || undefined,
+        body: tempMsg.body,
+        attachmentDocId: docToAttach?.id || undefined,
       });
       setMessagesByThread((previous) => ({
         ...previous,
-        [threadId]: (previous[threadId] || []).map((m) => m.id === tempMsg.id ? realMsg : m),
+        [threadId]: (previous[threadId] || []).map((m) =>
+          m.id === tempId ? { ...realMsg, status: 'sent' } : m
+        ),
       }));
     } catch (err) {
-      console.warn('Server send failed, keeping local message:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Message delivery failed.';
+      setMessagesByThread((previous) => ({
+        ...previous,
+        [threadId]: (previous[threadId] || []).map((m) =>
+          m.id === tempId ? { ...m, status: 'failed', error: errorMsg } : m
+        ),
+      }));
     } finally {
       setIsSending(false);
     }
   };
 
+  const retrySend = async (failedMsg: ChatMessageItem) => {
+    const threadId = failedMsg.threadId;
+    setMessagesByThread((prev) => ({
+      ...prev,
+      [threadId]: (prev[threadId] || []).map((m) =>
+        m.id === failedMsg.id ? { ...m, status: 'sending', error: undefined } : m
+      ),
+    }));
+
+    try {
+      const realMsg = await sendChatMessage({
+        threadId,
+        senderId: failedMsg.senderId,
+        senderRole: failedMsg.senderRole,
+        body: failedMsg.body,
+        attachmentDocId: failedMsg.attachmentDocId || undefined,
+      });
+      setMessagesByThread((prev) => ({
+        ...prev,
+        [threadId]: (prev[threadId] || []).map((m) =>
+          m.id === failedMsg.id ? { ...realMsg, status: 'sent' } : m
+        ),
+      }));
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Retry failed.';
+      setMessagesByThread((prev) => ({
+        ...prev,
+        [threadId]: (prev[threadId] || []).map((m) =>
+          m.id === failedMsg.id ? { ...m, status: 'failed', error: errorMsg } : m
+        ),
+      }));
+    }
+  };
+
+  const dismissMessage = (msgId: string) => {
+    setMessagesByThread((prev) => ({
+      ...prev,
+      [activeThreadId]: (prev[activeThreadId] || []).filter((m) => m.id !== msgId),
+    }));
+  };
+
   const handleExportDispute = async () => {
+    if (!activeThreadId) return;
     setIsExporting(true);
+    setExportError(null);
     try {
       const data = await exportDisputeTranscript(activeThreadId);
       setExportData(data);
       setShowExportModal(true);
-    } catch {
-      // Dispute evidence must come from the authorized server export.
+    } catch (err) {
       setExportData(null);
-      setShowExportModal(false);
+      setExportError(err instanceof Error ? err.message : 'Could not export transcript from server.');
     } finally {
       setIsExporting(false);
     }
@@ -303,30 +372,36 @@ export default function ChatPage() {
 
   return (
     <div className={styles.page}>
-      {/* ─── Top Header & Trust Row ─── */}
+      {/* ─── Top Header & Trust Row (AUD-025 truthful claims) ─── */}
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
           <h1>1-on-1 Secure Agency Chat</h1>
           <p className={styles.headerSubtitle}>
-            End-to-end encrypted in transit with immutable cryptographic message audit ledger (Module 5.12)
+            Transport encrypted (TLS) with SHA-256 server audit log (Module 5.12)
           </p>
         </div>
 
         <div className={styles.trustBar}>
           <div className={styles.trustPill}>
             <span>🛡️</span>
-            <span>SHA-256 Tamper Proof</span>
+            <span>SHA-256 Digest</span>
           </div>
           <div className={styles.trustPill}>
             <span>⚖️</span>
-            <span>Tribunal Admissible</span>
+            <span>Audit Logged</span>
           </div>
           <div className={styles.trustPill}>
             <span>💼</span>
-            <span>{activeThread ? `Application linked (#${activeThread.applicationId})` : 'Application chat'}</span>
+            <span>{activeThread ? `Application #${activeThread.applicationId.slice(0, 8)}` : 'Application chat'}</span>
           </div>
         </div>
       </div>
+
+      {exportError && (
+        <div role="alert" style={{ padding: '10px 14px', background: '#fee2e2', border: '1.5px solid #dc2626', borderRadius: '8px', color: '#991b1b', fontSize: '13px', fontWeight: 600 }}>
+          {exportError}
+        </div>
+      )}
 
       <div className={styles.layout}>
         {/* ─── Thread List ─── */}
@@ -388,7 +463,9 @@ export default function ChatPage() {
                 <div className={styles.chatStatus}>
                   <span className={styles.pulseDot} aria-hidden="true" />
                   <span>Verified Identity</span>
-                  <span className={styles.chatAppBadge}>• {activeThread?.targetUniversity}</span>
+                  {activeThread?.targetUniversity && (
+                    <span className={styles.chatAppBadge}>• {activeThread.targetUniversity}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -397,7 +474,7 @@ export default function ChatPage() {
               variant="outline"
               size="sm"
               onClick={handleExportDispute}
-              disabled={isExporting}
+              disabled={isExporting || !activeThreadId}
               title="Export cryptographic audit transcript for Grievance & Dispute Resolution"
             >
               📄 {isExporting ? 'Exporting…' : 'Export Dispute Log'}
@@ -423,22 +500,38 @@ export default function ChatPage() {
           <div className={styles.messages} aria-live="polite" aria-label="Chat messages">
             {!activeThread && (
               <p style={{ margin: 'auto', color: 'var(--text-muted)', textAlign: 'center' }}>
-                Link an application to an agency to start a conversation.
+                Select an application conversation from the left to start chatting.
               </p>
             )}
+
+            {/* Cursor pagination older messages button (AUD-018) */}
+            {nextCursor && (
+              <div className={styles.loadOlderContainer}>
+                <button
+                  type="button"
+                  className={styles.loadOlderBtn}
+                  onClick={handleLoadEarlier}
+                  disabled={isLoadingEarlier}
+                >
+                  {isLoadingEarlier ? 'Loading earlier messages…' : '↑ Load earlier messages'}
+                </button>
+              </div>
+            )}
+
             {activeThread && messages.length === 0 && (
               <p style={{ margin: 'auto', color: 'var(--text-muted)', textAlign: 'center' }}>
                 No messages yet. Send the first message below.
               </p>
             )}
+
             {messages.map((m) => {
               const self = isSelf(m);
               const senderRoleUpper = m.senderRole?.toUpperCase();
               let senderLabel: string;
               if (senderRoleUpper === 'AGENCY') {
-                senderLabel = isAgency ? 'You (Global Edu BD)' : (activeThread?.agencyName || 'Global Edu BD');
+                senderLabel = isAgency ? 'You' : (activeThread?.agencyName || 'Agency Consultant');
               } else if (senderRoleUpper === 'STUDENT') {
-                senderLabel = isAgency ? (activeThread?.studentName || 'Student') : 'You';
+                senderLabel = isAgency ? (activeThread?.studentName || 'Student Applicant') : 'You';
               } else if (senderRoleUpper === 'PARENT') {
                 senderLabel = 'Guardian (Parent)';
               } else {
@@ -455,15 +548,27 @@ export default function ChatPage() {
                     {m.attachmentDocId && (
                       <div className={styles.attachmentPill}>
                         <span>📎</span>
-                        <span>Attached: <strong>{m.attachmentDocId}</strong></span>
+                        <span>Attached document: <strong>{m.attachmentDocId}</strong></span>
                       </div>
                     )}
                   </div>
                   <div className={styles.msgMeta}>
                     <time>{formatTime(m.sentAt)}</time>
-                    <span className={styles.msgHashBadge} title={`Integrity Hash: ${m.msgHash}`}>
-                      🔒 {m.msgHash.slice(0, 10)}…
-                    </span>
+                    {m.status === 'sending' && (
+                      <span className={styles.msgSendingBadge}>Sending…</span>
+                    )}
+                    {m.status === 'failed' && (
+                      <div className={styles.msgFailedBadge}>
+                        <span>⚠️ Failed to send</span>
+                        <button type="button" className={styles.retryBtn} onClick={() => retrySend(m)}>Retry</button>
+                        <button type="button" className={styles.retryBtn} onClick={() => dismissMessage(m.id)}>✕</button>
+                      </div>
+                    )}
+                    {m.status === 'sent' && m.msgHash && m.msgHash !== 'pending' && (
+                      <span className={styles.msgHashBadge} title={`Integrity Hash: ${m.msgHash}`}>
+                        🔒 {m.msgHash.slice(0, 10)}…
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -473,11 +578,11 @@ export default function ChatPage() {
 
           {/* Input Area */}
           <div className={styles.inputArea}>
-            {/* Vault Attachment Dropdown */}
+            {/* Vault Attachment Dropdown with real application documents (AUD-014) */}
             {showVaultSelector && (
               <div className={styles.vaultDropdown}>
                 <div className={styles.vaultDropdownTitle}>
-                  <span>Select Document from Vault:</span>
+                  <span>Select Application Document:</span>
                   <button
                     type="button"
                     onClick={() => setShowVaultSelector(false)}
@@ -486,17 +591,25 @@ export default function ChatPage() {
                     ✕
                   </button>
                 </div>
-                {VAULT_DOCS.map((doc) => (
+                {loadingVaultDocs && (
+                  <p style={{ padding: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>Loading documents…</p>
+                )}
+                {!loadingVaultDocs && vaultDocs.length === 0 && (
+                  <p style={{ padding: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    No documents attached to this application yet.
+                  </p>
+                )}
+                {!loadingVaultDocs && vaultDocs.map((doc) => (
                   <button
                     key={doc.id}
                     type="button"
                     className={styles.vaultDocItem}
                     onClick={() => {
-                      setAttachedDoc(doc.id);
+                      setAttachedDoc(doc);
                       setShowVaultSelector(false);
                     }}
                   >
-                    <span>{doc.name}</span>
+                    <span>📄 {doc.name}</span>
                     <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
                       {doc.size}
                     </span>
@@ -508,7 +621,7 @@ export default function ChatPage() {
             {/* Attached Preview Banner */}
             {attachedDoc && (
               <div className={styles.attachedPreview}>
-                <span>📎 Attached from Vault: <strong>{attachedDoc}</strong></span>
+                <span>📎 Attached: <strong>{attachedDoc.name}</strong> ({attachedDoc.size})</span>
                 <button
                   type="button"
                   onClick={() => setAttachedDoc(null)}
@@ -539,7 +652,7 @@ export default function ChatPage() {
               <button
                 type="button"
                 className={styles.attachBtn}
-                onClick={() => setShowVaultSelector(!showVaultSelector)}
+                onClick={handleToggleVaultSelector}
                 aria-label="Attach file from Document Vault"
                 title="Attach Document from Vault"
               >
@@ -561,15 +674,15 @@ export default function ChatPage() {
 
             <div className={styles.auditFooter}>
               <span className={styles.auditBadge}>
-                ✓ Append-Only Audit Stream Enabled
+                ✓ Audit Logging Enabled
               </span>
-              <span>All messages cryptographically signed with SHA-256 integrity hashes</span>
+              <span>Messages stored with SHA-256 cryptographic integrity hashes</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── Certified Dispute Evidence Modal ─── */}
+      {/* ─── Server-Generated Dispute Evidence Modal (AUD-016 & AUD-025) ─── */}
       {showExportModal && exportData && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Dispute Evidence Export">
           <div className={styles.modalCard}>
@@ -580,7 +693,7 @@ export default function ChatPage() {
                   <span>Dispute Evidence Transcript</span>
                 </h3>
                 <div style={{ fontSize: '11px', color: 'var(--emerald)', fontWeight: 700, marginTop: '2px' }}>
-                  Integrity digest: {exportData.digest}
+                  Server Digest: {exportData.digest}
                 </div>
               </div>
               <button className={styles.modalClose} onClick={() => setShowExportModal(false)} aria-label="Close modal">
@@ -594,7 +707,7 @@ export default function ChatPage() {
                 className={`${styles.modalTab} ${exportModalTab === 'cert' ? styles.modalTabActive : ''}`}
                 onClick={() => setExportModalTab('cert')}
               >
-                📜 Certificate View
+                📜 Transcript View
               </button>
               <button
                 type="button"
@@ -612,13 +725,13 @@ export default function ChatPage() {
                     <div className={styles.certHeader}>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: '14px' }}>
-                          Server-generated Ethos AI integrity record
+                          Server-Generated Ethos AI Audit Transcript
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Verify the digest against the server export before relying on this record.
+                          Official ledger record exported on {new Date(exportData.exportedAt).toLocaleString()}
                         </div>
                       </div>
-                      <Badge variant="verified" size="sm">✓ SHA-256 digest</Badge>
+                      <Badge variant="verified" size="sm">SHA-256 Digest</Badge>
                     </div>
 
                     <div className={styles.certGrid}>
@@ -651,7 +764,7 @@ export default function ChatPage() {
 
                   <div>
                     <div style={{ fontWeight: 800, fontSize: '13px', marginBottom: '6px' }}>
-                      Cryptographic Message Ledger ({exportData.transcript?.length || 0} Entries):
+                      Message Ledger ({exportData.transcript?.length || 0} Entries):
                     </div>
                     <table className={styles.transcriptTable}>
                       <thead>

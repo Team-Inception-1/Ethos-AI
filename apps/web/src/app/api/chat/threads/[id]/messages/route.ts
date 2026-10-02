@@ -28,6 +28,15 @@ export async function GET(request: Request, context: Context) {
     }));
     const hasMore = messages.length > 200;
     const page = messages.slice(0, 200).reverse();
+
+    // Mark unread messages sent by others as read (AUD-018)
+    if (typeof (prisma.chatMessage as { updateMany?: unknown }).updateMany === 'function') {
+      await prisma.chatMessage.updateMany({
+        where: { threadId: id, senderId: { not: authorization.user.id }, isRead: false },
+        data: { isRead: true },
+      });
+    }
+
     return success({ threadId: id, thread, messages: page, total: await prisma.chatMessage.count({ where: { threadId: id } }),
       nextCursor: hasMore ? page[0]?.id : null });
   } catch (error) { return handleApiError(error); }

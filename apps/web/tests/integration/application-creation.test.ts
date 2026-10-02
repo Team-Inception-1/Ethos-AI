@@ -82,4 +82,14 @@ describe('application creation', () => {
     expect(response.status).toBe(409);
     expect(mocks.application.create).not.toHaveBeenCalled();
   });
+
+  it('rejects agencies without approved pricing milestones', async () => {
+    mocks.agency.findFirst.mockResolvedValue({
+      id: 'agt-001',
+      pricingServices: [],
+    });
+    const response = await POST(request());
+    expect(response.status).toBe(400);
+    expect(mocks.application.create).not.toHaveBeenCalled();
+  });
 });

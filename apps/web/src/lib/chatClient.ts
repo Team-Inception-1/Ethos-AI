@@ -21,6 +21,8 @@ export interface ChatMessageItem {
   msgHash: string;
   isRead: boolean;
   sentAt: string;
+  status?: 'sending' | 'sent' | 'failed';
+  error?: string;
 }
 export interface ChatTranscript {
   threadId: string;
@@ -47,10 +49,22 @@ export async function fetchChatThreads(userId?: string, role?: string): Promise<
   const data = await read<{ threads: ChatThreadSummary[] }>(await fetch('/api/chat/threads', { cache: 'no-store' }));
   return data.threads;
 }
-export async function fetchThreadMessages(threadId: string): Promise<{
-  thread: { id: string; applicationId: string; agencyId: string }; messages: ChatMessageItem[];
+export async function fetchThreadMessages(threadId: string, before?: string): Promise<{
+  thread: { id: string; applicationId: string; agencyId: string };
+  messages: ChatMessageItem[];
+  nextCursor?: string | null;
+  total?: number;
 }> {
-  return read(await fetch(`/api/chat/threads/${encodeURIComponent(threadId)}/messages`, { cache: 'no-store' }));
+  const query = before ? `?before=${encodeURIComponent(before)}` : '';
+  return read(await fetch(`/api/chat/threads/${encodeURIComponent(threadId)}/messages${query}`, { cache: 'no-store' }));
+}
+export async function createChatThread(applicationId: string): Promise<ChatThreadSummary> {
+  const data = await read<{ thread: ChatThreadSummary }>(await fetch('/api/chat/threads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ applicationId }),
+  }));
+  return data.thread;
 }
 export async function sendChatMessage(params: {
   threadId: string; senderId: string; senderRole: string; body: string; attachmentDocId?: string;

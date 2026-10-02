@@ -46,9 +46,12 @@ describe('document upload boundary', () => {
     expect((await POST(request())).status).toBe(503);
     expect(mocks.remove).toHaveBeenCalledWith('private-documents/student/key.pdf');
   });
-  it('denies cross-user deletion and keeps metadata when storage deletion fails', async () => {
+  it('denies cross-user deletion and keeps storage when database deletion fails', async () => {
     mocks.access.mockResolvedValue(false); expect((await DELETE(request(), context)).status).toBe(403);
-    expect(mocks.remove).not.toHaveBeenCalled(); mocks.access.mockResolvedValue(true); mocks.remove.mockRejectedValue(new Error('Storage unavailable'));
-    expect((await DELETE(request(), context)).status).toBe(503); expect(mocks.deleteRow).not.toHaveBeenCalled();
+    expect(mocks.remove).not.toHaveBeenCalled();
+    mocks.access.mockResolvedValue(true);
+    mocks.deleteRow.mockRejectedValue(new Error('Database unavailable'));
+    expect((await DELETE(request(), context)).status).toBe(503);
+    expect(mocks.remove).not.toHaveBeenCalled();
   });
 });
