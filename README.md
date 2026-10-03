@@ -101,12 +101,12 @@ flowchart TD
 
 ### 📂 3. End-to-End Application Lifecycle & Document Vault (Modules 5.5 & 5.6)
 - **Stage Progression State Machine:** Formal sequential workflow (`SUBMITTED` → `UNDER_REVIEW` → `OFFER_RECEIVED` → `PAYMENT_PENDING` → `VISA_PROCESSING` → `VISA_APPROVED` / `VISA_REJECTED` → `COMPLETED`).
-- **Encrypted Private Document Vault:** Upload academic transcripts, SOPs, passports, and offer letters with MIME validation, virus scanning, and secure authenticated streaming proxies (no public bucket exposure).
+- **Private Document Vault:** Upload academic transcripts, SOPs, passports, and offer letters with file-signature/MIME validation and secure authenticated streaming proxies (no public bucket exposure). Malware scanning is not implemented yet.
 - **Immutable Activity Log:** Timestamped audit trail recording every state change and actor action.
 
 ### 💳 4. Milestone Escrow System & Cryptographic Ledger (Module 5.7)
-- **Zero Full-Upfront Payments:** Student funds are deposited into individual milestone vaults and only released when verified admission/visa criteria are satisfied.
-- **Multi-Gateway Payment Integration:** Production-ready adapter contracts for **bKash**, **Nagad**, and **SSLCOMMERZ**.
+- **Sandbox Milestone Workflow:** Students can exercise holds, releases, disputes, and refunds without moving real money.
+- **Sandbox Gateway Simulation:** Signed callback simulations exist for **bKash**, **Nagad**, and **SSLCOMMERZ**; production gateway integrations are not implemented yet.
 - **Poisha-Precision Integer Math:** Strict 64-bit integer arithmetic preventing rounding inaccuracies (`1 BDT = 100 Poisha`).
 - **Immutable Cryptographic Ledger:** SHA-256 chained transaction hashes (`txHash`) tracking every `HOLD`, `RELEASE`, `REFUND`, and `DISPUTE_FREEZE`.
 
@@ -330,10 +330,10 @@ We strictly adhere to standard software engineering best practices:
 - [x] **2. Complete Golden Flow:** Directory search → Agency Comparison → Milestone Escrow Hold → Document AI Verification → Milestone Release → Parent Synced Monitoring.
 - [x] **3. Robust Database Persistence:** 17+ relational models on Neon Serverless PostgreSQL with complete foreign key cascades, unique constraints, and indexing.
 - [x] **4. Dual-Service Architecture:** Next.js 16 full-stack frontend communicating with a high-throughput Python FastAPI microservice over secure authenticated channels.
-- [x] **5. Milestone Escrow & Ledger:** Poisha integer precision, multi-gateway support (bKash/Nagad/SSLCOMMERZ), and SHA-256 chained transaction ledger.
+- [x] **5. Sandbox Milestone Ledger:** Poisha integer precision, simulated bKash/Nagad/SSLCOMMERZ callbacks, and SHA-256 transaction receipts. Live gateway settlement remains future work.
 - [x] **6. Distinct AI/ML Contributions:** Split between Tasin & Sourav covering OCR forgery detection, clause analysis, scam risk scoring, and academic counseling.
 - [x] **7. Accessibility & UI/UX:** Neubrutalism design language, Space Grotesk typography, keyboard navigation, high-contrast dark/light mode, and bilingual support (English & Bangla).
-- [x] **8. Comprehensive Testing:** 205 Vitest tests and 121 Pytest tests passing with 0 errors across 26 web test suites and 16 AI test suites.
+- [x] **8. Automated Testing:** 232 web tests and 121 AI tests pass locally; the browser suite covers seven critical UI scenarios. Live authenticated acceptance testing still requires deployed Neon Auth origins and accounts.
 - [x] **9. Documentation & Traceability:** Detailed README, architectural diagrams, sprint Kanban documentation, and clean commit history.
 
 ---

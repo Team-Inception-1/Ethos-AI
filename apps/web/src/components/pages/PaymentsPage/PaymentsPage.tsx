@@ -64,6 +64,7 @@ export default function PaymentsPage() {
   const [receipts, setReceipts] = useState<ReceiptItem[]>([]);
   const [activeTab, setActiveTab] = useState<'milestones' | 'ledger'>('milestones');
   const [loading, setLoading] = useState(true);
+  const [sandboxAvailable, setSandboxAvailable] = useState(false);
 
   // Agency info when navigated with ?agency=...
   const [agencyDetails, setAgencyDetails] = useState<{ id: string; name: string } | null>(null);
@@ -99,6 +100,7 @@ export default function PaymentsPage() {
           released: Number(data.summary?.releasedPoisha ?? 0) / 100, pending: Number(data.summary?.pendingPoisha ?? 0) / 100 });
         setLedgerEntries(data.ledgerEntries || []);
         setReceipts(data.receipts || []);
+        setSandboxAvailable(data.sandboxAvailable === true);
         setLoadError(null);
       } else setLoadError('Could not load payment records. Please sign in and retry.');
     } catch {
@@ -455,9 +457,15 @@ export default function PaymentsPage() {
                       <td>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           {m.status === 'PENDING' && (
-                            <Button size="sm" variant="emerald" glow onClick={() => setPayModalItem(m)}>
-                              Initiate Payment
-                            </Button>
+                            sandboxAvailable ? (
+                              <Button size="sm" variant="emerald" glow onClick={() => setPayModalItem(m)}>
+                                Initiate Payment
+                              </Button>
+                            ) : (
+                              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                                Sandbox unavailable
+                              </span>
+                            )
                           )}
                           {m.status === 'HELD' && (
                             <>
@@ -556,7 +564,7 @@ export default function PaymentsPage() {
           >
             <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>Initiate Sandbox Payment</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Sandbox payments simulate a deposit without moving real money. This action only starts a pending payment.
+              Sandbox payments simulate a deposit without moving real money. This action creates and immediately confirms a test escrow hold.
             </p>
 
             <div style={{ background: 'var(--bg-elevated)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }}>

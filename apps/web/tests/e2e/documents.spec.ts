@@ -4,7 +4,8 @@ test('document upload errors are visible and failed uploads never create a docum
   await page.route('https://fonts.googleapis.com/**', route => route.fulfill({ contentType: 'text/css', body: '' }));
   await page.route('**/api/user/me', route => route.fulfill({ json: { data: { id: 'student', name: 'Test Student',
     email: 'student@example.test', phone: '+8801712345678', role: 'student', isVerified: true,
-    avatarUrl: '/icon.svg', createdAt: new Date().toISOString(), linkedParentIds: [], linkedStudentIds: [] } } }));
+    avatarUrl: '/icon.svg', createdAt: new Date().toISOString(), linkedParentIds: [], linkedStudentIds: [],
+    linkedStudents: [], linkedParents: [], pendingGuardianRequests: [] } } }));
   await page.route('**/api/documents', route => route.request().method() === 'GET'
     ? route.fulfill({ json: { documents: [] } })
     : route.fulfill({ status: 503, json: { error: { code: 'SERVICE_UNAVAILABLE', message: 'Private storage unavailable. Please retry.' } } }));

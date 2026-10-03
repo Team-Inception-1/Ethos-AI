@@ -14,31 +14,49 @@ export async function GET(request: Request, context: Context) {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
     const { id } = await context.params;
-    const thread = await prisma.chatThread.findFirst({ where: {
-      id, application: applicationAccessWhere(authorization.user),
-    }, select: { id: true, applicationId: true, agencyId: true } });
+    const searchParams = new URL(request.url).searchParams;
+    const before = z.string().min(1).max(200).optional().parse(searchParams.get('before') ?? undefined);
+    const after = z.string().min(1).max(200).optional().parse(searchParams.get('after') ?? undefined);
+    if (before && after) return apiError('INVALID_CURSOR', 'Use either before or after, not both.', 400);
+    const cursorId = before ?? after;
+    const [thread, cursorMessage] = await Promise.all([
+      prisma.chatThread.findFirst({ where: {
+        id, application: applicationAccessWhere(authorization.user),
+      }, select: { id: true, applicationId: true, agencyId: true } }),
+      cursorId
+        ? prisma.chatMessage.findFirst({ where: { id: cursorId, threadId: id }, select: { id: true } })
+        : Promise.resolve(null),
+    ]);
     if (!thread) return forbiddenResponse();
-    const before = z.string().min(1).max(200).optional().parse(new URL(request.url).searchParams.get('before') ?? undefined);
-    if (before && !await prisma.chatMessage.findFirst({ where: { id: before, threadId: id }, select: { id: true } })) {
+    if (cursorId && !cursorMessage) {
       return apiError('NOT_FOUND', 'Message cursor not found in this conversation.', 404);
     }
-    const messages = (await prisma.chatMessage.findMany({ where: { threadId: id },
-      orderBy: [{ sentAt: 'desc' }, { id: 'desc' }], take: 201,
-      ...(before ? { cursor: { id: before }, skip: 1 } : {}),
-    }));
+    const messageQuery = prisma.chatMessage.findMany({ where: { threadId: id },
+        orderBy: after ? [{ sentAt: 'asc' }, { id: 'asc' }] : [{ sentAt: 'desc' }, { id: 'desc' }],
+        take: 201,
+        ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
+      });
+    const [messages, total] = after
+      ? [await messageQuery, undefined]
+      : await Promise.all([
+          messageQuery,
+          prisma.chatMessage.count({ where: { threadId: id } }),
+        ]);
     const hasMore = messages.length > 200;
-    const page = messages.slice(0, 200).reverse();
+    const page = after ? messages.slice(0, 200) : messages.slice(0, 200).reverse();
 
     // Mark unread messages sent by others as read (AUD-018)
     if (typeof (prisma.chatMessage as { updateMany?: unknown }).updateMany === 'function') {
       await prisma.chatMessage.updateMany({
-        where: { threadId: id, senderId: { not: authorization.user.id }, isRead: false },
+        where: { id: { in: page.map(message => message.id) }, senderId: { not: authorization.user.id }, isRead: false },
         data: { isRead: true },
       });
     }
 
-    return success({ threadId: id, thread, messages: page, total: await prisma.chatMessage.count({ where: { threadId: id } }),
-      nextCursor: hasMore ? page[0]?.id : null });
+    return success({ threadId: id, thread, messages: page,
+      ...(after ? {} : { total }),
+      nextCursor: !after && hasMore ? page[0]?.id : null,
+      nextAfterCursor: after && hasMore ? page[page.length - 1]?.id : null });
   } catch (error) { return handleApiError(error); }
 }
 

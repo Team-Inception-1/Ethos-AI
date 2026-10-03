@@ -47,6 +47,10 @@ from .scholar_knowledge import COLD_EMAIL_RULES, COUNTRY_FUNDING_GUIDES, SEED_PR
 logger = logging.getLogger(__name__)
 
 
+class ScholarDataUnavailableError(RuntimeError):
+    """Raised when live academic data is unavailable and demo fallback is disabled."""
+
+
 def _to_profile(raw: dict[str, Any]) -> ProfessorProfile:
     pubs = [ProfessorPublication(**p) for p in raw.get("recent_publications", [])]
     return ProfessorProfile(
@@ -660,14 +664,17 @@ async def search_openalex_live(
     country: str | None = None,
     limit: int = 10,
     entity_type: str = "all",
+    *,
+    allow_seeded_fallback: bool = False,
 ) -> LiveAcademicSearchResponse:
     """Queries OpenAlex API in real time using targeted entity fetchers
     (all topics, research works, institutions/universities, or author faculty)
-    to fetch active global faculty, citations, and publications.
+    to fetch global researcher profiles, citations, and publications.
     """
 
 
     results: list[ProfessorProfile] = []
+    used_seeded_fallback = False
     clean_query = query.strip()
     encoded_query = urllib.parse.quote(clean_query)
 
@@ -877,19 +884,7 @@ async def search_openalex_live(
                 )
                 for p in data["publications"]
             ]
-            if not pubs:
-                pubs.append(
-                    ProfessorPublication(
-                        title=f"Research on {data['topics'][0] if data['topics'] else clean_query}",
-                        year=2024,
-                        venue="Academic Conference Proceedings",
-                        link="https://openalex.org",
-                        summary="Peer-reviewed scholarly contribution.",
-                    )
-                )
-
             last_name = name.split()[-1] if name.split() else "Faculty"
-            uni_slug = re.sub(r"[^a-zA-Z0-9]", "", data["university"].lower())[:10] or "univ"
 
             results.append(
                 ProfessorProfile(
@@ -902,13 +897,13 @@ async def search_openalex_live(
                     tier="Global Research Institution",
                     lab_name=f"{last_name} Research Group",
                     lab_url=data.get("openalex_id") or "https://openalex.org",
-                    email=f"{last_name.lower()}@{uni_slug}.edu",
+                    email="",
                     google_scholar_url=f"https://scholar.google.com/scholar?q={urllib.parse.quote(name)}",
                     primary_domain=data["topics"][0] if data["topics"] else clean_query,
                     research_interests=data["topics"],
-                    active_funding_indicator=True,
-                    funding_sources=["OpenAlex Verified Active Grant Author", "Institutional Research Grant"],
-                    accepting_students=True,
+                    active_funding_indicator=False,
+                    funding_sources=[],
+                    accepting_students=False,
                     recent_publications=pubs,
                     h_index=data["h_index"],
                     citations_count=data["citations_count"],
@@ -924,10 +919,15 @@ async def search_openalex_live(
                 results = filtered
 
     except Exception as exc:
-        logger.warning(f"OpenAlex live search request failed: {exc}, falling back to curated search")
+        logger.warning("OpenAlex live search request failed: %s", exc)
 
     # If OpenAlex returned nothing (e.g. offline/network blocked or 0 hits), fall back to seed professors matching query terms
     if not results:
+        if not allow_seeded_fallback:
+            raise ScholarDataUnavailableError(
+                "Live academic search is temporarily unavailable; no demo professor records were substituted."
+            )
+        used_seeded_fallback = True
         terms = [t.lower() for t in clean_query.split() if len(t) > 2]
         for item in SEED_PROFESSORS:
             item_text = " ".join([
@@ -947,6 +947,10 @@ async def search_openalex_live(
         total=len(results),
         query=clean_query,
         results=results[:limit],
-        source="OpenAlex Global Index (Live Academic API)",
+        source=(
+            "OpenAlex Global Index (Live Academic API)"
+            if not used_seeded_fallback
+            else "Curated offline demo dataset"
+        ),
     )
 

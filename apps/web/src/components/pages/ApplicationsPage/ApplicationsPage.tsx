@@ -13,7 +13,18 @@ import styles from './ApplicationsPage.module.css';
 
 type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'warning' | 'info';
 
-const agencyListSchema = z.object({ agencies: z.array(z.object({ id: z.string(), name: z.string() })) });
+const agencyListSchema = z.object({ agencies: z.array(z.object({
+  id: z.string(),
+  name: z.string(),
+  pricingServices: z.array(z.object({
+    id: z.string(),
+    serviceName: z.string(),
+    amountPoisha: z.string(),
+    whenCharged: z.string(),
+    refundable: z.boolean(),
+    conditions: z.string().nullable(),
+  })),
+})) });
 const mutationSchema = z.object({
   data: z.object({
     application: z.object({
@@ -47,11 +58,22 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
   const [createdMessage, setCreatedMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     agencyId: initialAgencyId,
+    pricingServiceIds: [] as string[],
     targetCountry: 'Canada',
     targetUniversity: '',
     targetProgram: '',
     intakeSemester: 'Fall 2027',
   });
+  const selectedAgency = agencies.data?.agencies.find(agency => agency.id === form.agencyId);
+
+  function togglePricingService(pricingServiceId: string) {
+    setForm(value => ({
+      ...value,
+      pricingServiceIds: value.pricingServiceIds.includes(pricingServiceId)
+        ? value.pricingServiceIds.filter(id => id !== pricingServiceId)
+        : [...value.pricingServiceIds, pricingServiceId],
+    }));
+  }
 
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,7 +99,7 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
           : `Application ${created.data.application.id.slice(0, 8)} was created.`
       );
       setIsFormOpen(false);
-      setForm(value => ({ ...value, targetUniversity: '', targetProgram: '' }));
+      setForm(value => ({ ...value, pricingServiceIds: [], targetUniversity: '', targetProgram: '' }));
       retry();
     } catch (submissionError) {
       setSubmitError(submissionError instanceof Error ? submissionError.message : 'Could not create the application.');
@@ -168,13 +190,45 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
             </div>
             <form className={styles.form} onSubmit={submitApplication}>
               <label>Verified agency
-                <select required value={form.agencyId} onChange={event => setForm({ ...form, agencyId: event.target.value })}>
+                <select required value={form.agencyId} onChange={event => setForm({
+                  ...form,
+                  agencyId: event.target.value,
+                  pricingServiceIds: [],
+                })}>
                   <option value="">Select an agency</option>
                   {agencies.data?.agencies.map(agency => <option key={agency.id} value={agency.id}>{agency.name}</option>)}
                 </select>
               </label>
               {agencies.loading && <p className={styles.formHint}>Loading verified agencies…</p>}
               {agencies.error && <p role="alert" className={styles.formError}>{agencies.error}</p>}
+              {selectedAgency && (
+                <fieldset className={styles.packageFieldset}>
+                  <legend>Service packages</legend>
+                  <p className={styles.formHint}>Choose the agency services to include as protected escrow milestones.</p>
+                  {selectedAgency.pricingServices.length === 0 ? (
+                    <p role="alert" className={styles.formError}>This agency has no approved service packages.</p>
+                  ) : (
+                    <div className={styles.packageList}>
+                      {selectedAgency.pricingServices.map(service => {
+                        const checked = form.pricingServiceIds.includes(service.id);
+                        return (
+                          <label key={service.id} className={`${styles.packageOption} ${checked ? styles.packageOptionSelected : ''}`}>
+                            <input type="checkbox" checked={checked} onChange={() => togglePricingService(service.id)} />
+                            <span className={styles.packageContent}>
+                              <span className={styles.packageHeading}>
+                                <strong>{service.serviceName}</strong>
+                                <strong>{(Number(service.amountPoisha) / 100).toLocaleString(undefined, { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 })}</strong>
+                              </span>
+                              <span>{service.whenCharged}{service.refundable ? ' · Refundable' : ' · Non-refundable'}</span>
+                              {service.conditions && <small>{service.conditions}</small>}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </fieldset>
+              )}
               <div className={styles.formGrid}>
                 <label>Destination country
                   <input required minLength={2} maxLength={100} value={form.targetCountry}
@@ -197,7 +251,9 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
               <div className={styles.modalActions}>
                 <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)} disabled={submitting}>Cancel</Button>
                 <Button type="submit" variant="emerald" loading={submitting}
-                  disabled={!form.agencyId || agencies.loading}>Create protected application</Button>
+                  disabled={!form.agencyId || form.pricingServiceIds.length === 0 || agencies.loading}>
+                  Create protected application
+                </Button>
               </div>
             </form>
           </section>

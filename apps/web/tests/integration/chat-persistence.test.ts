@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(), canAccessDocument: vi.fn(),
   chatThread: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
-  chatMessage: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn() },
+  chatMessage: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), updateMany: vi.fn() },
   document: { findFirst: vi.fn() },
 }));
 vi.mock('@/lib/auth/authorization', () => ({ requireUser: mocks.requireUser,
@@ -81,6 +81,20 @@ describe('application chat persistence and evidence', () => {
     const response = await GET(new Request('http://localhost/messages?before=other-thread-message'), context);
     expect(response.status).toBe(404);
     expect(mocks.chatMessage.findMany).not.toHaveBeenCalled();
+  });
+  it('returns only messages after the polling cursor without recounting the thread', async () => {
+    mocks.chatMessage.findFirst.mockResolvedValue({ id: 'message-1' });
+    mocks.chatMessage.findMany.mockResolvedValue([{ id: 'message-2', senderId: 'agency', isRead: false }]);
+    const response = await GET(new Request('http://localhost/messages?after=message-1'), context);
+    expect(response.status).toBe(200);
+    expect(mocks.chatMessage.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      cursor: { id: 'message-1' }, skip: 1, orderBy: [{ sentAt: 'asc' }, { id: 'asc' }],
+    }));
+    expect(mocks.chatMessage.count).not.toHaveBeenCalled();
+    expect(mocks.chatMessage.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: { in: ['message-2'] } }),
+    }));
+    expect(await response.json()).toMatchObject({ messages: [{ id: 'message-2' }] });
   });
   it('exports actual stored messages with an integrity digest and no invented certification', async () => {
     const messages = [{ id: 'message', body: 'Persisted message', sentAt: new Date('2026-01-01') }];

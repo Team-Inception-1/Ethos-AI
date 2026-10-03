@@ -184,6 +184,7 @@ export default function CommunityPage() {
   const [mutationPending, setMutationPending] = useState(false);
   const mutationLock = useRef(false);
   const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // New Post Form
   const [newPostTitle, setNewPostTitle] = useState('');
@@ -194,9 +195,17 @@ export default function CommunityPage() {
 
   // Show Toast Helper
   const showToast = (msg: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(msg);
-    setTimeout(() => setToast(null), 3500);
+    toastTimer.current = setTimeout(() => {
+      setToast(null);
+      toastTimer.current = null;
+    }, 3500);
   };
+
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
 
   // No bundled identities or localStorage memberships are trusted.
   useEffect(() => {

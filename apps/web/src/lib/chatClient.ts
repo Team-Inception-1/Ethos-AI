@@ -49,13 +49,16 @@ export async function fetchChatThreads(userId?: string, role?: string): Promise<
   const data = await read<{ threads: ChatThreadSummary[] }>(await fetch('/api/chat/threads', { cache: 'no-store' }));
   return data.threads;
 }
-export async function fetchThreadMessages(threadId: string, before?: string): Promise<{
+export async function fetchThreadMessages(threadId: string, before?: string, after?: string): Promise<{
   thread: { id: string; applicationId: string; agencyId: string };
   messages: ChatMessageItem[];
   nextCursor?: string | null;
   total?: number;
 }> {
-  const query = before ? `?before=${encodeURIComponent(before)}` : '';
+  const search = new URLSearchParams();
+  if (before) search.set('before', before);
+  if (after) search.set('after', after);
+  const query = search.size > 0 ? `?${search.toString()}` : '';
   return read(await fetch(`/api/chat/threads/${encodeURIComponent(threadId)}/messages${query}`, { cache: 'no-store' }));
 }
 export async function createChatThread(applicationId: string): Promise<ChatThreadSummary> {

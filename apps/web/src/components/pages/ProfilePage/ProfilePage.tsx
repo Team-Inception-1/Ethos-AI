@@ -8,6 +8,13 @@ import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ProfilePage.module.css';
 
+function formatMemberSince(value?: string) {
+  if (!value) return 'Not available';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Not available';
+  return new Intl.DateTimeFormat('en-BD', { dateStyle: 'medium' }).format(parsed);
+}
+
 export default function ProfilePage() {
   const { user } = useAuth();
   return <ProfileEditor key={user?.id || 'signed-out'} />;
@@ -210,7 +217,7 @@ function ProfileEditor() {
             <div className={styles.statIconBox}>🔐</div>
             <div className={styles.statInfo}>
               <div className={styles.statVal}>SHA-256</div>
-              <div className={styles.statLabel}>Cloud Vault Encryption</div>
+              <div className={styles.statLabel}>Record Integrity Hashing</div>
             </div>
           </div>
 
@@ -300,7 +307,7 @@ function ProfileEditor() {
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Member Since</span>
-                <span className={styles.infoValue}>{user.createdAt}</span>
+                <span className={styles.infoValue}>{formatMemberSince(user.createdAt)}</span>
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Account ID</span>

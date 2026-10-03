@@ -699,24 +699,24 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
         )}
       </div>
 
-      {/* ─── Recent Real-Time Scam Alerts Advisory Feed ─── */}
+      {/* ─── Clearly labeled synthetic fraud-pattern examples ─── */}
       <div className={styles.advisorySection}>
         <div className={styles.advisoryHeader}>
           <div className={styles.advisoryTitle}>
             <span>🚨</span>
-            <span>Recent Consultancy Fraud Alerts & Blacklist Advisory</span>
+            <span>Illustrative Fraud Pattern Library</span>
           </div>
-          <Badge variant="danger" size="sm" dot>Live Intelligence Feed</Badge>
+          <Badge variant="neutral" size="sm">Synthetic Training Examples</Badge>
         </div>
 
         <div className={styles.advisoryGrid}>
           <div className={styles.alertCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Badge variant="danger" size="sm">CRITICAL (94% RISK)</Badge>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Aug 2, 2026</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>EXAMPLE A</span>
             </div>
             <div className={styles.alertTitle}>Forged Offer Letter — Univ. of Bedfordshire</div>
-            <div className={styles.alertAgency}>Agency: Skyline Consultancy (Dhaka)</div>
+            <div className={styles.alertAgency}>Fictional scenario — not a real agency allegation</div>
             <div className={styles.alertSummary}>
               OCR detected altered student ID and non-standard registrar signature font. Admissions communication traced to free ProtonMail account.
             </div>
@@ -725,10 +725,10 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
           <div className={styles.alertCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Badge variant="danger" size="sm">CRITICAL (88% RISK)</Badge>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Jul 29, 2026</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>EXAMPLE B</span>
             </div>
             <div className={styles.alertTitle}>Phishing Admissions Domain (.cc Domain)</div>
-            <div className={styles.alertAgency}>Agency: FastPath Overseas Education</div>
+            <div className={styles.alertAgency}>Fictional scenario — not a real agency allegation</div>
             <div className={styles.alertSummary}>
               Website redirects visa application fee payment to unverified personal bKash account with zero Ministry of Education registration.
             </div>
@@ -737,12 +737,12 @@ function AIToolsPageContent({ initialTool = 'all' }: AIToolsPageProps) {
           <div className={styles.alertCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Badge variant="warning" size="sm">HIGH (78% RISK)</Badge>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Aug 1, 2026</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>EXAMPLE C</span>
             </div>
             <div className={styles.alertTitle}>Predatory 100% Advance Non-Refund Clause</div>
-            <div className={styles.alertAgency}>Agency: Apex Study BD (Unregistered)</div>
+            <div className={styles.alertAgency}>Fictional scenario — not a real agency allegation</div>
             <div className={styles.alertSummary}>
-              Agreement Section 4.2 mandates ৳200,000 non-refundable cash deposit prior to university dispatch, violating BFIU consultancy rules.
+              Agreement Section 4.2 mandates a ৳200,000 non-refundable cash deposit before university dispatch and should trigger manual compliance review.
             </div>
           </div>
         </div>

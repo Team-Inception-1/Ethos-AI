@@ -11,6 +11,7 @@
 
 import { OFFLINE_DEMO_ENABLED as OFFLINE_DEMO } from './ai/demo';
 const AI_SERVICE_URL = '';
+const AI_REQUEST_TIMEOUT_MS = 65_000;
 
 export class AiServiceError extends Error {
   status?: number;
@@ -236,6 +237,7 @@ export async function analyzeOfferLetterFile(
     const resp = await fetch(`${AI_SERVICE_URL}/api/ai/analyze-offer-letter`, {
       method: 'POST',
       body: form,
+      signal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
     });
 
     if (resp.ok) {
@@ -332,6 +334,7 @@ export async function analyzeAgreementFile(
     const resp = await fetch(`${AI_SERVICE_URL}/api/ai/analyze-agreement`, {
       method: 'POST',
       body: form,
+      signal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
     });
 
     if (resp.ok) {

@@ -163,13 +163,16 @@ const DEFAULT_MESSAGES: Record<string, ChatMessageItem[]> = {
 export default function ChatPage() {
   const { user } = useAuth();
   const isAgency = user?.role?.toLowerCase() === 'agency';
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
   const [threads, setThreads] = useState<ChatThreadSummary[]>(DEFAULT_THREADS);
-  const [activeThreadId, setActiveThreadId] = useState<string>('thd-001');
+  // Wait for the authenticated thread list before requesting messages. Starting
+  // with the demo thread ID caused every live chat visit to make a guaranteed
+  // 403 request before the user's real conversation was selected.
+  const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessageItem[]>>(DEFAULT_MESSAGES);
   const [nextCursorByThread, setNextCursorByThread] = useState<Record<string, string | null>>({});
   const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
   const [input, setInput] = useState('');
-  const [isSending, setIsSending] = useState(false);
   const [exportData, setExportData] = useState<ChatTranscript | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -181,6 +184,8 @@ export default function ChatPage() {
   const [loadingVaultDocs, setLoadingVaultDocs] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const latestServerMessageIdByThread = useRef<Record<string, string | undefined>>({});
+  const sendsInFlightRef = useRef(0);
 
   // Load threads on mount / user change with query navigation (AUD-017)
   useEffect(() => {
@@ -260,6 +265,7 @@ export default function ChatPage() {
           ...previous,
           [threadId]: res.messages.map((m) => ({ ...m, isRead: true, status: 'sent' as const })),
         }));
+        latestServerMessageIdByThread.current[threadId] = res.messages[res.messages.length - 1]?.id;
         setThreads((prev) =>
           prev.map((t) => (t.id === threadId ? { ...t, unreadCount: 0 } : t))
         );
@@ -289,43 +295,67 @@ export default function ChatPage() {
     };
   }, [activeThreadId]);
 
-  // Bounded Polling for real-time delivery and unread count synchronization (AUD-018)
+  // Adaptive polling keeps chat responsive without continuously waking a Vercel
+  // function and Neon connection. Never compete with an in-flight message write.
   useEffect(() => {
     if (!activeThreadId) return;
 
-    const interval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
+    let cancelled = false;
+    let idlePolls = 0;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      let nextDelayMs = 2500;
+      const isHidden = typeof document !== 'undefined' && document.hidden;
+      if (isHidden) {
+        nextDelayMs = 10000;
+      } else if (sendsInFlightRef.current > 0) {
+        nextDelayMs = 1000;
+      } else if (!cancelled) {
+        try {
+          const res = await fetchThreadMessages(
+            activeThreadId,
+            undefined,
+            latestServerMessageIdByThread.current[activeThreadId]
+          );
+          if (cancelled) return;
+          if (res.messages.length > 0) {
+            idlePolls = 0;
+            latestServerMessageIdByThread.current[activeThreadId] = res.messages[res.messages.length - 1]?.id;
+            setMessagesByThread((prev) => {
+              const currentList = prev[activeThreadId] || [];
+              const serverMsgs = res.messages.map((m) => ({ ...m, status: 'sent' as const }));
+              const existingIds = new Set(currentList.map((m) => m.id));
+              const merged = [...currentList, ...serverMsgs.filter((m) => !existingIds.has(m.id))];
+              return { ...prev, [activeThreadId]: merged };
+            });
+          } else {
+            idlePolls += 1;
+            if (idlePolls >= 4) nextDelayMs = 5000;
+          }
+        } catch {
+          // A later poll will retry; keep the current conversation usable meanwhile.
+          nextDelayMs = 5000;
+        }
+      }
+      if (!cancelled) timeout = setTimeout(poll, nextDelayMs);
+    };
+    timeout = setTimeout(poll, 2500);
 
-      fetchThreadMessages(activeThreadId)
-        .then((res) => {
-          setMessagesByThread((prev) => {
-            const currentList = prev[activeThreadId] || [];
-            const serverMsgs = res.messages.map((m) => ({ ...m, status: 'sent' as const }));
-
-            const localPending = currentList.filter(
-              (m) => m.status === 'sending' || m.status === 'failed'
-            );
-
-            const serverIds = new Set(serverMsgs.map((m) => m.id));
-            const merged = [
-              ...serverMsgs,
-              ...localPending.filter((m) => !serverIds.has(m.id)),
-            ];
-            return { ...prev, [activeThreadId]: merged };
-          });
-        })
-        .catch(() => {});
-    }, 4000);
-
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      if (timeout) clearTimeout(timeout);
+    };
   }, [activeThreadId]);
 
   // Periodic thread unread count refresh
   useEffect(() => {
-    const threadInterval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      fetchChatThreads()
-        .then((refreshed) => {
+    let cancelled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const refreshThreads = async () => {
+      if (!cancelled && (typeof document === 'undefined' || !document.hidden)) {
+        try {
+          const refreshed = await fetchChatThreads();
+          if (cancelled) return;
           if (refreshed && refreshed.length > 0) {
             setThreads(
               refreshed.map((t) =>
@@ -333,11 +363,18 @@ export default function ChatPage() {
               )
             );
           }
-        })
-        .catch(() => {});
-    }, 12000);
+        } catch {
+          // Keep the current thread list and retry after the normal interval.
+        }
+      }
+      if (!cancelled) timeout = setTimeout(refreshThreads, 12000);
+    };
+    timeout = setTimeout(refreshThreads, 12000);
 
-    return () => clearInterval(threadInterval);
+    return () => {
+      cancelled = true;
+      if (timeout) clearTimeout(timeout);
+    };
   }, [activeThreadId]);
 
   const activeThread = useMemo(
@@ -463,13 +500,12 @@ export default function ChatPage() {
 
   const handleSend = async () => {
     const threadId = activeThreadId || threads[0]?.id || 'thd-001';
-    if (!threadId || (!input.trim() && !attachedDoc) || isSending) return;
+    if (!threadId || (!input.trim() && !attachedDoc)) return;
     const textToSend = input.trim();
     const docToAttach = attachedDoc;
     setInput('');
     setAttachedDoc(null);
     setShowVaultSelector(false);
-    setIsSending(true);
 
     const senderRole = (isAgency ? 'AGENCY' : (user?.role?.toUpperCase() || 'STUDENT')) as
       | 'STUDENT'
@@ -498,6 +534,7 @@ export default function ChatPage() {
       [threadId]: [...(previous[threadId] || []), tempMsg],
     }));
 
+    sendsInFlightRef.current += 1;
     try {
       const realMsg = await sendChatMessage({
         threadId,
@@ -533,35 +570,6 @@ export default function ChatPage() {
         }
       }
 
-      // If unauthenticated / demo session (ChatApiError or offline), compute SHA-256
-      // integrity hash client-side so testing and verification are seamless (AUD-015)
-      try {
-        const encoder = new TextEncoder();
-        const hashBuf = await crypto.subtle.digest(
-          'SHA-256',
-          encoder.encode(tempMsg.body + tempMsg.sentAt + tempId)
-        );
-        const localHash = Array.from(new Uint8Array(hashBuf))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
-        setMessagesByThread((previous) => ({
-          ...previous,
-          [threadId]: (previous[threadId] || []).map((m) =>
-            m.id === tempId
-              ? {
-                  ...tempMsg,
-                  id: `demo-${Date.now()}`,
-                  msgHash: localHash,
-                  status: 'sent',
-                }
-              : m
-          ),
-        }));
-        return;
-      } catch {
-        // fall through to failed state
-      }
-
       const errorMsg = err instanceof Error ? err.message : 'Message delivery failed.';
       setMessagesByThread((previous) => ({
         ...previous,
@@ -570,7 +578,7 @@ export default function ChatPage() {
         ),
       }));
     } finally {
-      setIsSending(false);
+      sendsInFlightRef.current = Math.max(0, sendsInFlightRef.current - 1);
     }
   };
 
@@ -583,6 +591,7 @@ export default function ChatPage() {
       ),
     }));
 
+    sendsInFlightRef.current += 1;
     try {
       const realMsg = await sendChatMessage({
         threadId,
@@ -598,25 +607,6 @@ export default function ChatPage() {
         ),
       }));
     } catch (err) {
-      try {
-        const encoder = new TextEncoder();
-        const hashBuf = await crypto.subtle.digest(
-          'SHA-256',
-          encoder.encode(failedMsg.body + failedMsg.sentAt)
-        );
-        const localHash = Array.from(new Uint8Array(hashBuf))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
-        setMessagesByThread((prev) => ({
-          ...prev,
-          [threadId]: (prev[threadId] || []).map((m) =>
-            m.id === failedMsg.id ? { ...failedMsg, msgHash: localHash, status: 'sent' } : m
-          ),
-        }));
-        return;
-      } catch {
-        // fall through
-      }
       const errorMsg = err instanceof Error ? err.message : 'Retry failed.';
       setMessagesByThread((prev) => ({
         ...prev,
@@ -624,6 +614,8 @@ export default function ChatPage() {
           m.id === failedMsg.id ? { ...m, status: 'failed', error: errorMsg } : m
         ),
       }));
+    } finally {
+      sendsInFlightRef.current = Math.max(0, sendsInFlightRef.current - 1);
     }
   };
 
@@ -673,20 +665,23 @@ export default function ChatPage() {
   };
 
   const isSelf = (m: ChatMessageItem) => {
+    if (user?.id) return m.senderId === user.id;
     if (isAgency) return m.senderRole?.toUpperCase() === 'AGENCY';
     return m.senderRole?.toUpperCase() === 'STUDENT' || m.senderRole?.toUpperCase() === 'PARENT';
   };
 
-  const quickPrompts = isAgency ? AGENCY_PROMPTS : STUDENT_PROMPTS;
+  const quickPrompts = isAdmin ? [] : isAgency ? AGENCY_PROMPTS : STUDENT_PROMPTS;
 
   return (
     <div className={styles.page}>
       {/* ─── Top Header & Trust Row (AUD-025 truthful claims) ─── */}
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
-          <h1>1-on-1 Secure Agency Chat</h1>
+          <h1>{isAdmin ? 'Dispute & Communication Transcripts' : '1-on-1 Secure Agency Chat'}</h1>
           <p className={styles.headerSubtitle}>
-            Transport encrypted (TLS) with SHA-256 server audit log (Module 5.12)
+            {isAdmin
+              ? 'Read-only student-agency conversations with SHA-256 server audit records'
+              : 'Transport encrypted (TLS) with SHA-256 server audit log (Module 5.12)'}
           </p>
         </div>
 
@@ -716,8 +711,8 @@ export default function ChatPage() {
         {/* ─── Thread List ─── */}
         <div className={styles.threadList} role="list" aria-label="Chat threads">
           {threads.map((t) => {
-            const threadHeading = isAgency ? t.studentName : t.agencyName;
-            const threadAvatar = isAgency ? (t.studentName?.[0] || 'S') : (t.agencyName?.[0] || 'A');
+            const threadHeading = isAdmin ? `${t.studentName} ↔ ${t.agencyName}` : isAgency ? t.studentName : t.agencyName;
+            const threadAvatar = isAdmin ? '⚖' : isAgency ? (t.studentName?.[0] || 'S') : (t.agencyName?.[0] || 'A');
             const isActive = t.id === activeThreadId;
 
             return (
@@ -763,11 +758,15 @@ export default function ChatPage() {
           <div className={styles.chatHeader}>
             <div className={styles.chatHeaderLeft}>
               <div className={styles.chatAvatar} aria-hidden="true">
-                {isAgency ? (activeThread?.studentName?.[0] || 'S') : (activeThread?.agencyName?.[0] || 'G')}
+                {isAdmin ? '⚖' : isAgency ? (activeThread?.studentName?.[0] || 'S') : (activeThread?.agencyName?.[0] || 'G')}
               </div>
               <div>
                 <div className={styles.chatName}>
-                  {isAgency ? (activeThread?.studentName || 'Student Applicant') : (activeThread?.agencyName || 'Agency Consultant')}
+                  {isAdmin
+                    ? `${activeThread?.studentName || 'Student'} ↔ ${activeThread?.agencyName || 'Agency'}`
+                    : isAgency
+                      ? (activeThread?.studentName || 'Student Applicant')
+                      : (activeThread?.agencyName || 'Agency Consultant')}
                 </div>
                 <div className={styles.chatStatus}>
                   <span className={styles.pulseDot} aria-hidden="true" />
@@ -791,7 +790,7 @@ export default function ChatPage() {
           </div>
 
           {/* Prompt Suggestion Chips */}
-          <div className={styles.promptBar}>
+          {!isAdmin && <div className={styles.promptBar}>
             <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>QUICK INQUIRY:</span>
             {quickPrompts.map((prompt, idx) => (
               <button
@@ -803,7 +802,7 @@ export default function ChatPage() {
                 {prompt}
               </button>
             ))}
-          </div>
+          </div>}
 
           {/* Messages Feed */}
           <div className={styles.messages} aria-live="polite" aria-label="Chat messages">
@@ -837,10 +836,12 @@ export default function ChatPage() {
               const self = isSelf(m);
               const senderRoleUpper = m.senderRole?.toUpperCase();
               let senderLabel: string;
-              if (senderRoleUpper === 'AGENCY') {
-                senderLabel = isAgency ? 'You' : (activeThread?.agencyName || 'Agency Consultant');
+              if (self) {
+                senderLabel = 'You';
+              } else if (senderRoleUpper === 'AGENCY') {
+                senderLabel = activeThread?.agencyName || 'Agency Consultant';
               } else if (senderRoleUpper === 'STUDENT') {
-                senderLabel = isAgency ? (activeThread?.studentName || 'Student Applicant') : 'You';
+                senderLabel = activeThread?.studentName || 'Student Applicant';
               } else if (senderRoleUpper === 'PARENT') {
                 senderLabel = 'Guardian (Parent)';
               } else {
@@ -886,7 +887,7 @@ export default function ChatPage() {
           </div>
 
           {/* Input Area */}
-          <div className={styles.inputArea}>
+          {!isAdmin && <div className={styles.inputArea}>
             {/* Vault Attachment Dropdown with real application documents (AUD-014) */}
             {showVaultSelector && (
               <div className={styles.vaultDropdown}>
@@ -969,7 +970,6 @@ export default function ChatPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 aria-label="Message input"
                 id="chat-input"
-                disabled={isSending}
               />
               <button
                 type="button"
@@ -984,7 +984,7 @@ export default function ChatPage() {
                 type="button"
                 className={styles.sendBtn}
                 onClick={handleSend}
-                disabled={(!input.trim() && !attachedDoc) || isSending}
+                disabled={!input.trim() && !attachedDoc}
                 aria-label="Send message"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1000,7 +1000,7 @@ export default function ChatPage() {
               </span>
               <span>Messages stored with SHA-256 cryptographic integrity hashes</span>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
 

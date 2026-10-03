@@ -517,6 +517,8 @@ model ChatMessage {
   sentAt  DateTime @default(now())
 
   @@index([threadId])
+  @@index([threadId, sentAt, id])
+  @@index([threadId, isRead, senderId])
   @@index([senderId])
   @@index([sentAt])
 }

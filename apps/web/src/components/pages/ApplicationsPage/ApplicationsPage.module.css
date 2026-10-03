@@ -124,6 +124,31 @@
 .form select:focus { outline: 3px solid rgb(59 130 246 / 30%); outline-offset: 1px; }
 .formHint { margin: -10px 0 0; color: var(--text-muted); font-size: 12px; }
 .formError { margin: 0; color: var(--red-dark, #b91c1c); font-size: 13px; font-weight: 700; }
+.packageFieldset {
+  margin: 0;
+  padding: 14px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-md);
+}
+.packageFieldset legend { padding: 0 6px; font-size: 13px; font-weight: 800; }
+.packageFieldset .formHint { margin: 0 0 10px; }
+.packageList { display: grid; gap: 10px; }
+.form .packageOption {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid var(--border, #d1d5db);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface, #fff);
+  cursor: pointer;
+}
+.form .packageOptionSelected { border-color: var(--blue-primary); background: rgb(59 130 246 / 8%); }
+.form .packageOption input { width: 18px; min-height: 18px; margin: 2px 0 0; flex: 0 0 18px; }
+.packageContent { display: grid; gap: 4px; width: 100%; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.packageHeading { display: flex; justify-content: space-between; gap: 12px; color: var(--text-primary); font-size: 13px; }
+.packageContent small { color: var(--text-muted); line-height: 1.4; }
 .modalActions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
 
 @media (max-width: 600px) {
