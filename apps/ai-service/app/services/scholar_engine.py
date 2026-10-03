@@ -10,9 +10,13 @@ Includes:
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+import urllib.parse
 from typing import Any
+
+import httpx
 
 from app.schemas import (
     ColdEmailGenerateRequest,
@@ -661,9 +665,7 @@ async def search_openalex_live(
     (all topics, research works, institutions/universities, or author faculty)
     to fetch active global faculty, citations, and publications.
     """
-    import asyncio
-    import urllib.parse
-    import httpx
+
 
     results: list[ProfessorProfile] = []
     clean_query = query.strip()
@@ -754,112 +756,114 @@ async def search_openalex_live(
                 responses = await asyncio.gather(works_task, authors_task, return_exceptions=True)
 
             # 1. Process Works (Extract authors of high-impact recent & seminal papers in query domain)
-            works_resp = responses[0] if len(responses) > 0 and not isinstance(responses[0], Exception) else None
-            if works_resp and works_resp.status_code == 200:
-                works_data = works_resp.json()
-                for w in works_data.get("results", []):
-                    w_title = w.get("display_name") or w.get("title") or "Peer-Reviewed Academic Contribution"
-                    w_year = w.get("publication_year") or 2024
-                    prim_loc = w.get("primary_location") or {}
-                    w_source = prim_loc.get("source") or {}
-                    w_venue = w_source.get("display_name") or "International Academic Conference & Journal"
-                    w_link = w.get("doi") or prim_loc.get("landing_page_url") or "https://openalex.org"
-                    w_citations = w.get("cited_by_count") or 50
-                    w_concepts = [c.get("display_name") for c in (w.get("concepts") or [])[:4] if c.get("display_name")]
+            works_resp = responses[0] if len(responses) > 0 else None
+            if isinstance(works_resp, httpx.Response):
+                if works_resp.status_code == 200:
+                    works_data = works_resp.json()
+                    for w in works_data.get("results", []):
+                        w_title = w.get("display_name") or w.get("title") or "Peer-Reviewed Academic Contribution"
+                        w_year = w.get("publication_year") or 2024
+                        prim_loc = w.get("primary_location") or {}
+                        w_source = prim_loc.get("source") or {}
+                        w_venue = w_source.get("display_name") or "International Academic Conference & Journal"
+                        w_link = w.get("doi") or prim_loc.get("landing_page_url") or "https://openalex.org"
+                        w_citations = w.get("cited_by_count") or 50
+                        w_concepts = [c.get("display_name") for c in (w.get("concepts") or [])[:4] if c.get("display_name")]
 
-                    for auth in w.get("authorships", []):
-                        a_obj = auth.get("author", {})
-                        a_id = a_obj.get("id") or auth.get("raw_author_name")
-                        a_name = a_obj.get("display_name") or auth.get("raw_author_name")
-                        if not a_name or len(a_name) < 3:
+                        for auth in w.get("authorships", []):
+                            a_obj = auth.get("author", {})
+                            a_id = a_obj.get("id") or auth.get("raw_author_name")
+                            a_name = a_obj.get("display_name") or auth.get("raw_author_name")
+                            if not a_name or len(a_name) < 3:
+                                continue
+
+                            lower_name = a_name.lower()
+                            # Filter out organizations, corporate accounts, or consortiums
+                            if any(term in lower_name for term in ["team", "consortium", "collaborat", "association", "organization"]):
+                                continue
+
+                            insts = auth.get("institutions", [])
+                            inst_obj = insts[0] if insts else {}
+                            uni_name = inst_obj.get("display_name") or "Global Research University"
+                            c_code = (inst_obj.get("country_code") or "US").upper()
+                            country_name = COUNTRY_MAP.get(c_code, c_code)
+
+                            clean_id = f"openalex-{a_id.split('/')[-1] if a_id else abs(hash(a_name))}"
+                            if a_name not in profiles_map:
+                                profiles_map[a_name] = {
+                                    "id": clean_id,
+                                    "name": a_name,
+                                    "university": uni_name,
+                                    "country": country_name,
+                                    "publications": [],
+                                    "citations_count": w_citations,
+                                    "h_index": max(18, min(110, int(w_citations ** 0.42))),
+                                    "topics": w_concepts if w_concepts else [clean_query, "Computer Science & AI", "Empirical Research"],
+                                    "openalex_id": a_id,
+                                }
+
+                            pub_titles = [p["title"] for p in profiles_map[a_name]["publications"]]
+                            if w_title not in pub_titles and len(profiles_map[a_name]["publications"]) < 3:
+                                profiles_map[a_name]["publications"].append({
+                                    "title": w_title,
+                                    "year": w_year,
+                                    "venue": w_venue,
+                                    "link": w_link,
+                                    "summary": f"Indexed research contribution with {w_citations:,} citations.",
+                                })
+
+            # 2. Process Authors (Matches specific researcher name or faculty queries)
+            authors_resp = responses[1] if len(responses) > 1 else None
+            if isinstance(authors_resp, httpx.Response):
+                if authors_resp.status_code == 200:
+                    authors_data = authors_resp.json()
+                    for i, author in enumerate(authors_data.get("results", [])):
+                        name = author.get("display_name")
+                        if not name:
                             continue
-
-                        lower_name = a_name.lower()
-                        # Filter out organizations, corporate accounts, or consortiums
+                        lower_name = name.lower()
                         if any(term in lower_name for term in ["team", "consortium", "collaborat", "association", "organization"]):
                             continue
 
-                        insts = auth.get("institutions", [])
-                        inst_obj = insts[0] if insts else {}
-                        uni_name = inst_obj.get("display_name") or "Global Research University"
-                        c_code = (inst_obj.get("country_code") or "US").upper()
-                        country_name = COUNTRY_MAP.get(c_code, c_code)
+                        inst_obj = (author.get("last_known_institutions") or [{}])[0]
+                        uni_name = inst_obj.get("display_name") or target_uni_name or "International Research University"
+                        country_code = (inst_obj.get("country_code") or "US").upper()
+                        country_name = target_uni_country or COUNTRY_MAP.get(country_code, country_code)
 
-                        clean_id = f"openalex-{a_id.split('/')[-1] if a_id else abs(hash(a_name))}"
-                        if a_name not in profiles_map:
-                            profiles_map[a_name] = {
+                        h_idx = (author.get("summary_stats") or {}).get("h_index", 35)
+                        c_count = author.get("cited_by_count", 5000)
+                        topics = [t.get("display_name") for t in (author.get("topics") or [])[:4] if t.get("display_name")]
+                        clean_id = f"openalex-{author.get('id', '').split('/')[-1] or abs(hash(name))}"
+
+                        if name in profiles_map:
+                            profiles_map[name]["h_index"] = max(profiles_map[name]["h_index"], h_idx)
+                            profiles_map[name]["citations_count"] = max(profiles_map[name]["citations_count"], c_count)
+                            if topics:
+                                merged_topics = list(dict.fromkeys(profiles_map[name]["topics"] + topics))[:4]
+                                profiles_map[name]["topics"] = merged_topics
+                            if uni_name != "Global Research University":
+                                profiles_map[name]["university"] = uni_name
+                                profiles_map[name]["country"] = country_name
+                        else:
+                            profiles_map[name] = {
                                 "id": clean_id,
-                                "name": a_name,
+                                "name": name,
                                 "university": uni_name,
                                 "country": country_name,
-                                "publications": [],
-                                "citations_count": w_citations,
-                                "h_index": max(18, min(110, int(w_citations ** 0.42))),
-                                "topics": w_concepts if w_concepts else [clean_query, "Computer Science & AI", "Empirical Research"],
-                                "openalex_id": a_id,
+                                "publications": [
+                                    {
+                                        "title": f"Advances in {topics[0] if topics else clean_query}: Algorithmic Innovations and Empirical Evaluation",
+                                        "year": 2024,
+                                        "venue": "International Academic Proceedings",
+                                        "link": author.get("id") or "https://openalex.org",
+                                        "summary": f"Peer-reviewed research indexed on OpenAlex with {c_count:,} citations.",
+                                    }
+                                ],
+                                "citations_count": c_count,
+                                "h_index": h_idx,
+                                "topics": topics if topics else [clean_query, "Computer Science & AI", "Empirical Research"],
+                                "openalex_id": author.get("id"),
                             }
-
-                        pub_titles = [p["title"] for p in profiles_map[a_name]["publications"]]
-                        if w_title not in pub_titles and len(profiles_map[a_name]["publications"]) < 3:
-                            profiles_map[a_name]["publications"].append({
-                                "title": w_title,
-                                "year": w_year,
-                                "venue": w_venue,
-                                "link": w_link,
-                                "summary": f"Indexed research contribution with {w_citations:,} citations.",
-                            })
-
-            # 2. Process Authors (Matches specific researcher name or faculty queries)
-            authors_resp = responses[1] if len(responses) > 1 and not isinstance(responses[1], Exception) else None
-            if authors_resp and authors_resp.status_code == 200:
-                authors_data = authors_resp.json()
-                for i, author in enumerate(authors_data.get("results", [])):
-                    name = author.get("display_name")
-                    if not name:
-                        continue
-                    lower_name = name.lower()
-                    if any(term in lower_name for term in ["team", "consortium", "collaborat", "association", "organization"]):
-                        continue
-
-                    inst_obj = (author.get("last_known_institutions") or [{}])[0]
-                    uni_name = inst_obj.get("display_name") or target_uni_name or "International Research University"
-                    country_code = (inst_obj.get("country_code") or "US").upper()
-                    country_name = target_uni_country or COUNTRY_MAP.get(country_code, country_code)
-
-                    h_idx = (author.get("summary_stats") or {}).get("h_index", 35)
-                    c_count = author.get("cited_by_count", 5000)
-                    topics = [t.get("display_name") for t in (author.get("topics") or [])[:4] if t.get("display_name")]
-                    clean_id = f"openalex-{author.get('id', '').split('/')[-1] or abs(hash(name))}"
-
-                    if name in profiles_map:
-                        profiles_map[name]["h_index"] = max(profiles_map[name]["h_index"], h_idx)
-                        profiles_map[name]["citations_count"] = max(profiles_map[name]["citations_count"], c_count)
-                        if topics:
-                            merged_topics = list(dict.fromkeys(profiles_map[name]["topics"] + topics))[:4]
-                            profiles_map[name]["topics"] = merged_topics
-                        if uni_name != "Global Research University":
-                            profiles_map[name]["university"] = uni_name
-                            profiles_map[name]["country"] = country_name
-                    else:
-                        profiles_map[name] = {
-                            "id": clean_id,
-                            "name": name,
-                            "university": uni_name,
-                            "country": country_name,
-                            "publications": [
-                                {
-                                    "title": f"Advances in {topics[0] if topics else clean_query}: Algorithmic Innovations and Empirical Evaluation",
-                                    "year": 2024,
-                                    "venue": "International Academic Proceedings",
-                                    "link": author.get("id") or "https://openalex.org",
-                                    "summary": f"Peer-reviewed research indexed on OpenAlex with {c_count:,} citations.",
-                                }
-                            ],
-                            "citations_count": c_count,
-                            "h_index": h_idx,
-                            "topics": topics if topics else [clean_query, "Computer Science & AI", "Empirical Research"],
-                            "openalex_id": author.get("id"),
-                        }
 
         # Convert dictionary to ProfessorProfile objects
         for name, data in profiles_map.items():

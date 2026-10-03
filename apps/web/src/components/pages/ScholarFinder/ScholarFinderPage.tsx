@@ -6,6 +6,7 @@ import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import MarkdownContent, { stripMarkdown } from '@/components/ui/MarkdownContent';
+import { useAuth } from '@/context/AuthContext';
 import {
   searchProfessors,
   generateColdEmail,
@@ -151,7 +152,7 @@ export default function ScholarFinderPage() {
   const [activeTab, setActiveTab] = useState<'search' | 'email_studio' | 'pipeline' | 'guide'>('search');
 
   // Search Mode: 'curated' (top R1/U15 labs) or 'live' (OpenAlex Global Deep Search)
-  const [searchMode, setSearchMode] = useState<'curated' | 'live'>(OFFLINE_DEMO_ENABLED ? 'curated' : 'live');
+  const [searchMode, setSearchMode] = useState<'curated' | 'live'>('curated');
 
   // OpenAlex Search Entity Type: 'all' | 'works' | 'institutions' | 'authors'
   const [liveEntityType, setLiveEntityType] = useState<'all' | 'works' | 'institutions' | 'authors'>('all');
@@ -181,16 +182,28 @@ export default function ScholarFinderPage() {
   const [paperDeconstructData, setPaperDeconstructData] = useState<PaperDeconstructResponse | null>(null);
   const [paperDeconstructLoading, setPaperDeconstructLoading] = useState(false);
 
-  // Cold Email Studio State
-  const [studentName, setStudentName] = useState('Tanvir Ahmed');
-  const [studentDegree, setStudentDegree] = useState('B.Sc. in Computer Science & Engineering');
-  const [studentInstitution, setStudentInstitution] = useState('BUET');
-  const [studentGpa, setStudentGpa] = useState('3.82');
-  const [studentSkills, setStudentSkills] = useState('PyTorch, Computer Vision, CUDA, Diffusion Models');
-  const [studentThesis, setStudentThesis] = useState('Robust Visual Perception in Autonomous Mobile Robots');
+  // Cold Email Studio State - Hydrated from authenticated profile
+  const { user } = useAuth();
+  const [studentName, setStudentName] = useState('');
+  const [studentDegree, setStudentDegree] = useState('');
+  const [studentInstitution, setStudentInstitution] = useState('');
+  const [studentGpa, setStudentGpa] = useState('');
+  const [studentSkills, setStudentSkills] = useState('');
+  const [studentThesis, setStudentThesis] = useState('');
   const [targetDegree, setTargetDegree] = useState<'PhD' | 'MS with Thesis'>('PhD');
   const [targetSemester, setTargetSemester] = useState('Fall 2026');
   const [selectedPaperTitle, setSelectedPaperTitle] = useState('');
+
+  // Hydrate profile data from signed-in student
+  useEffect(() => {
+    if (user) {
+      if (user.name) setStudentName(user.name);
+      if (user.studentDetails?.targetField) {
+        setStudentDegree(user.studentDetails.targetField);
+        setTaraMajor(user.studentDetails.targetField);
+      }
+    }
+  }, [user]);
 
   // Email Output
   const [emailGenerating, setEmailGenerating] = useState(false);
@@ -198,7 +211,7 @@ export default function ScholarFinderPage() {
   const [emailSubTab, setEmailSubTab] = useState<'initial' | 'followup1' | 'followup2'>('initial');
   const [selectedSubjectLine, setSelectedSubjectLine] = useState('');
 
-  // Pipeline CRM State (LocalStorage backed)
+  // Pipeline CRM State (PostgreSQL backed with local backup)
   const [pipeline, setPipeline] = useState<PipelineItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -259,18 +272,30 @@ export default function ScholarFinderPage() {
     }
   }, [advisorChatMessages, advisorLoading, guideSubTab]);
 
-  // Load initial pipeline, guide, and run baseline TARA evaluation
+  // Load initial pipeline from PostgreSQL API (fallback to localStorage), guide, and baseline TARA
   useEffect(() => {
-    const timer = setTimeout(() => {
-    try {
-      const saved = localStorage.getItem('ethos_scholar_pipeline');
-      if (saved) {
-        setPipeline(pipelineSchema.parse(JSON.parse(saved)));
+    let cancelled = false;
+    async function fetchPipeline() {
+      try {
+        const res = await fetch('/api/scholar-finder/outreach');
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && Array.isArray(data.pipeline)) {
+            setPipeline(data.pipeline);
+            return;
+          }
+        }
+      } catch {}
+      try {
+        const saved = localStorage.getItem('ethos_scholar_pipeline');
+        if (!cancelled && saved) {
+          setPipeline(pipelineSchema.parse(JSON.parse(saved)));
+        }
+      } catch (e) {
+        console.warn('Failed to load pipeline', e);
       }
-    } catch (e) {
-      console.warn('Failed to load pipeline from localStorage', e);
     }
-    }, 0);
+    void fetchPipeline();
 
     getTARAGuide()
       .then((data) => setGuideData(data))
@@ -288,7 +313,9 @@ export default function ScholarFinderPage() {
     })
       .then((res) => setTaraResult(res))
       .catch((e) => console.warn('Initial TARA evaluation error', e));
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // TARA Strategy Evaluation Handler
@@ -615,17 +642,36 @@ export default function ScholarFinderPage() {
     };
   }, [simCountry, simRole, simCityCost]);
 
-  // Save pipeline
-  const savePipeline = (items: PipelineItem[]) => {
+  // Save pipeline (persisting to Neon PostgreSQL and browser cache)
+  const savePipeline = async (items: PipelineItem[], changedItem?: PipelineItem) => {
+    setPipeline(items);
     try {
       localStorage.setItem('ethos_scholar_pipeline', JSON.stringify(items));
-      setPipeline(items);
-      return true;
     } catch (e) {
-      console.warn('Failed to save pipeline', e);
-      showToast('Could not save your pipeline in this browser.');
-      return false;
+      console.warn('Failed to save pipeline locally', e);
     }
+
+    if (changedItem) {
+      try {
+        await fetch('/api/scholar-finder/outreach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profId: changedItem.profId,
+            profName: changedItem.profName,
+            university: changedItem.university,
+            labName: changedItem.labName,
+            stage: changedItem.stage,
+            draftedEmail: changedItem.draftedEmail,
+            notes: changedItem.notes,
+            sentAt: changedItem.sentAt,
+          }),
+        });
+      } catch (err) {
+        console.warn('Could not sync outreach item to database:', err);
+      }
+    }
+    return true;
   };
 
   // Load professors
@@ -646,24 +692,52 @@ export default function ScholarFinderPage() {
             ? selectedDomain
             : 'Computer Science and Artificial Intelligence';
 
-        const res = await liveSearchAcademic({
-          query: searchQuery.trim() || defaultTopic,
-          country: selectedCountry === 'All' ? null : selectedCountry,
-          limit: 12,
-          entity_type: liveEntityType,
-        });
-        if (sequence !== searchSequence.current) return;
-        setProfessors(res.results);
-        setSelectedProf(res.results[0] ?? null);
-        setSelectedPaperTitle(res.results[0]?.recent_publications[0]?.title ?? '');
-        if (res.results.length > 0) {
-          setSelectedProf(res.results[0]);
-          if (res.results[0].recent_publications.length > 0) {
-            setSelectedPaperTitle(res.results[0].recent_publications[0].title);
+        try {
+          const res = await liveSearchAcademic({
+            query: searchQuery.trim() || defaultTopic,
+            country: selectedCountry === 'All' ? null : selectedCountry,
+            limit: 12,
+            entity_type: liveEntityType,
+          });
+          if (sequence !== searchSequence.current) return;
+          if (res.results && res.results.length > 0) {
+            setProfessors(res.results);
+            setSelectedProf(res.results[0] ?? null);
+            setSelectedPaperTitle(res.results[0]?.recent_publications?.[0]?.title ?? '');
+            return;
+          }
+        } catch (liveErr) {
+          console.warn('Live search fallback to PostgreSQL faculty catalog:', liveErr);
+        }
+      }
+
+      // Query PostgreSQL database-backed professors
+      try {
+        const queryParams = new URLSearchParams();
+        if (selectedDomain !== 'All') queryParams.set('domain', selectedDomain);
+        if (selectedCountry !== 'All') queryParams.set('country', selectedCountry);
+        if (activeFundingOnly) queryParams.set('activeFunding', 'true');
+        if (acceptingOnly) queryParams.set('accepting', 'true');
+        if (searchQuery.trim()) queryParams.set('q', searchQuery.trim());
+
+        const res = await fetch(`/api/scholar-finder/professors?${queryParams.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.professors)) {
+            if (sequence !== searchSequence.current) return;
+            setProfessors(data.professors);
+            setSelectedProf(data.professors[0] ?? null);
+            setSelectedPaperTitle(data.professors[0]?.recent_publications?.[0]?.title ?? data.professors[0]?.recentPublications?.[0]?.title ?? '');
+            return;
           }
         }
-      } else {
-        const res = await searchProfessors({
+      } catch (dbErr) {
+        console.warn('Database query fallback to offline engine:', dbErr);
+      }
+
+      // Offline fallback if database route failed
+      try {
+        const resOffline = await searchProfessors({
           domain: selectedDomain === 'All' ? null : selectedDomain,
           countries: selectedCountry === 'All' ? [] : [selectedCountry],
           has_active_funding: activeFundingOnly,
@@ -671,14 +745,14 @@ export default function ScholarFinderPage() {
           query: searchQuery.trim() || null,
         });
         if (sequence !== searchSequence.current) return;
-        setProfessors(res.professors);
-        setSelectedProf(res.professors[0] ?? null);
-        setSelectedPaperTitle(res.professors[0]?.recent_publications[0]?.title ?? '');
-        if (res.professors.length > 0) {
-          setSelectedProf(res.professors[0]);
-          if (res.professors[0].recent_publications.length > 0) {
-            setSelectedPaperTitle(res.professors[0].recent_publications[0].title);
-          }
+        setProfessors(resOffline.professors);
+        setSelectedProf(resOffline.professors[0] ?? null);
+        setSelectedPaperTitle(resOffline.professors[0]?.recent_publications?.[0]?.title ?? '');
+      } catch (offlineErr) {
+        console.warn('Offline search fallback:', offlineErr);
+        if (sequence === searchSequence.current) {
+          setProfessors([]);
+          setSelectedProf(null);
         }
       }
     } catch (err) {
@@ -815,28 +889,41 @@ export default function ScholarFinderPage() {
       sentAt: stage === 'contacted' ? new Date().toISOString() : undefined,
     };
     const updated = [newItem, ...pipeline];
-    if (!savePipeline(updated)) return;
+    void savePipeline(updated, newItem);
     showToast(`Added ${p.name} to your ${stage.toUpperCase()} pipeline.`);
   };
 
   const handleMovePipelineStage = (itemId: string, newStage: PipelineItem['stage']) => {
+    let changed: PipelineItem | undefined;
     const updated = pipeline.map((item) => {
       if (item.id === itemId) {
-        return {
+        changed = {
           ...item,
           stage: newStage,
           sentAt: newStage === 'contacted' && !item.sentAt ? new Date().toISOString() : item.sentAt,
         };
+        return changed;
       }
       return item;
     });
-    if (!savePipeline(updated)) return;
+    void savePipeline(updated, changed);
     showToast(`Stage updated to ${newStage.toUpperCase()}`);
   };
 
-  const handleRemoveFromPipeline = (itemId: string) => {
+  const handleRemoveFromPipeline = async (itemId: string) => {
+    const target = pipeline.find((i) => i.id === itemId);
     const updated = pipeline.filter((i) => i.id !== itemId);
-    if (!savePipeline(updated)) return;
+    setPipeline(updated);
+    try {
+      localStorage.setItem('ethos_scholar_pipeline', JSON.stringify(updated));
+    } catch {}
+    if (target) {
+      try {
+        await fetch(`/api/scholar-finder/outreach?profId=${encodeURIComponent(target.profId)}`, {
+          method: 'DELETE',
+        });
+      } catch {}
+    }
     showToast('Removed from pipeline');
   };
 
@@ -1030,16 +1117,14 @@ export default function ScholarFinderPage() {
         <section className={styles.searchSection}>
           {/* Search Mode Toggle (Curated R1/U15 vs Global Live OpenAlex) */}
           <div className={styles.searchModeToggle}>
-            {OFFLINE_DEMO_ENABLED && (
-              <button
-                type="button"
-                className={`${styles.searchModeBtn} ${searchMode === 'curated' ? styles.searchModeActive : ''}`}
-                onClick={() => setSearchMode('curated')}
-              >
-                <span>🏛️</span>
-                <span>{lang === 'en' ? 'Curated Demo Labs' : 'নির্বাচিত ডেমো ল্যাব'}</span>
-              </button>
-            )}
+            <button
+              type="button"
+              className={`${styles.searchModeBtn} ${searchMode === 'curated' ? styles.searchModeActive : ''}`}
+              onClick={() => setSearchMode('curated')}
+            >
+              <span>🏛️</span>
+              <span>{lang === 'en' ? 'Verified R1 & U15 Faculty (PostgreSQL)' : 'ভেরিফায়েড আর১/ইউ১৫ ফ্যাকাল্টি (ডাটাবেজ)'}</span>
+            </button>
             <button
               type="button"
               className={`${styles.searchModeBtn} ${searchMode === 'live' ? styles.searchModeActive : ''}`}
@@ -1478,6 +1563,7 @@ export default function ScholarFinderPage() {
                   className={styles.formInput}
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="e.g. Tanvir Ahmed"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -1487,6 +1573,7 @@ export default function ScholarFinderPage() {
                   className={styles.formInput}
                   value={studentInstitution}
                   onChange={(e) => setStudentInstitution(e.target.value)}
+                  placeholder="e.g. BUET / Dhaka University"
                 />
               </div>
             </div>
@@ -1499,6 +1586,7 @@ export default function ScholarFinderPage() {
                   className={styles.formInput}
                   value={studentDegree}
                   onChange={(e) => setStudentDegree(e.target.value)}
+                  placeholder="e.g. B.Sc. in Computer Science"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -1508,6 +1596,7 @@ export default function ScholarFinderPage() {
                   className={styles.formInput}
                   value={studentGpa}
                   onChange={(e) => setStudentGpa(e.target.value)}
+                  placeholder="e.g. 3.82"
                 />
               </div>
             </div>

@@ -104,8 +104,7 @@ class PostgresAgencyRiskStore:
         self._database_url = database_url
 
     def _connection(self):
-        return self._connect(self._database_url, connect_timeout=5,
-                             options="-c statement_timeout=5000")
+        return self._connect(self._database_url, connect_timeout=5)
 
     @staticmethod
     def _score(cursor, agency_id):
@@ -125,7 +124,8 @@ class PostgresAgencyRiskStore:
             with self._connection() as connection, connection.cursor() as cursor:
                 cursor.execute('INSERT INTO "AgencyRiskState" ("agencyId", "riskScore", "flagCount", "updatedAt") VALUES (%s, 0, 0, NOW()) ON CONFLICT ("agencyId") DO NOTHING', (agency_id,))
                 cursor.execute('SELECT "riskScore" FROM "AgencyRiskState" WHERE "agencyId" = %s FOR UPDATE', (agency_id,))
-                previous = cursor.fetchone()[0]
+                row = cursor.fetchone()
+                previous = row[0] if row else 0.0
                 event.occurred_at = datetime.now(timezone.utc)
                 updated = max(0.0, min(100.0, previous + _EMA_ALPHA * (weight - previous)))
                 cursor.execute('UPDATE "AgencyRiskState" SET "riskScore" = %s, "flagCount" = "flagCount" + 1, "updatedAt" = %s WHERE "agencyId" = %s', (updated, event.occurred_at, agency_id))
@@ -144,10 +144,11 @@ class PostgresAgencyRiskStore:
             raise HTTPException(status_code=503, detail="Agency risk storage is unavailable.") from exc
 
 
-_default_store: AgencyRiskStore | PostgresAgencyRiskStore | None = None
+AnyAgencyRiskStore = AgencyRiskStore | PostgresAgencyRiskStore
+_default_store: AnyAgencyRiskStore | None = None
 
 
-def get_agency_risk_store() -> AgencyRiskStore | PostgresAgencyRiskStore:
+def get_agency_risk_store() -> AnyAgencyRiskStore:
     global _default_store
     if _default_store is None:
         settings = get_settings()

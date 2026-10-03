@@ -158,6 +158,45 @@ export async function uploadAvatarFile(
   if (!s3) throw new Error('Avatar storage is not configured.');
   const objectKey = `avatars/${userId}/${randomUUID()}.${mimeType === 'image/png' ? 'png' : 'jpg'}`;
   await s3.send(new PutObjectCommand({ Bucket: 'documents', Key: objectKey, Body: buffer, ContentType: mimeType }));
+
+  // Clean up replaced avatar objects to avoid unbounded orphaned storage (AUD-028)
+  try {
+    const listRes = await s3.send(new ListObjectsV2Command({ Bucket: 'documents', Prefix: `avatars/${userId}/` }));
+    if (listRes.Contents) {
+      for (const item of listRes.Contents) {
+        if (item.Key && item.Key !== objectKey) {
+          await s3.send(new DeleteObjectCommand({ Bucket: 'documents', Key: item.Key })).catch(() => {});
+        }
+      }
+    }
+  } catch (cleanErr) {
+    console.warn('[Neon Object Storage] Failed to clean up replaced avatar objects:', cleanErr);
+  }
+
   const endpoint = process.env.AWS_ENDPOINT_URL_S3!.replace(/\/$/, '');
   return { key: objectKey, url: `${endpoint}/documents/${objectKey}`, sizeBytes: buffer.length, provider: 'neon-s3' };
+}
+
+/**
+ * Deletes an avatar object by storage key or full URL.
+ */
+export async function deleteAvatarFile(keyOrUrl: string): Promise<boolean> {
+  let key = keyOrUrl;
+  if (key.includes('/documents/avatars/')) {
+    key = 'avatars/' + key.split('/documents/avatars/')[1];
+  } else if (key.includes('avatars/')) {
+    key = 'avatars/' + key.split('avatars/')[1];
+  }
+  if (!key.startsWith('avatars/') || key.includes('\\') || key.split('/').some(part => !part || part === '.' || part === '..')) {
+    return false;
+  }
+  const s3 = getS3Client();
+  if (!s3) return false;
+  try {
+    await s3.send(new DeleteObjectCommand({ Bucket: 'documents', Key: key }));
+    return true;
+  } catch (err) {
+    console.warn('[Neon Object Storage] Failed to delete avatar file:', err);
+    return false;
+  }
 }

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import PaymentsPage from '@/components/pages/PaymentsPage';
 import RoleRestricted from '@/components/auth/RoleRestricted';
+import { PaymentsEscrowSkeleton } from '@/components/ui/Skeleton';
 
 export const metadata: Metadata = { title: 'Payments & Escrow | Ethos AI' };
 
@@ -10,7 +12,9 @@ export default function Payments() {
       allowedRoles={['student', 'parent']}
       featureName="Milestone Payments & Escrow Protection"
     >
-      <PaymentsPage />
+      <Suspense fallback={<PaymentsEscrowSkeleton />}>
+        <PaymentsPage />
+      </Suspense>
     </RoleRestricted>
   );
 }

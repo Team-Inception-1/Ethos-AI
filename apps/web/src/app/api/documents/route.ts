@@ -12,14 +12,59 @@ const types: Record<string, DocumentType> = {
   passport: 'PASSPORT_ID', transcript: 'ACADEMIC_TRANSCRIPT', other: 'OTHER',
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
-    // Owner is always the session identity. Relationship-scoped listing can
-    // be added explicitly; caller-selected owner IDs never change this query.
+    const url = new URL(request.url);
+    const requestedAppId = url.searchParams.get('applicationId') || undefined;
+
+    let whereClause: Record<string, unknown>;
+    if (authorization.user.role === 'ADMIN') {
+      whereClause = requestedAppId ? { applicationId: requestedAppId } : {};
+    } else if (authorization.user.role === 'PARENT') {
+      const approvedLinks = await prisma.parentLink.findMany({
+        where: { parentId: authorization.user.id, isApproved: true },
+        select: { studentId: true },
+      });
+      const accessibleOwnerIds = [authorization.user.id, ...approvedLinks.map(l => l.studentId)];
+      whereClause = {
+        ownerId: { in: accessibleOwnerIds },
+        ...(requestedAppId ? { applicationId: requestedAppId } : {}),
+      };
+    } else if (authorization.user.role === 'AGENCY') {
+      const managedApps = await prisma.application.findMany({
+        where: { agency: { ownerUserId: authorization.user.id, licenseStatus: 'VERIFIED' } },
+        select: { id: true, studentId: true },
+      });
+      const managedAppIds = managedApps.map(a => a.id);
+      if (requestedAppId) {
+        if (!managedAppIds.includes(requestedAppId)) return forbiddenResponse();
+        const currentApp = managedApps.find(a => a.id === requestedAppId);
+        whereClause = {
+          OR: [
+            { applicationId: requestedAppId },
+            { ownerId: authorization.user.id },
+            ...(currentApp ? [{ ownerId: currentApp.studentId }] : []),
+          ],
+        };
+      } else {
+        whereClause = {
+          OR: [
+            { ownerId: authorization.user.id },
+            { applicationId: { in: managedAppIds } },
+          ],
+        };
+      }
+    } else {
+      whereClause = {
+        ownerId: authorization.user.id,
+        ...(requestedAppId ? { OR: [{ applicationId: requestedAppId }, { applicationId: null }] } : {}),
+      };
+    }
+
     const documents = await prisma.document.findMany({
-      where: { ownerId: authorization.user.id }, include: { documentScan: true },
+      where: whereClause, include: { documentScan: true },
       orderBy: { uploadedAt: 'desc' }, take: 100,
     });
     return NextResponse.json({ documents: documents.map(doc => ({
@@ -47,11 +92,25 @@ export async function POST(request: Request) {
     if (!validDocumentMime(file.type)) return apiError('INVALID_FILE_TYPE', 'Only PDF, JPEG, and PNG files are accepted.', 415);
     const bytes = Buffer.from(await file.arrayBuffer());
     if (!validateDocumentBytes(bytes, file.type)) return apiError('INVALID_FILE_CONTENT', 'File contents do not match its type.', 415);
-    const ownerId = authorization.user.id;
+    let ownerId = authorization.user.id;
     const applicationId = typeof form.get('applicationId') === 'string' ? String(form.get('applicationId')) : null;
-    if (applicationId && !await prisma.application.findFirst({
-      where: { id: applicationId, studentId: ownerId }, select: { id: true },
-    })) return forbiddenResponse();
+    if (applicationId) {
+      const application = await prisma.application.findFirst({
+        where: {
+          id: applicationId,
+          OR: [
+            { studentId: authorization.user.id },
+            {
+              agency: { ownerUserId: authorization.user.id, licenseStatus: 'VERIFIED' },
+              stage: { notIn: ['COMPLETED', 'VISA_REJECTED'] },
+            },
+          ],
+        },
+        select: { id: true, studentId: true },
+      });
+      if (!application) return forbiddenResponse();
+      ownerId = application.studentId;
+    }
     const type = typeof form.get('type') === 'string' ? String(form.get('type')) : 'other';
     const { key } = await uploadDocumentFile(bytes, file.name, file.type, ownerId);
     let document;

@@ -234,14 +234,14 @@ uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 
 ### ⚡ One-Click Launch Script (Windows PowerShell)
 
-You can launch both services simultaneously using the PowerShell script below:
+You can launch both services simultaneously using the PowerShell script below from the repository root:
 
 ```powershell
-# Open Web Application
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:\Ethos AI\Ethos-AI\apps\web'; npm run dev"
+# Open Web Application (Port 3000)
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'apps\web'; npm run dev"
 
-# Open AI Microservice
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:\Ethos AI\Ethos-AI\apps\ai-service'; .\.venv\Scripts\Activate.ps1; uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload"
+# Open AI Microservice (Port 8001)
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'apps\ai-service'; .\.venv\Scripts\Activate.ps1; uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload"
 ```
 
 The web application will be available at **[http://localhost:3000](http://localhost:3000)** and the interactive AI microservice Swagger API documentation at **[http://127.0.0.1:8001/docs](http://127.0.0.1:8001/docs)**.
@@ -257,14 +257,14 @@ Ethos AI maintains high test coverage across both frontend/backend and the AI mi
 cd apps/web
 npm test
 ```
-*Output: **189 tests passing** across 23 test suites covering Access Denial, Platform Persistence, Neon Auth, Document Storage Boundaries, Escrow Ledger, and AI Client integrations.*
+*Output: **205 tests passing** across 26 test suites covering Access Denial, Platform Persistence, Neon Auth, Notifications, Document Storage Boundaries, Escrow Ledger, and AI Client integrations.*
 
 ### AI Microservice Test Suite (Pytest)
 ```bash
 cd apps/ai-service
 pytest -v
 ```
-*Covers Offer Letter API, Agreement Clause Classifier, Counselor Recommendation Engine, Scholar Finder, and Risk Score stores.*
+*Output: **121 tests passing** covering Offer Letter API, Agreement Clause Classifier, Counselor Recommendation Engine, Scholar Finder, Scam Rules, and Risk Score stores.*
 
 ---
 
@@ -333,7 +333,7 @@ We strictly adhere to standard software engineering best practices:
 - [x] **5. Milestone Escrow & Ledger:** Poisha integer precision, multi-gateway support (bKash/Nagad/SSLCOMMERZ), and SHA-256 chained transaction ledger.
 - [x] **6. Distinct AI/ML Contributions:** Split between Tasin & Sourav covering OCR forgery detection, clause analysis, scam risk scoring, and academic counseling.
 - [x] **7. Accessibility & UI/UX:** Neubrutalism design language, Space Grotesk typography, keyboard navigation, high-contrast dark/light mode, and bilingual support (English & Bangla).
-- [x] **8. Comprehensive Testing:** 189 Vitest tests passing with 0 errors across 23 test suites.
+- [x] **8. Comprehensive Testing:** 205 Vitest tests and 121 Pytest tests passing with 0 errors across 26 web test suites and 16 AI test suites.
 - [x] **9. Documentation & Traceability:** Detailed README, architectural diagrams, sprint Kanban documentation, and clean commit history.
 
 ---

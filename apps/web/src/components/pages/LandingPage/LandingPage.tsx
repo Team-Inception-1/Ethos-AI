@@ -363,14 +363,14 @@ export default function LandingPage() {
             </div>
             <div className={styles.footerCol}>
               <h4>Company</h4>
-              <Link href="#">About</Link>
-              <Link href="#">Blog</Link>
-              <Link href="#">Contact</Link>
+              <Link href="/directory">Verified Agencies</Link>
+              <Link href="/community">Community News</Link>
+              <a href="mailto:support@ethosai.edu.bd">Contact Support</a>
             </div>
             <div className={styles.footerCol}>
               <h4>Legal</h4>
-              <Link href="#">Privacy</Link>
-              <Link href="#">Terms</Link>
+              <Link href="/privacy">Privacy Policy</Link>
+              <Link href="/terms">Terms of Service</Link>
             </div>
           </div>
           <div className={styles.footerBottom}>

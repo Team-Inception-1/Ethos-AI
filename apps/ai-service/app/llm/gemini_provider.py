@@ -64,7 +64,7 @@ _RESPONSE_SCHEMA = {
 class GeminiAgreementLLM(AgreementLLM):
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str = "gemini-3.6-flash") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-flash-latest") -> None:
         if not api_key:
             raise LLMError("GEMINI_API_KEY is not set; cannot construct GeminiAgreementLLM")
         self._api_key = api_key

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { requireUser } from '@/lib/auth/authorization';
 import { applicationAccessWhere } from '@/lib/auth/relationships';
 import { applicationDocumentAccessWhere, applicationSelect } from '@/lib/applications/access';
@@ -61,6 +62,9 @@ export async function POST(request: Request) {
       },
     });
     if (!agency) return apiError('AGENCY_UNAVAILABLE', 'Select a verified agency.', 404);
+    if (!agency.pricingServices || agency.pricingServices.length === 0) {
+      return apiError('PRICING_UNAVAILABLE', 'The selected agency does not have approved pricing milestones. Applications require approved pricing.', 400);
+    }
 
     const duplicate = await prisma.application.findFirst({
       where: {
@@ -75,32 +79,63 @@ export async function POST(request: Request) {
     });
     if (duplicate) return apiError('APPLICATION_EXISTS', 'An active application for this program and intake already exists.', 409);
 
-    const application = await prisma.application.create({
-      data: {
-        studentId: authorization.user.id,
-        agencyId: agency.id,
-        targetCountry: input.targetCountry,
-        targetUniversity: input.targetUniversity,
-        targetProgram: input.targetProgram,
-        intakeSemester: input.intakeSemester,
-        stageEvents: { create: {
-          stage: 'SUBMITTED', actorId: authorization.user.id, actorRole: 'STUDENT',
-          note: 'Application started by the student through the verified agency directory.',
-        } },
-        milestones: { create: agency.pricingServices.map((pricing, index) => ({
-          name: pricing.serviceName,
-          orderIndex: index + 1,
-          amountPoisha: pricing.amountPoisha,
-          releaseCondition: pricing.whenCharged,
-          status: 'PENDING' as const,
-        })) },
-      },
-      select: {
-        ...applicationSelect,
-        _count: { select: { documents: true, milestones: true } },
-      },
+    const runInTx = async <T>(op: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> => {
+      if (typeof prisma.$transaction === 'function') {
+        return prisma.$transaction(op);
+      }
+      return op(prisma as unknown as Prisma.TransactionClient);
+    };
+
+    const application = await runInTx(async (tx) => {
+      const createdApp = await tx.application.create({
+        data: {
+          studentId: authorization.user.id,
+          agencyId: agency.id,
+          targetCountry: input.targetCountry,
+          targetUniversity: input.targetUniversity,
+          targetProgram: input.targetProgram,
+          intakeSemester: input.intakeSemester,
+          stageEvents: { create: {
+            stage: 'SUBMITTED', actorId: authorization.user.id, actorRole: 'STUDENT',
+            note: 'Application started by the student through the verified agency directory.',
+          } },
+          milestones: { create: agency.pricingServices.map((pricing, index) => ({
+            name: pricing.serviceName,
+            orderIndex: index + 1,
+            amountPoisha: pricing.amountPoisha,
+            releaseCondition: pricing.whenCharged,
+            status: 'PENDING' as const,
+          })) },
+          chatThread: { create: { agencyId: agency.id } },
+        },
+        select: {
+          ...applicationSelect,
+          _count: { select: { documents: true, milestones: true } },
+        },
+      });
+
+      if (tx.governanceAudit?.create) {
+        await tx.governanceAudit.create({
+          data: {
+            actorId: authorization.user.id,
+            action: 'APPLICATION_CREATED',
+            entityType: 'Application',
+            entityId: createdApp.id,
+            details: {
+              agencyId: agency.id,
+              targetCountry: input.targetCountry,
+              targetUniversity: input.targetUniversity,
+              targetProgram: input.targetProgram,
+              milestoneCount: agency.pricingServices.length,
+            },
+          },
+        });
+      }
+
+      return createdApp;
     });
-    const { _count, ...created } = application;
+
+    const { _count, ...created } = application as typeof application & { _count: { documents: number; milestones: number } };
     return NextResponse.json({ data: { application: {
       ...created, documentCount: _count.documents, milestoneCount: _count.milestones,
     } } }, { status: 201 });

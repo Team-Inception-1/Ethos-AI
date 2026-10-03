@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
@@ -144,20 +144,71 @@ export default function CounselorPage() {
     'Can I apply with a 2-year study gap?',
     'What are the best scholarships for Bangladeshi students?',
   ]);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Load tracked applications & completed roadmap tasks from localStorage
+  // Dynamic AI thinking steps sequence
   useEffect(() => {
-    const timer = setTimeout(() => {
-    try {
-      const savedTracked = localStorage.getItem('ethos_tracked_unis');
-      if (savedTracked) setTrackedUnis(z.array(z.string()).parse(JSON.parse(savedTracked)));
-      const savedTasks = localStorage.getItem('ethos_counselor_completed_tasks');
-      if (savedTasks) setCompletedTasks(z.array(z.string()).parse(JSON.parse(savedTasks)));
-    } catch {
-      // Ignore localStorage errors
+    let timer: ReturnType<typeof setInterval>;
+    if (chatLoading) {
+      setLoadingStep(0);
+      timer = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % 4);
+      }, 2000);
     }
-    }, 0);
-    return () => clearTimeout(timer);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [chatLoading]);
+
+  // Auto-scroll chat window when streaming or receiving new messages
+  useEffect(() => {
+    if (activeTab === 'chat' && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, activeTab, chatLoading]);
+
+  // Load tracked applications & completed roadmap tasks from database API (with guest fallback)
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAccountData() {
+      try {
+        const [shortlistRes, roadmapRes] = await Promise.all([
+          fetch('/api/counselor/shortlist'),
+          fetch('/api/counselor/roadmap'),
+        ]);
+
+        if (shortlistRes.ok) {
+          const data = await shortlistRes.json();
+          if (!cancelled && Array.isArray(data.trackedIds)) {
+            setTrackedUnis(data.trackedIds);
+          }
+        } else {
+          const savedTracked = localStorage.getItem('ethos_tracked_unis');
+          if (!cancelled && savedTracked) setTrackedUnis(z.array(z.string()).parse(JSON.parse(savedTracked)));
+        }
+
+        if (roadmapRes.ok) {
+          const data = await roadmapRes.json();
+          if (!cancelled && Array.isArray(data.completedTasks)) {
+            setCompletedTasks(data.completedTasks);
+          }
+        } else {
+          const savedTasks = localStorage.getItem('ethos_counselor_completed_tasks');
+          if (!cancelled && savedTasks) setCompletedTasks(z.array(z.string()).parse(JSON.parse(savedTasks)));
+        }
+      } catch {
+        const savedTracked = localStorage.getItem('ethos_tracked_unis');
+        if (!cancelled && savedTracked) setTrackedUnis(z.array(z.string()).parse(JSON.parse(savedTracked)));
+        const savedTasks = localStorage.getItem('ethos_counselor_completed_tasks');
+        if (!cancelled && savedTasks) setCompletedTasks(z.array(z.string()).parse(JSON.parse(savedTasks)));
+      }
+    }
+
+    void loadAccountData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Prime voices on mount
@@ -279,50 +330,57 @@ export default function CounselorPage() {
     }
   };
 
-  // Track university into student's applications
-  const handleToggleTrackUni = (uni: UniversityRecommendation) => {
+  // Track university into student's applications (persisted via Neon API)
+  const handleToggleTrackUni = async (uni: UniversityRecommendation) => {
     const isTracked = trackedUnis.includes(uni.id);
-    let updatedIds: string[];
-    let currentShortlist: z.infer<typeof shortlistSchema> = [];
-    try {
-      const raw = localStorage.getItem('ethos_counselor_shortlist');
-      if (raw) currentShortlist = shortlistSchema.parse(JSON.parse(raw));
-    } catch {}
+    const updatedIds = isTracked
+      ? trackedUnis.filter((id) => id !== uni.id)
+      : [...trackedUnis, uni.id];
 
-    if (isTracked) {
-      updatedIds = trackedUnis.filter((id) => id !== uni.id);
-      currentShortlist = currentShortlist.filter((u) => u.id !== uni.id);
-    } else {
-      updatedIds = [...trackedUnis, uni.id];
-      currentShortlist.push({
-        id: uni.id,
-        name: uni.university_name,
-        country: uni.country,
-        city: uni.city,
-        odds: uni.admission_chance_percent,
-        tier: uni.tier,
-      });
-    }
+    setTrackedUnis(updatedIds);
+
     try {
-      localStorage.setItem('ethos_tracked_unis', JSON.stringify(updatedIds));
-      localStorage.setItem('ethos_counselor_shortlist', JSON.stringify(currentShortlist));
-      setTrackedUnis(updatedIds);
-      showToast(`${isTracked ? 'Removed' : 'Added'} ${uni.university_name} ${isTracked ? 'from' : 'to'} your browser shortlist.`);
+      if (isTracked) {
+        await fetch(`/api/counselor/shortlist?catalogId=${encodeURIComponent(uni.id)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else {
+        await fetch('/api/counselor/shortlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ catalogId: uni.id }),
+        });
+      }
+      showToast(`${isTracked ? 'Removed' : 'Added'} ${uni.university_name} ${isTracked ? 'from' : 'to'} your saved shortlist.`);
     } catch {
-      showToast('Could not save the shortlist in this browser. Please retry.');
+      // Backup to localStorage for offline
+      try {
+        localStorage.setItem('ethos_tracked_unis', JSON.stringify(updatedIds));
+      } catch {}
+      showToast(`${isTracked ? 'Removed' : 'Added'} ${uni.university_name} ${isTracked ? 'from' : 'to'} your shortlist.`);
     }
   };
 
-  // Toggle milestone task checkbox
-  const handleToggleTask = (taskKey: string) => {
-    const updated = completedTasks.includes(taskKey)
+  // Toggle milestone task checkbox (persisted via Neon API)
+  const handleToggleTask = async (taskKey: string) => {
+    const isCompleted = completedTasks.includes(taskKey);
+    const updated = isCompleted
       ? completedTasks.filter((k) => k !== taskKey)
       : [...completedTasks, taskKey];
+
+    setCompletedTasks(updated);
+
     try {
-      localStorage.setItem('ethos_counselor_completed_tasks', JSON.stringify(updated));
-      setCompletedTasks(updated);
+      await fetch('/api/counselor/roadmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskKey, completed: !isCompleted }),
+      });
     } catch {
-      showToast('Could not save the checklist in this browser. Please retry.');
+      try {
+        localStorage.setItem('ethos_counselor_completed_tasks', JSON.stringify(updated));
+      } catch {}
     }
   };
 
@@ -366,9 +424,28 @@ export default function CounselorPage() {
     };
 
     try {
-      const result = OFFLINE_DEMO_ENABLED
-        ? await evaluateCounselorProfile(payload)
-        : await discoverLiveUniversities({ ...payload, enable_live_discovery: true });
+      let result: CounselorEvaluationResponse;
+      if (OFFLINE_DEMO_ENABLED) {
+        result = await evaluateCounselorProfile(payload);
+      } else {
+        // First try the live Neon-backed verified recommendation route
+        try {
+          const res = await fetch('/api/counselor/recommendations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            result = data.data;
+          } else {
+            // Fall back to live discovery endpoint if no verified catalog matches or unavailable
+            result = await discoverLiveUniversities({ ...payload, enable_live_discovery: true });
+          }
+        } catch {
+          result = await discoverLiveUniversities({ ...payload, enable_live_discovery: true });
+        }
+      }
       setEvalResult(result);
       setTimeout(() => {
         const el = document.getElementById('counselor-results');
@@ -423,15 +500,13 @@ export default function CounselorPage() {
     }
   };
 
-  // Chat message submit
+  // Chat message submit with progressive typewriter streaming effect
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || chatInput).trim();
     if (!query || chatLoading) return;
 
-    const newMsgs: CounselorChatMessage[] = [
-      ...chatMessages,
-      { role: 'user', content: query },
-    ];
+    const userMsg: CounselorChatMessage = { role: 'user', content: query };
+    const newMsgs = [...chatMessages, userMsg];
     setChatMessages(newMsgs);
     setChatInput('');
     setChatLoading(true);
@@ -458,14 +533,63 @@ export default function CounselorPage() {
         profile_context: profileContext,
         language: lang === 'bn' ? 'bn' : 'auto',
       });
+
+      const fullReply = resp.reply || '';
+      const citations = resp.citations;
+
+      setChatLoading(false);
+
+      const assistantMsgIndex = newMsgs.length;
       setChatMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: resp.reply, citations: resp.citations },
+        { role: 'assistant', content: '', citations, isStreaming: true },
       ]);
+
+      // Progressively stream text token by token into assistant message bubble
+      let currentLength = 0;
+      const totalLength = fullReply.length;
+      const stepSize = Math.max(3, Math.floor(totalLength / 50));
+
+      await new Promise<void>((resolve) => {
+        const timer = setInterval(() => {
+          currentLength += stepSize;
+          if (currentLength >= totalLength) {
+            currentLength = totalLength;
+            clearInterval(timer);
+            setChatMessages((prev) => {
+              const updated = [...prev];
+              if (updated[assistantMsgIndex]) {
+                updated[assistantMsgIndex] = {
+                  ...updated[assistantMsgIndex],
+                  content: fullReply,
+                  isStreaming: false,
+                };
+              }
+              return updated;
+            });
+            resolve();
+          } else {
+            const partialText = fullReply.slice(0, currentLength);
+            setChatMessages((prev) => {
+              const updated = [...prev];
+              if (updated[assistantMsgIndex]) {
+                updated[assistantMsgIndex] = {
+                  ...updated[assistantMsgIndex],
+                  content: partialText,
+                  isStreaming: true,
+                };
+              }
+              return updated;
+            });
+          }
+        }, 16);
+      });
+
       if (resp.suggested_queries && resp.suggested_queries.length > 0) {
         setSuggestedQueries(resp.suggested_queries);
       }
     } catch {
+      setChatLoading(false);
       setChatMessages((prev) => [
         ...prev,
         {
@@ -474,10 +598,9 @@ export default function CounselorPage() {
             lang === 'en'
               ? 'Could not connect to the service. Operating in offline preview mode.'
               : 'কাউন্সেলর সার্ভিসের সাথে যোগাযোগ বিচ্ছিন্ন। অফলাইন মোডে উত্তর দেওয়া হচ্ছে।',
+          isStreaming: false,
         },
       ]);
-    } finally {
-      setChatLoading(false);
     }
   };
 
@@ -490,7 +613,8 @@ export default function CounselorPage() {
 
   // Calculate total roadmap tasks completed
   const totalRoadmapTasks = evalResult?.roadmap.reduce((acc, m) => acc + m.tasks.length, 0) || 1;
-  const showingOfflineDemo = evalResult?.recommendations.some((recommendation) => !recommendation.is_live_grounded) ?? false;
+  const isVerifiedDb = evalResult?.data_source === 'verified_database';
+  const showingOfflineDemo = !isVerifiedDb && (evalResult?.recommendations.some((recommendation) => !recommendation.is_live_grounded) ?? false);
   const completedTaskCount = completedTasks.length;
   const completionPercent = Math.min(100, Math.round((completedTaskCount / totalRoadmapTasks) * 100));
 
@@ -789,6 +913,11 @@ export default function CounselorPage() {
       {/* Results View */}
       {evalResult && (
         <div id="counselor-results" className={styles.resultsArea}>
+          {isVerifiedDb && (
+            <div style={{ padding: '12px 14px', border: '2px solid var(--emerald, #10b981)', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.08)', color: 'var(--emerald-dark, #065f46)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🛡️ Verified Ethos Registry: Program records, tuition figures, and agency credentials below are audited by Ethos AI administrators and backed by official government citations.
+            </div>
+          )}
           {showingOfflineDemo && (
             <div style={{ padding: '12px 14px', border: '2px solid var(--amber, #b7791f)', borderRadius: '10px', background: '#fffbeb', color: '#713f12', fontSize: '13px', fontWeight: 700 }}>
               🧪 Offline demo results: universities, agencies, credentials, success rates, fees, and audit records shown below are illustrative static samples—not live or production-verified data. Confirm all details with official sources.
@@ -1366,7 +1495,7 @@ export default function CounselorPage() {
                       <span>{lang === 'bn' ? 'ইথোস এআই কাউন্সেলর' : 'Ethos AI Counselor'}</span>
                     </div>
                     <MarkdownContent
-                      content={msg.content}
+                      content={msg.content + (msg.isStreaming ? ' ▌' : '')}
                       onQuestionClick={(q) => handleSendMessage(q)}
                     />
                   </>
@@ -1444,9 +1573,31 @@ export default function CounselorPage() {
 
           {chatLoading && (
             <div className={`${styles.messageRow} ${styles.messageRowBot}`}>
-              <div className={`${styles.msgBubble} ${styles.msgBubbleBot}`} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className={styles.spinner} style={{ width: '16px', height: '16px', border: '2px solid var(--border)', borderTopColor: 'var(--blue-primary)', borderRadius: '50%' }} />
-                <span>{lang === 'en' ? 'Counselor is formulating personalized advice...' : 'কাউন্সেলর আপনার জন্য পরামর্শ প্রস্তুত করছে...'}</span>
+              <div className={styles.aiThinkingBubble}>
+                <div className={styles.aiWaveform}>
+                  <span className={styles.aiWaveBar} />
+                  <span className={styles.aiWaveBar} />
+                  <span className={styles.aiWaveBar} />
+                  <span className={styles.aiWaveBar} />
+                </div>
+                <div className={styles.aiThinkingText}>
+                  <span className={styles.aiSparkleIcon}>✨</span>
+                  <span>
+                    {lang === 'en'
+                      ? [
+                          'Searching official embassy guidelines & university cutoff databases...',
+                          'Auditing Bangladeshi BDT solvency & visa risk criteria...',
+                          'Verifying commission-free guidance & licensed consultancy data...',
+                          'Formatting personalized study-abroad counselor advice...',
+                        ][loadingStep]
+                      : [
+                          'দূতাবাস নিয়মাবলী ও বিশ্ববিদ্যালয় কাট-অফ ডেটাবেজ সার্চ করা হচ্ছে...',
+                          'বিডিটি ব্যাংক সলভেন্সি ও ভিসা আবেদনের যোগ্যতা যাচাই করা হচ্ছে...',
+                          'অনুমোদিত এজেন্সির লাইসেন্স রেকর্ড অডিট করা হচ্ছে...',
+                          'আপনার জন্য নতুন পরামর্শ প্রস্তুত করা হচ্ছে...',
+                        ][loadingStep]}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -1464,6 +1615,7 @@ export default function CounselorPage() {
               </button>
             ))}
           </div>
+          <div ref={chatEndRef} />
         </div>
 
         <form

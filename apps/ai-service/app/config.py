@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # --- LLM provider -------------------------------------------------
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-3.6-flash"
+    gemini_model: str = "gemini-flash-latest"
 
     # --- OCR / Vision provider (Optional fallback) ---------------------
     google_vision_api_key: str | None = None

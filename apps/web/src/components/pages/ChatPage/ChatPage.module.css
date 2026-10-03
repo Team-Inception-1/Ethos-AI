@@ -422,6 +422,41 @@
   border-color: var(--ink);
 }
 
+.vaultUploadLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 8px 10px;
+  background: var(--blue-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 12px;
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: all var(--transition-fast);
+}
+
+.vaultUploadLabel:hover {
+  background: var(--blue-hover);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.vaultUploadLabel:active {
+  transform: translate(0, 0);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.vaultEmpty {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 /* ─── Input Row ─── */
 .inputArea {
   position: relative;
@@ -449,6 +484,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 18px;
+  padding-right: 110px;
 }
 
 .input {
@@ -529,6 +565,7 @@
   font-size: 11px;
   color: var(--text-muted);
   padding: 8px 18px;
+  padding-right: 110px;
   background: var(--bg-elevated);
   border-top: 1px dashed var(--border);
   flex-shrink: 0;
@@ -746,4 +783,64 @@
   .certGrid {
     grid-template-columns: 1fr;
   }
+}
+
+.loadOlderContainer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.loadOlderBtn {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--ink);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  transition: all var(--transition-fast);
+}
+
+.loadOlderBtn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 2.5px 2.5px 0 var(--ink);
+  background: var(--bg-hover);
+}
+
+.loadOlderBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.msgSendingBadge {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.msgFailedBadge {
+  font-size: 10px;
+  color: var(--danger-color, #dc2626);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.retryBtn {
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  color: var(--danger-color, #dc2626);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+
+.retryBtn:hover {
+  background: rgba(220, 38, 38, 0.1);
 }

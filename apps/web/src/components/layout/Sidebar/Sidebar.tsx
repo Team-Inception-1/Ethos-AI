@@ -141,6 +141,16 @@ const BenchmarkIcon = () => (
   </svg>
 );
 
+const DirectoryIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+    <path d="M9 22v-4h6v4" />
+    <path d="M8 6h.01" /><path d="M16 6h.01" /><path d="M12 6h.01" />
+    <path d="M8 10h.01" /><path d="M16 10h.01" /><path d="M12 10h.01" />
+    <path d="M8 14h.01" /><path d="M16 14h.01" /><path d="M12 14h.01" />
+  </svg>
+);
+
 const getNavItems = (role?: string): NavItem[] => {
   const normRole = (role || '').toLowerCase();
   switch (normRole) {
@@ -198,6 +208,12 @@ const getNavItems = (role?: string): NavItem[] => {
           label: 'Agency Audits',
           labelBn: 'এজেন্সি অডিট',
           icon: <VerificationQueueIcon />,
+        },
+        {
+          href: '/directory',
+          label: 'Agency Directory',
+          labelBn: 'এজেন্সি ডিরেক্টরি',
+          icon: <DirectoryIcon />,
         },
         {
           href: '/admin?tab=provenance',
@@ -324,6 +340,12 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <DashboardIcon />,
         },
         {
+          href: '/directory',
+          label: 'Agency Directory',
+          labelBn: 'এজেন্সি ডিরেক্টরি',
+          icon: <DirectoryIcon />,
+        },
+        {
           href: '/dashboard/applications',
           label: 'My Applications',
           labelBn: 'আমার আবেদন',
@@ -425,7 +447,11 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
 
 
   // If URL path is /agency/* or /admin/*, enforce appropriate role navigation immediately
-  const effectiveRole = user?.role?.toLowerCase() || 'student';
+  const effectiveRole = pathname?.startsWith('/admin')
+    ? 'admin'
+    : pathname?.startsWith('/agency')
+    ? 'agency'
+    : user?.role?.toLowerCase() || 'student';
   const navItems = getNavItems(effectiveRole);
 
   let userName = user?.name;
@@ -485,6 +511,15 @@ export default function Sidebar({ lang = 'en' }: SidebarProps) {
                   href={item.href}
                   className={`${styles.navItem} ${isActive ? styles.active : ''}`}
                   title={collapsed ? (lang === 'en' ? item.label : item.labelBn) : undefined}
+                  onClick={() => {
+                    if (item.href.includes('?tab=')) {
+                      const tab = item.href.split('?tab=')[1]?.toLowerCase();
+                      if (tab) {
+                        window.dispatchEvent(new CustomEvent('admin-switch-tab', { detail: tab }));
+                      }
+                      setTimeout(() => window.dispatchEvent(new Event('popstate')), 50);
+                    }
+                  }}
                 >
                   <span className={styles.navIcon}>{item.icon}</span>
                   {!collapsed && (
