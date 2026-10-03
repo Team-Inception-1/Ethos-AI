@@ -42,7 +42,13 @@ def test_missing_production_provider_never_returns_fake(factory):
 def test_seeded_scholar_data_requires_explicit_demo(monkeypatch):
     monkeypatch.setattr(get_settings(), 'environment', 'production')
     client = TestClient(app, headers={'Authorization': 'Bearer offline-test-token'})
-    assert client.get('/api/ai/scholar/guide').status_code == 503
+    assert client.post('/api/ai/scholar/search', json={}).status_code == 503
+
+
+def test_product_funding_guide_is_available_in_production(monkeypatch):
+    monkeypatch.setattr(get_settings(), 'environment', 'production')
+    client = TestClient(app, headers={'Authorization': 'Bearer offline-test-token'})
+    assert client.get('/api/ai/scholar/guide').status_code == 200
 
 
 def test_storage_failure_never_returns_clean_risk_score():

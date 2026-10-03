@@ -130,7 +130,7 @@ export default function AgencyDashboard() {
       {selectedApplication && <GlassCard><h2>{selectedApplication.student.name} · Application details</h2>
         <p>{selectedApplication.lastNote ?? 'No stage notes recorded.'}</p>
         <p>Documents: {selectedApplication.documents.length === 0 ? 'None' : selectedApplication.documents.map(document => document.fileName).join(', ')}</p>
-        <Link href="/documents">Open document vault</Link>
+        <Link href="/dashboard/documents">Open document vault</Link>
         {stageTransitions[selectedApplication.stage].length > 0 && <form onSubmit={event => { event.preventDefault(); void mutate(async () => {
           await browserApi('/api/agency/dashboard', { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ applicationId: selectedApplication.id, stage: nextStage, note: stageNote }) });
@@ -166,7 +166,7 @@ export default function AgencyDashboard() {
     </>}
     {dashboard && tab === 'license' && <GlassCard><h2>License & documents</h2>
       <p>License {dashboard.agency.licenseNo}: {dashboard.agency.licenseStatus}. Uploaded files are not automatically verified.</p>
-      <Link href="/documents">Upload or manage files in the document vault</Link>
+      <Link href="/dashboard/documents">Upload or manage files in the document vault</Link>
       {dashboard.documents.length === 0 ? <p>No documents uploaded by this account.</p> : <ul>{dashboard.documents.map(document => <li key={document.id}>
         {document.fileName} · {human(document.type)} · {new Date(document.uploadedAt).toLocaleDateString()}
       </li>)}</ul>}

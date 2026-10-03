@@ -13,6 +13,7 @@ import { POST } from '@/app/api/applications/route';
 
 const payload = {
   agencyId: 'agt-001',
+  pricingServiceIds: ['pricing-1'],
   studentId: 'forged-student',
   targetCountry: 'Canada',
   targetUniversity: 'University of British Columbia',
@@ -36,7 +37,7 @@ beforeEach(() => {
   });
   mocks.agency.findFirst.mockResolvedValue({
     id: 'agt-001',
-    pricingServices: [{ serviceName: 'Application processing', amountPoisha: BigInt(2500000), whenCharged: 'On submission' }],
+    pricingServices: [{ id: 'pricing-1', serviceName: 'Application processing', amountPoisha: BigInt(2500000), whenCharged: 'On submission' }],
   });
   mocks.application.findFirst.mockResolvedValue(null);
   mocks.application.create.mockResolvedValue({
@@ -54,6 +55,9 @@ describe('application creation', () => {
     expect(response.status).toBe(201);
     expect(mocks.agency.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'agt-001', licenseStatus: 'VERIFIED' },
+      select: expect.objectContaining({ pricingServices: expect.objectContaining({
+        where: { id: { in: ['pricing-1'] } },
+      }) }),
     }));
     expect(mocks.application.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
       studentId: 'signed-in-student', agencyId: 'agt-001', stageEvents: { create: expect.objectContaining({ actorId: 'signed-in-student' }) },
@@ -83,13 +87,20 @@ describe('application creation', () => {
     expect(mocks.application.create).not.toHaveBeenCalled();
   });
 
-  it('rejects agencies without approved pricing milestones', async () => {
+  it('rejects unavailable or cross-agency service packages', async () => {
     mocks.agency.findFirst.mockResolvedValue({
       id: 'agt-001',
       pricingServices: [],
     });
     const response = await POST(request());
     expect(response.status).toBe(400);
+    expect(mocks.application.create).not.toHaveBeenCalled();
+  });
+
+  it('requires the student to select at least one service package', async () => {
+    const response = await POST(request({ ...payload, pricingServiceIds: [] }));
+    expect(response.status).toBe(400);
+    expect(mocks.agency.findFirst).not.toHaveBeenCalled();
     expect(mocks.application.create).not.toHaveBeenCalled();
   });
 });

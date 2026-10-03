@@ -55,7 +55,7 @@ export default function ForAgenciesPage() {
               }}
             >
               Ethos AI is Bangladesh’s first verified education consultancy marketplace.
-              Get officially audited, receive pre-funded milestone escrow payments, and connect with 2,400+ students.
+              Submit credentials for admin review, publish itemized fees, and test milestone workflows with students in the current beta.
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/register?role=agency">

@@ -15,10 +15,15 @@ export const callbackSchema = z.object({
 export type SandboxCallback = z.infer<typeof callbackSchema>;
 
 // No live gateway is implemented. Never silently substitute simulated money.
+export function isSandboxConfigured() {
+  const secret = process.env.ETHOS_PAYMENT_SANDBOX_SECRET;
+  const safeRuntime = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
+  return safeRuntime && process.env.ETHOS_PAYMENT_MODE === 'sandbox' && Boolean(secret && secret.length >= 32);
+}
+
 export function requireSandbox() {
   const secret = process.env.ETHOS_PAYMENT_SANDBOX_SECRET;
-  if (process.env.NODE_ENV === 'production' || process.env.ETHOS_PAYMENT_MODE !== 'sandbox' ||
-      !secret || secret.length < 32) {
+  if (!isSandboxConfigured() || !secret) {
     throw new PaymentError('PAYMENTS_DISABLED', 'Payment processing is not configured.', 503);
   }
   return secret;

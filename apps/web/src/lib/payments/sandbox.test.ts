@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { requireSandbox, verifySandboxCallback } from './sandbox';
+import { isSandboxConfigured, requireSandbox, verifySandboxCallback } from './sandbox';
 
 const secret = 'test-only-payment-secret-with-at-least-32-characters';
 const payload = { provider: 'BKASH', providerTxnId: 'ee30cd3f-25de-433f-917e-a16c6ad5cac9',
@@ -32,8 +32,15 @@ describe('signed sandbox payment callbacks', () => {
     }
   });
   it('never enables sandbox processing in production, live mode or without a secret', () => {
-    vi.stubEnv('NODE_ENV', 'production'); expect(() => requireSandbox()).toThrow('not configured');
+    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('VERCEL_ENV', 'production'); expect(() => requireSandbox()).toThrow('not configured');
     vi.stubEnv('NODE_ENV', 'test'); vi.stubEnv('ETHOS_PAYMENT_MODE', 'live'); expect(() => requireSandbox()).toThrow('not configured');
     vi.stubEnv('ETHOS_PAYMENT_MODE', 'sandbox'); vi.stubEnv('ETHOS_PAYMENT_SANDBOX_SECRET', ''); expect(() => requireSandbox()).toThrow('not configured');
+  });
+  it('allows an explicitly configured Vercel Preview sandbox but never Production', () => {
+    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('VERCEL_ENV', 'preview');
+    expect(isSandboxConfigured()).toBe(true);
+    expect(requireSandbox()).toBe(secret);
+    vi.stubEnv('VERCEL_ENV', 'production');
+    expect(isSandboxConfigured()).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import { forbiddenResponse, requireUser } from '@/lib/auth/authorization';
 import { apiError, handleApiError } from '@/lib/api/response';
 import { sameOrigin } from '@/lib/auth/registration';
 import { MAX_DOCUMENT_BYTES, validDocumentMime, validateDocumentBytes } from '@/lib/documents/private-storage';
+import { normalizeStoredDocumentVerdict } from '@/lib/documents/analysis';
 import type { DocumentType } from '@prisma/client';
 
 const types: Record<string, DocumentType> = {
@@ -74,7 +75,8 @@ export async function GET(request: Request) {
       mimeType: doc.mimeType, storageKey: doc.storageKey,
       storageUrl: `/api/documents/${doc.id}/download`,
       version: doc.version, uploadedAt: doc.uploadedAt.toISOString(),
-      riskScore: doc.documentScan?.riskScore ?? null, verdict: doc.documentScan?.verdict ?? null,
+      riskScore: doc.documentScan?.riskScore ?? null,
+      verdict: normalizeStoredDocumentVerdict(doc.documentScan?.verdict),
       flags: Array.isArray(doc.documentScan?.flags) ? doc.documentScan.flags.map(String) : [],
     })) });
   } catch (error) { return handleApiError(error); }

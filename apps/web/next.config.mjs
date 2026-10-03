@@ -12,13 +12,6 @@ const nextConfig = {
     root: path.resolve(__dirname, '../..'),
   },
 
-  outputFileTracingExcludes: {
-    '*': [
-      './node_modules/@swc/**/*',
-      './node_modules/esbuild/**/*',
-      './node_modules/webpack/**/*',
-    ],
-  },
 };
 
 export default nextConfig;

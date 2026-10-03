@@ -29,3 +29,7 @@ playwright-report/
 __pycache__/
 .pytest_cache/
 .lint-*.json
+.vercel
+/artifacts/
+/output/
+/tmp/

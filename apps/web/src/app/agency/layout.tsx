@@ -7,6 +7,8 @@ export default async function AgencyLayout({ children }: { children: ReactNode }
   await connection();
   const user = await getAuthenticatedUser();
   if (!user) redirect('/login');
-  if (user.role !== 'AGENCY') redirect('/dashboard');
+  if (user.role !== 'AGENCY') {
+    redirect(user.role === 'ADMIN' ? '/admin' : '/dashboard');
+  }
   return children;
 }

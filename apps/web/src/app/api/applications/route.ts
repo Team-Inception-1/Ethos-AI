@@ -10,6 +10,8 @@ import { sameOrigin } from '@/lib/auth/registration';
 
 const createApplicationSchema = z.object({
   agencyId: z.string().trim().min(1).max(100),
+  pricingServiceIds: z.array(z.string().trim().min(1).max(100)).min(1).max(10)
+    .refine(ids => new Set(ids).size === ids.length, 'Select each service package only once.'),
   targetCountry: z.string().trim().min(2).max(100),
   targetUniversity: z.string().trim().min(2).max(200),
   targetProgram: z.string().trim().min(2).max(200),
@@ -55,15 +57,16 @@ export async function POST(request: Request) {
       select: {
         id: true,
         pricingServices: {
-          select: { serviceName: true, amountPoisha: true, whenCharged: true },
+          where: { id: { in: input.pricingServiceIds } },
+          select: { id: true, serviceName: true, amountPoisha: true, whenCharged: true },
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           take: 10,
         },
       },
     });
     if (!agency) return apiError('AGENCY_UNAVAILABLE', 'Select a verified agency.', 404);
-    if (!agency.pricingServices || agency.pricingServices.length === 0) {
-      return apiError('PRICING_UNAVAILABLE', 'The selected agency does not have approved pricing milestones. Applications require approved pricing.', 400);
+    if (agency.pricingServices.length !== input.pricingServiceIds.length) {
+      return apiError('PACKAGE_UNAVAILABLE', 'One or more selected service packages are no longer available from this agency.', 400);
     }
 
     const duplicate = await prisma.application.findFirst({
@@ -127,6 +130,7 @@ export async function POST(request: Request) {
               targetUniversity: input.targetUniversity,
               targetProgram: input.targetProgram,
               milestoneCount: agency.pricingServices.length,
+              pricingServiceIds: agency.pricingServices.map(pricing => pricing.id),
             },
           },
         });

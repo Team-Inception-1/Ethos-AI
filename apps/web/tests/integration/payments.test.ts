@@ -63,7 +63,7 @@ describe('payment route security boundary', () => {
     const signed = () => new Request('http://localhost:3000/api/escrow/webhook', { method: 'POST', body,
       headers: { 'x-ethos-timestamp': timestamp, 'x-ethos-signature': signature } });
     expect((await webhook(signed())).status).toBe(200); expect(mocks.reconcile).toHaveBeenCalledOnce();
-    vi.stubEnv('NODE_ENV', 'production'); expect((await webhook(signed())).status).toBe(503);
+    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('VERCEL_ENV', 'production'); expect((await webhook(signed())).status).toBe(503);
     expect(mocks.reconcile).toHaveBeenCalledOnce();
   });
 });

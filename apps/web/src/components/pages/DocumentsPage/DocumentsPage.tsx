@@ -666,27 +666,28 @@ function DocumentVault() {
                 </Badge>
               </div>
 
-              {/* Forensic Checks */}
+              {/* Checks performed — do not claim a pass unless the API returned evidence for it. */}
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '6px' }}>
-                  Institutional Forensic Checks:
+                  Automated Checks Performed:
                 </div>
                 <div className={styles.forensicChecklist}>
                   <div className={styles.forensicItem}>
-                    <span style={{ color: 'var(--emerald)' }}>✓</span>
-                    <span><strong>Issuer Domain:</strong> Verified against Ministry of Education accredited university registrar</span>
+                    <span aria-hidden="true">•</span>
+                    <span><strong>Issuer Signals:</strong> Email and institution indicators were evaluated when present.</span>
                   </div>
                   <div className={styles.forensicItem}>
-                    <span style={{ color: 'var(--emerald)' }}>✓</span>
-                    <span><strong>Layout Integrity:</strong> Font kerning & letterhead layout matches official templates</span>
+                    <span aria-hidden="true">•</span>
+                    <span><strong>Document Structure:</strong> Required identity, program, date, signatory, and contact fields were evaluated.</span>
                   </div>
                   <div className={styles.forensicItem}>
-                    <span style={{ color: scanModalDoc.riskScore && scanModalDoc.riskScore > 20 ? 'var(--amber)' : 'var(--emerald)' }}>
-                      {scanModalDoc.riskScore && scanModalDoc.riskScore > 20 ? '⚠️' : '✓'}
-                    </span>
-                    <span><strong>Clause Analysis:</strong> Escrow liability and non-refundable fees compliance check</span>
+                    <span aria-hidden="true">•</span>
+                    <span><strong>Risk Patterns:</strong> Payment demands, procedural bypasses, and timeline inconsistencies were evaluated.</span>
                   </div>
                 </div>
+                <p style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Only the detection flags below are findings from this scan. AI output requires human verification.
+                </p>
               </div>
 
               {/* Specific Flags */}

@@ -285,16 +285,16 @@ export default function AuthPage({ mode }: AuthPageProps) {
         </div>
         <div className={styles.leftStats}>
           <div className={styles.statItem}>
-            <span className={styles.statNum}>2,400+</span>
-            <span className={styles.statLbl}>{lang === 'en' ? 'Protected' : 'সুরক্ষিত'}</span>
+            <span className={styles.statNum}>4</span>
+            <span className={styles.statLbl}>{lang === 'en' ? 'Roles' : 'ভূমিকা'}</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statNum}>340+</span>
-            <span className={styles.statLbl}>{lang === 'en' ? 'Agencies' : 'এজেন্সি'}</span>
+            <span className={styles.statNum}>2</span>
+            <span className={styles.statLbl}>{lang === 'en' ? 'Languages' : 'ভাষা'}</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statNum}>98%</span>
-            <span className={styles.statLbl}>{lang === 'en' ? 'Success' : 'সাফল্য'}</span>
+            <span className={styles.statNum}>5</span>
+            <span className={styles.statLbl}>{lang === 'en' ? 'Escrow States' : 'এস্ক্রো স্টেট'}</span>
           </div>
         </div>
       </div>
@@ -322,8 +322,8 @@ export default function AuthPage({ mode }: AuthPageProps) {
                         ? 'Sign in to your Ethos AI account'
                         : 'আপনার Ethos AI অ্যাকাউন্টে সাইন ইন করুন'
                       : lang === 'en'
-                        ? 'Join 2,400+ students already protected'
-                        : 'ইতিমধ্যে সুরক্ষিত ২,৪০০+ শিক্ষার্থীদের সাথে যোগ দিন'}
+                        ? 'Create a student, parent, or agency account'
+                        : 'শিক্ষার্থী, অভিভাবক বা এজেন্সি অ্যাকাউন্ট তৈরি করুন'}
                   </p>
                 </>
               ) : step === 'forgot' ? (

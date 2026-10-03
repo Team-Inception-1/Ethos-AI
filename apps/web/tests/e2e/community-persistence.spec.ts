@@ -5,7 +5,8 @@ test('community waits for API-confirmed join, post and like; failed posting keep
   let failPost = true;
   const messages: { id: string; senderId: string; senderName: string; content: string; timestamp: string }[] = [];
   const profile = { id: 'student', name: 'Test Student', email: 'student@example.test', phone: '+8801712345678', role: 'student', isVerified: true,
-    avatarUrl: '/icon.svg', createdAt: new Date().toISOString(), linkedParentIds: [], linkedStudentIds: [] };
+    avatarUrl: '/icon.svg', createdAt: new Date().toISOString(), linkedParentIds: [], linkedStudentIds: [],
+    linkedStudents: [], linkedParents: [], pendingGuardianRequests: [] };
   const post = { id: 'saved-post', countryId: 'hub-germany', country: 'Germany', category: 'Help', title: 'Saved question', content: 'Saved body',
     authorId: 'peer', authorName: 'Test Peer', authorAvatar: '/icon.svg', isAnonymous: false, authorStatus: 'incoming', authorUniversity: '',
     authorVerified: false, isSeniorAsk: false, likesCount: 0, likedBy: [], commentsCount: 0, createdAt: new Date().toISOString(), pinned: false };

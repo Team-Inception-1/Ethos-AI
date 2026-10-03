@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
-    "db:generate": "prisma generate --schema ../../prisma/schema.prisma"
+    "db:generate": "prisma generate --schema ../../prisma/schema.prisma --generator webClient"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",

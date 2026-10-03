@@ -8,10 +8,10 @@ import EthosLogo from '@/components/ui/EthosLogo/EthosLogo';
 import styles from './LandingPage.module.css';
 
 const stats = [
-  { value: 2400, suffix: '+', label: 'Students Protected', labelBn: 'শিক্ষার্থী সুরক্ষিত' },
-  { value: 98,   suffix: '%', label: 'Escrow Success Rate', labelBn: 'এস্ক্রো সাফল্যের হার' },
-  { value: 340,  suffix: '+', label: 'Verified Agencies', labelBn: 'যাচাইকৃত এজেন্সি' },
-  { value: 18,   suffix: 'Cr+', label: 'Funds Protected (Tk)', labelBn: 'সুরক্ষিত তহবিল (Tk)' },
+  { value: 4, suffix: '', label: 'Account Roles', labelBn: 'অ্যাকাউন্ট ভূমিকা' },
+  { value: 3, suffix: '', label: 'Sandbox Gateways', labelBn: 'স্যান্ডবক্স গেটওয়ে' },
+  { value: 5, suffix: '', label: 'Escrow States', labelBn: 'এস্ক্রো স্টেট' },
+  { value: 2, suffix: '', label: 'Interface Languages', labelBn: 'ইন্টারফেস ভাষা' },
 ];
 
 const features = [
@@ -23,8 +23,8 @@ const features = [
     ),
     title: 'Verified Agencies',
     titleBn: 'যাচাইকৃত এজেন্সি',
-    desc: 'Every agency is verified against government registration, complaints history, and AI risk scoring before they appear in our directory.',
-    descBn: 'প্রতিটি এজেন্সি সরকারি নিবন্ধন, অভিযোগের ইতিহাস এবং AI রিস্ক স্কোরিং এর বিরুদ্ধে যাচাই করা হয়।',
+    desc: 'The public directory includes only agencies approved through the platform’s admin review workflow; verify credentials independently before paying.',
+    descBn: 'পাবলিক ডিরেক্টরিতে শুধু প্ল্যাটফর্মের অ্যাডমিন রিভিউতে অনুমোদিত এজেন্সি থাকে; পেমেন্টের আগে নিজে তথ্য যাচাই করুন।',
     color: 'emerald',
     href: '/directory',
   },
@@ -36,8 +36,8 @@ const features = [
     ),
     title: 'Escrow Payments',
     titleBn: 'এস্ক্রো পেমেন্ট',
-    desc: 'Never pay upfront. Your money is held in escrow and released milestone by milestone — only when conditions are met.',
-    descBn: 'আগেভাগে পরিশোধ করবেন না। আপনার অর্থ এস্ক্রোতে রাখা হয় এবং মাইলস্টোন অনুযায়ী মুক্তি দেওয়া হয়।',
+    desc: 'Test milestone holds, releases, disputes, refunds, and signed callbacks in the current sandbox payment workflow.',
+    descBn: 'বর্তমান স্যান্ডবক্স পেমেন্ট ওয়ার্কফ্লোতে মাইলস্টোন হোল্ড, রিলিজ, বিরোধ, রিফান্ড ও সাইনড কলব্যাক পরীক্ষা করুন।',
     color: 'blue',
     href: '/compare',
   },
@@ -50,8 +50,8 @@ const features = [
     ),
     title: 'AI Fraud Shield',
     titleBn: 'AI জালিয়াতি ঢাল',
-    desc: 'Upload any offer letter or agreement. Our AI detects fake documents, hidden fees, and predatory clauses instantly.',
-    descBn: 'যেকোনো অফার লেটার বা চুক্তি আপলোড করুন। আমাদের AI তাৎক্ষণিকভাবে জাল নথি, লুকানো ফি সনাক্ত করে।',
+    desc: 'Analyze offer letters and agreements for potential authenticity flags, hidden fees, and risky clauses; results still require human review.',
+    descBn: 'অফার লেটার ও চুক্তিতে সম্ভাব্য জালিয়াতির সংকেত, লুকানো ফি ও ঝুঁকিপূর্ণ ধারা বিশ্লেষণ করুন; ফলাফল মানুষের যাচাই প্রয়োজন।',
     color: 'purple',
     href: '/dashboard/ai-tools',
   },
@@ -80,8 +80,8 @@ const features = [
     ),
     title: 'ScholarFinder (RA/TA Full-Fund)',
     titleBn: 'স্কলার ফাইন্ডার ও ফুল-ফান্ড',
-    desc: 'Discover 500+ global research professors with active funding, matching labs and automated scholarship cold-email draft generator.',
-    descBn: 'সক্রিয় ফান্ডিং থাকা ৫০০+ আন্তর্জাতিক অধ্যাপক এবং স্কলারশিপ কোল্ড-ইমেইল ড্রাফট জেনারেটর খুঁজুন।',
+    desc: 'Search live OpenAlex researcher records, compare research fit, and draft outreach emails. Funding and availability must be verified with each university.',
+    descBn: 'লাইভ OpenAlex গবেষক রেকর্ড খুঁজুন, রিসার্চ ফিট তুলনা করুন এবং আউটরিচ ইমেইল ড্রাফট করুন। ফান্ডিং ও আসন বিশ্ববিদ্যালয়ের সাথে যাচাই করতে হবে।',
     color: 'pink',
     href: '/dashboard/scholar-finder',
   },
@@ -101,9 +101,9 @@ const features = [
 ];
 
 const steps = [
-  { n: '01', title: 'Register & Find', desc: 'Create your profile and browse our directory of 340+ AI-verified agencies.' },
+  { n: '01', title: 'Register & Find', desc: 'Create your profile and browse agencies approved in the live directory.' },
   { n: '02', title: 'Compare & Choose', desc: 'Side-by-side compare fees, refund policies, success rates, and reviews.' },
-  { n: '03', title: 'Pay Safely', desc: 'Lock payments in escrow. Funds release only as your application progresses.' },
+  { n: '03', title: 'Test Escrow', desc: 'Use the sandbox milestone workflow; real gateway settlement is not enabled yet.' },
   { n: '04', title: 'Track Everything', desc: 'Real-time application tracking, AI document checks, and direct agency chat.' },
 ];
 
@@ -232,7 +232,7 @@ export default function LandingPage() {
               {['A','M','S','R'].map(l => <div key={l} className={styles.trustAvatar}>{l}</div>)}
             </div>
             <span className={styles.trustText}>
-              {lang === 'en' ? 'Trusted by 2,400+ students this year' : 'এই বছর ২,৪০০+ শিক্ষার্থী বিশ্বাস করেছেন'}
+              {lang === 'en' ? 'Beta platform — verify agency, funding, and payment details independently' : 'বেটা প্ল্যাটফর্ম — এজেন্সি, ফান্ডিং ও পেমেন্ট তথ্য নিজে যাচাই করুন'}
             </span>
           </div>
         </div>

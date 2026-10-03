@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status, Depends, Request
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status, Depends
 from pydantic import BaseModel, Field
 from app.config import get_settings
 
@@ -46,6 +46,7 @@ from app.services.scholar_engine import (
     get_tara_guide,
     parse_cv_text,
     prepare_interview,
+    ScholarDataUnavailableError,
     search_openalex_live,
     search_professors,
 )
@@ -58,16 +59,23 @@ from app.services.text_extraction import extract_normalized_text
 
 logger = logging.getLogger(__name__)
 
-def require_real_scholar_data(request: Request):
-    """Dependency check for scholar finder endpoints."""
-    pass
+def require_seeded_scholar_data() -> None:
+    """Keep illustrative faculty/funding fixtures out of production responses."""
+    if not get_settings().deterministic_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Curated scholar demo data is disabled outside test or offline-demo mode.",
+        )
 
 
-router = APIRouter(prefix="/api/ai/scholar", tags=["scholar-finder"],
-                   dependencies=[Depends(require_real_scholar_data)])
+router = APIRouter(prefix="/api/ai/scholar", tags=["scholar-finder"])
 
 
-@router.post("/search", response_model=ProfessorSearchResponse)
+@router.post(
+    "/search",
+    response_model=ProfessorSearchResponse,
+    dependencies=[Depends(require_seeded_scholar_data)],
+)
 async def search_professors_endpoint(payload: ProfessorSearchRequest) -> ProfessorSearchResponse:
     """Searches and filters faculty by research domain, country, university tier, and active funding."""
     try:
@@ -108,7 +116,11 @@ async def prepare_interview_endpoint(payload: InterviewPrepRequest) -> Interview
 
 @router.get("/guide", response_model=TARAGuideResponse)
 async def get_tara_guide_endpoint() -> TARAGuideResponse:
-    """Returns country-by-country breakdown of RA/TA funding mechanics, stipend values in BDT, and spoken English thresholds."""
+    """Returns the product's country funding guide.
+
+    Unlike the illustrative professor fixtures, this guide is first-party product
+    content and is intentionally available outside test/offline-demo mode.
+    """
     try:
         return get_tara_guide()
     except Exception as exc:
@@ -145,7 +157,11 @@ async def ask_tara_advisor_endpoint(payload: TARAAdvisorQuestionRequest) -> TARA
         ) from exc
 
 
-@router.get("/professors/{prof_id}", response_model=ProfessorProfile)
+@router.get(
+    "/professors/{prof_id}",
+    response_model=ProfessorProfile,
+    dependencies=[Depends(require_seeded_scholar_data)],
+)
 async def get_professor_by_id(prof_id: str) -> ProfessorProfile:
     """Retrieves a single professor's full lab profile and publications."""
     for item in SEED_PROFESSORS:
@@ -211,10 +227,14 @@ async def match_profile_endpoint(payload: ProfileMatchRequest) -> ProfileMatchRe
     """Calculates compatibility match score (0-100), overlapping skills, and lab skill gaps."""
     try:
         from app.services.scholar_engine import _to_profile
+        if not payload.professors:
+            require_seeded_scholar_data()
         professors_to_check = payload.professors or [_to_profile(p) for p in SEED_PROFESSORS]
         if payload.professor_id:
             professors_to_check = [p for p in professors_to_check if p.id == payload.professor_id]
         return calculate_profile_match(payload.parsed_cv, professors_to_check)
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.exception("Profile matching failed")
         raise HTTPException(
@@ -240,7 +260,18 @@ async def deconstruct_paper_endpoint(payload: PaperDeconstructRequest) -> PaperD
 async def live_search_academic_endpoint(payload: LiveAcademicSearchRequest) -> LiveAcademicSearchResponse:
     """Performs dynamic live academic search using OpenAlex open access repository."""
     try:
-        return await search_openalex_live(payload.query, payload.country, payload.limit, payload.entity_type)
+        return await search_openalex_live(
+            payload.query,
+            payload.country,
+            payload.limit,
+            payload.entity_type,
+            allow_seeded_fallback=get_settings().deterministic_allowed,
+        )
+    except ScholarDataUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:
         logger.exception("OpenAlex live search failed")
         raise HTTPException(
