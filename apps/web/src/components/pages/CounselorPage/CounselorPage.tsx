@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import Link from 'next/link';
 import GlassCard from '@/components/ui/GlassCard';
@@ -144,6 +144,29 @@ export default function CounselorPage() {
     'Can I apply with a 2-year study gap?',
     'What are the best scholarships for Bangladeshi students?',
   ]);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Dynamic AI thinking steps sequence
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    if (chatLoading) {
+      setLoadingStep(0);
+      timer = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % 4);
+      }, 2000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [chatLoading]);
+
+  // Auto-scroll chat window when streaming or receiving new messages
+  useEffect(() => {
+    if (activeTab === 'chat' && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, activeTab, chatLoading]);
 
   // Load tracked applications & completed roadmap tasks from database API (with guest fallback)
   useEffect(() => {
@@ -477,15 +500,13 @@ export default function CounselorPage() {
     }
   };
 
-  // Chat message submit
+  // Chat message submit with progressive typewriter streaming effect
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || chatInput).trim();
     if (!query || chatLoading) return;
 
-    const newMsgs: CounselorChatMessage[] = [
-      ...chatMessages,
-      { role: 'user', content: query },
-    ];
+    const userMsg: CounselorChatMessage = { role: 'user', content: query };
+    const newMsgs = [...chatMessages, userMsg];
     setChatMessages(newMsgs);
     setChatInput('');
     setChatLoading(true);
@@ -512,14 +533,63 @@ export default function CounselorPage() {
         profile_context: profileContext,
         language: lang === 'bn' ? 'bn' : 'auto',
       });
+
+      const fullReply = resp.reply || '';
+      const citations = resp.citations;
+
+      setChatLoading(false);
+
+      const assistantMsgIndex = newMsgs.length;
       setChatMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: resp.reply, citations: resp.citations },
+        { role: 'assistant', content: '', citations, isStreaming: true },
       ]);
+
+      // Progressively stream text token by token into assistant message bubble
+      let currentLength = 0;
+      const totalLength = fullReply.length;
+      const stepSize = Math.max(3, Math.floor(totalLength / 50));
+
+      await new Promise<void>((resolve) => {
+        const timer = setInterval(() => {
+          currentLength += stepSize;
+          if (currentLength >= totalLength) {
+            currentLength = totalLength;
+            clearInterval(timer);
+            setChatMessages((prev) => {
+              const updated = [...prev];
+              if (updated[assistantMsgIndex]) {
+                updated[assistantMsgIndex] = {
+                  ...updated[assistantMsgIndex],
+                  content: fullReply,
+                  isStreaming: false,
+                };
+              }
+              return updated;
+            });
+            resolve();
+          } else {
+            const partialText = fullReply.slice(0, currentLength);
+            setChatMessages((prev) => {
+              const updated = [...prev];
+              if (updated[assistantMsgIndex]) {
+                updated[assistantMsgIndex] = {
+                  ...updated[assistantMsgIndex],
+                  content: partialText,
+                  isStreaming: true,
+                };
+              }
+              return updated;
+            });
+          }
+        }, 16);
+      });
+
       if (resp.suggested_queries && resp.suggested_queries.length > 0) {
         setSuggestedQueries(resp.suggested_queries);
       }
     } catch {
+      setChatLoading(false);
       setChatMessages((prev) => [
         ...prev,
         {
@@ -528,10 +598,9 @@ export default function CounselorPage() {
             lang === 'en'
               ? 'Could not connect to the service. Operating in offline preview mode.'
               : 'কাউন্সেলর সার্ভিসের সাথে যোগাযোগ বিচ্ছিন্ন। অফলাইন মোডে উত্তর দেওয়া হচ্ছে।',
+          isStreaming: false,
         },
       ]);
-    } finally {
-      setChatLoading(false);
     }
   };
 
@@ -1426,7 +1495,7 @@ export default function CounselorPage() {
                       <span>{lang === 'bn' ? 'ইথোস এআই কাউন্সেলর' : 'Ethos AI Counselor'}</span>
                     </div>
                     <MarkdownContent
-                      content={msg.content}
+                      content={msg.content + (msg.isStreaming ? ' ▌' : '')}
                       onQuestionClick={(q) => handleSendMessage(q)}
                     />
                   </>
@@ -1504,9 +1573,31 @@ export default function CounselorPage() {
 
           {chatLoading && (
             <div className={`${styles.messageRow} ${styles.messageRowBot}`}>
-              <div className={`${styles.msgBubble} ${styles.msgBubbleBot}`} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className={styles.spinner} style={{ width: '16px', height: '16px', border: '2px solid var(--border)', borderTopColor: 'var(--blue-primary)', borderRadius: '50%' }} />
-                <span>{lang === 'en' ? 'Counselor is formulating personalized advice...' : 'কাউন্সেলর আপনার জন্য পরামর্শ প্রস্তুত করছে...'}</span>
+              <div className={styles.aiThinkingBubble}>
+                <div className={styles.aiWaveform}>
+                  <span className={styles.aiWaveBar} />
+                  <span className={styles.aiWaveBar} />
+                  <span className={styles.aiWaveBar} />
+                  <span className={styles.aiWaveBar} />
+                </div>
+                <div className={styles.aiThinkingText}>
+                  <span className={styles.aiSparkleIcon}>✨</span>
+                  <span>
+                    {lang === 'en'
+                      ? [
+                          'Searching official embassy guidelines & university cutoff databases...',
+                          'Auditing Bangladeshi BDT solvency & visa risk criteria...',
+                          'Verifying commission-free guidance & licensed consultancy data...',
+                          'Formatting personalized study-abroad counselor advice...',
+                        ][loadingStep]
+                      : [
+                          'দূতাবাস নিয়মাবলী ও বিশ্ববিদ্যালয় কাট-অফ ডেটাবেজ সার্চ করা হচ্ছে...',
+                          'বিডিটি ব্যাংক সলভেন্সি ও ভিসা আবেদনের যোগ্যতা যাচাই করা হচ্ছে...',
+                          'অনুমোদিত এজেন্সির লাইসেন্স রেকর্ড অডিট করা হচ্ছে...',
+                          'আপনার জন্য নতুন পরামর্শ প্রস্তুত করা হচ্ছে...',
+                        ][loadingStep]}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -1524,6 +1615,7 @@ export default function CounselorPage() {
               </button>
             ))}
           </div>
+          <div ref={chatEndRef} />
         </div>
 
         <form

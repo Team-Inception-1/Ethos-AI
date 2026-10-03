@@ -593,6 +593,7 @@ export interface CounselorChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   citations?: GroundingCitation[];
+  isStreaming?: boolean;
 }
 
 export interface CounselorChatRequest {
