@@ -12,7 +12,9 @@ This report distinguishes automated contract coverage from live acceptance. A pa
 - Next.js production build and TypeScript: **passed**.
 - Vercel Preview deployment: **ready** in `iad1` with public `web`, internal `ai-service`, and a web-to-AI service binding.
 - Stable audited Preview URL: `https://ethos-ai-preview-parvez-ahmed-tasins-projects.vercel.app` (Vercel Authentication protection enabled; deployment `dpl_4VuWsrdXrk6WVZqdee6LTSH3trfW`, `iad1`).
-- Live authenticated acceptance: **student, agency, and admin pass** on the stable Preview origin. Parent acceptance is pending a test account.
+- Vercel Production deployment: **ready** at `https://ethos-ai-fawn.vercel.app` (deployment `dpl_BNPaa3DBMHxnDMkismZnsEXaM76D`, `iad1`). Production runtime secrets/configuration are installed, Neon Auth trusts the production origin, and Agency/Admin password authentication and dashboard data loads pass live.
+- Git deployment integration: Vercel is connected to `Team-Inception-1/Ethos-AI` with repository-scoped GitHub App access.
+- Live authenticated acceptance: **student, agency, and admin pass**. Parent acceptance is pending a test account.
 - Live payments: **not implemented**. The current bKash, Nagad, and SSLCOMMERZ paths are signed sandbox simulations only.
 - Malware scanning: **not implemented**. Uploads do enforce size, MIME, and file-signature checks and use private object storage.
 
@@ -22,7 +24,7 @@ This report distinguishes automated contract coverage from live acceptance. A pa
 | --- | --- | --- | --- |
 | Public landing, directory, comparison, agency detail | API tests, build, browser smoke | Public pages and `/api/agencies` return 200 | Pass |
 | Campus/living-cost directory | Route tests and build | `/api/campus-living` returns 200 | Pass; displayed costs remain planning estimates unless explicitly audited |
-| Password/OTP registration and login | Registration boundary tests and 3 browser auth scenarios | Student, agency, and admin password authentication succeeds on the stable Preview origin | Pass for three roles; parent pending |
+| Password/OTP registration and login | Registration boundary tests and 3 browser auth scenarios | Student authentication succeeds on stable Preview; Agency and Admin password authentication also succeed on Production | Pass for three roles; parent pending |
 | Student/parent/agency/admin authorization | Forged-role, RBAC, relationship, and session tests | Student, agency, and admin role routes enforce the correct destination | Pass for tested roles; parent pending |
 | Guardian link request, approval, removal | Route and relationship authorization tests | No live authenticated run | Logic passes; acceptance pending |
 | Student creates an application and selects agency packages | Six integration scenarios, including cross-agency and empty-package denial | Created `Codex E2E Test University` with Global Edu BD package | Pass live; creation took about 6 s |
@@ -85,9 +87,8 @@ The direct Neon measurement explains the poor localhost experience: every sequen
 
 ## Remaining blockers and next acceptance run
 
-1. Add the final Production domain to Neon Auth trusted origins before production authentication acceptance; the stable Preview origin is already trusted.
-2. Provision or sign in a verified parent test account for the remaining live role matrix.
-3. Continue mutation acceptance only with explicit test authorization: agency stage updates → guardian approval/view → admin review/dispute resolution.
-4. Investigate remaining live latency: cold offer scan 35.8 s, chat acknowledgement 14.2 s, application creation about 6 s, and auth/data page loads up to about 7.5 s.
-5. Replace sandbox gateways and add malware scanning before claiming either capability as production-ready.
-6. The repository ESLint gate still reports pre-existing errors in campus, scholar, counselor, admin, and utility-script files even though build/type-check succeeds; clean these before making lint a required CI gate.
+1. Provision or sign in a verified parent test account for the remaining live role matrix.
+2. Continue mutation acceptance only with explicit test authorization: agency stage updates → guardian approval/view → admin review/dispute resolution.
+3. Investigate remaining live latency: cold offer scan 35.8 s, chat acknowledgement 14.2 s, application creation about 6 s, and auth/data page loads up to about 7.5 s.
+4. Replace sandbox gateways and add malware scanning before claiming either capability as production-ready.
+5. The repository ESLint gate still reports pre-existing errors in campus, scholar, counselor, admin, and utility-script files even though build/type-check succeeds; clean these before making lint a required CI gate.
