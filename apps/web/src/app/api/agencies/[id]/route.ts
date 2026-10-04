@@ -58,6 +58,7 @@ export async function GET(_request: Request, context: RouteContext) {
           reviews: agency.reviews.map((r) => ({
             id: r.id,
             rating: r.rating,
+            title: r.title ?? null,
             comment: r.text,
             authorName: r.student?.name ? `${r.student.name.charAt(0)}***` : 'Verified Student',
             createdAt: r.createdAt.toISOString(),
