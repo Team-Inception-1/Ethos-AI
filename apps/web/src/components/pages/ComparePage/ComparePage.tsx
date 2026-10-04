@@ -435,22 +435,39 @@ export default function ComparePage() {
                 <h3 className={styles.winnerName}>{bestAgency.name}</h3>
                 <p className={styles.winnerVerdict}>
                   {lang === 'en' ? (
-                    <>
-                      Rated <strong>{bestAgency.rating} / 5.0</strong> with a{' '}
-                      <strong>{bestAgency.success}%</strong> visa success rate across{' '}
-                      <strong>{bestAgency.reviews}</strong> verified students.{' '}
-                      {isRatingTie && (
-                        <span>
-                          (Ranked #1 via multi-factor tiebreaker on success rate & refund window).
-                        </span>
-                      )}
-                    </>
+                    bestAgency.reviews > 0 ? (
+                      <>
+                        Rated <strong>{bestAgency.rating.toFixed(1)} / 5.0</strong> with a{' '}
+                        <strong>{bestAgency.success}%</strong> visa success rate across{' '}
+                        <strong>{bestAgency.reviews}</strong> verified students.{' '}
+                        {isRatingTie && (
+                          <span>
+                            (Ranked #1 via multi-factor tiebreaker on success rate & refund window).
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        Verified study-abroad consultancy with verified credentials and 100% escrow payment protection.{' '}
+                        {isRatingTie && (
+                          <span>
+                            (Ranked #1 via multi-factor tiebreaker).
+                          </span>
+                        )}
+                      </>
+                    )
                   ) : (
-                    <>
-                      রেটিং <strong>{bestAgency.rating} / ৫.০</strong> এবং{' '}
-                      <strong>{bestAgency.reviews}</strong> জন যাচাইকৃত শিক্ষার্থীর মাঝে{' '}
-                      <strong>{bestAgency.success}%</strong> ভিসা সাফল্যের রেকর্ড।
-                    </>
+                    bestAgency.reviews > 0 ? (
+                      <>
+                        রেটিং <strong>{bestAgency.rating.toFixed(1)} / ৫.০</strong> এবং{' '}
+                        <strong>{bestAgency.reviews}</strong> জন যাচাইকৃত শিক্ষার্থীর মাঝে{' '}
+                        <strong>{bestAgency.success}%</strong> ভিসা সাফল্যের রেকর্ড।
+                      </>
+                    ) : (
+                      <>
+                        যাচাইকৃত ট্রেড লাইসেন্স এবং ১০০% এসক্রো সুরক্ষাসহ নিবন্ধিত এজেন্সি।
+                      </>
+                    )
                   )}
                 </p>
               </div>

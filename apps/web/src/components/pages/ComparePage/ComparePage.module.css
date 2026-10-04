@@ -167,12 +167,13 @@
   to { opacity: 1; }
 }
 
+.modal,
 .modalDialog {
-  background: var(--bg-surface, #1E1D26);
-  border: var(--border-width, 3px) solid var(--ink, #fff);
-  box-shadow: 8px 8px 0 0 var(--ink, #fff);
+  background: var(--bg-surface, #FFFDF7);
+  border: var(--border-width, 3px) solid var(--ink, #14120E);
+  box-shadow: 8px 8px 0 0 var(--ink, #14120E);
   border-radius: var(--radius-xl, 16px);
-  width: 740px;
+  width: 660px;
   max-width: 100%;
   max-height: 90vh;
   display: flex;
@@ -188,79 +189,66 @@
 
 .modalHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 16px 20px;
-  background: var(--bg-elevated, #26242F);
-  border-bottom: var(--border-width, 3px) solid var(--ink, #fff);
+  gap: 16px;
+  padding: 20px 24px 16px;
+  background: var(--bg-elevated, #FFF6DE);
+  border-bottom: var(--border-width, 3px) solid var(--ink, #14120E);
 }
 
-.modalTitleWrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.modalTitle {
-  font-size: 18px;
+.modalHeader h2 {
+  font-size: 20px;
   font-weight: 800;
-  color: var(--text-primary, #F5F1E8);
+  color: var(--text-primary, #14120E);
+  margin: 0;
+  line-height: 1.3;
 }
 
-.modalControls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.modalSub {
+  font-size: 13px;
+  color: var(--text-muted, #857F72);
+  margin: 6px 0 0 0;
+  line-height: 1.45;
 }
 
-.langBtn {
-  background: var(--bg-surface, #1E1D26);
-  border: 2px solid var(--ink, #fff);
-  color: var(--text-primary, #F5F1E8);
-  font-weight: 800;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  box-shadow: 2px 2px 0 0 var(--ink, #fff);
-  transition: transform 100ms ease;
-}
-
-.langBtn:hover {
-  transform: translate(-1px, -1px);
-}
-
+.modalClose,
 .closeBtn {
-  background: var(--bg-surface, #1E1D26);
-  border: 2px solid var(--ink, #fff);
-  color: var(--red, #E74C3C);
-  font-weight: 900;
-  font-size: 14px;
+  background: var(--bg-surface, #FFFDF7);
+  border: 2px solid var(--ink, #14120E);
+  color: var(--text-primary, #14120E);
+  font-size: 15px;
+  font-weight: 800;
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 6px);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 2px 2px 0 0 var(--ink, #fff);
-  transition: transform 100ms ease;
+  box-shadow: 2px 2px 0 0 var(--ink, #14120E);
+  transition: transform 100ms ease, background 100ms ease;
+  flex-shrink: 0;
 }
 
+.modalClose:hover,
 .closeBtn:hover {
   transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--ink, #14120E);
+  background: var(--bg-hover, #FFEFB8);
 }
 
 .modalBody {
-  padding: 20px;
+  padding: 22px 24px;
+  background: var(--bg-surface, #FFFDF7);
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.4) var(--bg-elevated, #26242F);
+  scrollbar-color: rgba(0, 0, 0, 0.25) var(--bg-elevated, #FFF6DE);
 }
 
 .modalBody::-webkit-scrollbar {
@@ -268,201 +256,130 @@
 }
 
 .modalBody::-webkit-scrollbar-track {
-  background: var(--bg-elevated, #26242F);
+  background: var(--bg-elevated, #FFF6DE);
   border-radius: 4px;
 }
 
 .modalBody::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--ink, #14120E);
   border-radius: 4px;
-}
-
-/* ── Tie-Breaker Explanation Banner ── */
-.tieBreakBanner {
-  background: rgba(39, 174, 96, 0.14);
-  border: 2px solid var(--green, #27AE60);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 12px;
-  color: var(--text-primary, #F5F1E8);
-  line-height: 1.5;
 }
 
 /* ── Winner Card ── */
 .winnerCard {
-  background: var(--bg-elevated, #26242F);
-  border: 3px solid var(--yellow, #F5B041);
-  box-shadow: 5px 5px 0 0 var(--yellow, #F5B041);
-  border-radius: 12px;
-  padding: 20px;
+  background: var(--bg-elevated, #FFF6DE);
+  border: 3px solid var(--yellow, #FFD60A);
+  box-shadow: 4px 4px 0 0 var(--ink, #14120E);
+  border-radius: var(--radius-lg, 12px);
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  position: relative;
+  gap: 10px;
   flex-shrink: 0;
 }
 
-.winnerRibbon {
+.winnerBadge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--yellow, #F5B041);
-  color: #15141B;
+  background: var(--yellow, #FFD60A);
+  color: #14120E;
   font-weight: 900;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 10px;
   border-radius: 4px;
+  border: 1.5px solid var(--ink, #14120E);
   width: fit-content;
 }
 
-.winnerHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.winnerAgencyName {
+.winnerName {
   font-size: 22px;
   font-weight: 900;
-  color: var(--text-primary, #F5F1E8);
+  color: var(--text-primary, #14120E);
+  margin: 0;
 }
 
-.winnerStats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.winnerVerdict {
+  font-size: 14px;
+  color: var(--text-secondary, #4A4740);
+  line-height: 1.55;
+  margin: 0;
 }
 
-.statBadge {
-  background: var(--bg-surface, #1E1D26);
-  border: 2px solid var(--ink, #fff);
-  padding: 4px 8px;
-  border-radius: 6px;
+.winnerVerdict strong {
+  color: var(--text-primary, #14120E);
   font-weight: 800;
-  font-size: 13px;
-  color: var(--text-primary, #F5F1E8);
 }
 
-.statSuccess {
-  color: var(--green, #27AE60);
+/* ── Strengths List ── */
+.strengthsSection {
+  background: var(--bg-elevated, #FFF6DE);
+  border: 2px solid var(--border-subtle, rgba(20, 18, 14, 0.2));
+  border-radius: var(--radius-md, 8px);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.winnerReasons {
+.strengthsSection h4 {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #857F72);
+  margin: 0;
+}
+
+.strengthsList {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--bg-surface, #1E1D26);
-  border: 2px solid var(--border-subtle, rgba(245,241,232,0.25));
-  border-radius: 8px;
-  padding: 12px 16px;
-  max-height: 140px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--yellow, #F5B041) var(--bg-surface, #1E1D26);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.winnerReasons::-webkit-scrollbar {
-  width: 6px;
-}
-
-.winnerReasons::-webkit-scrollbar-track {
-  background: var(--bg-surface, #1E1D26);
-  border-radius: 4px;
-}
-
-.winnerReasons::-webkit-scrollbar-thumb {
-  background: var(--yellow, #F5B041);
-  border-radius: 4px;
-}
-
-.winnerReasons::-webkit-scrollbar-thumb:hover {
-  background: #F8C471;
-}
-
-.reasonsTitle {
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--yellow, #F5B041);
-  margin-bottom: 2px;
-  position: sticky;
-  top: 0;
-  background: var(--bg-surface, #1E1D26);
-  padding-bottom: 4px;
-  z-index: 1;
-}
-
-.reasonItem {
-  font-size: 13px;
-  color: var(--text-primary, #F5F1E8);
+.strengthItem {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  line-height: 1.4;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-primary, #14120E);
+  line-height: 1.45;
 }
 
-.reasonBullet {
-  color: var(--green, #27AE60);
+.checkIcon {
+  color: var(--emerald-dark, #0E9A67);
   font-weight: 900;
-}
-
-/* ── Category Leaders Grid ── */
-.sectionTitle {
   font-size: 14px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary, #CCCAD6);
-  margin-bottom: 8px;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
-.categoryGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.categoryCard {
-  background: var(--bg-elevated, #26242F);
-  border: 2px solid var(--ink, #fff);
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 3px 3px 0 0 var(--ink, #fff);
+/* ── Ethos Trust Breakdown ── */
+.auditSection {
+  background: var(--bg-elevated, #FFF6DE);
+  border: 2px solid var(--border-subtle, rgba(20, 18, 14, 0.2));
+  border-radius: var(--radius-md, 8px);
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
 
-.categoryName {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted, #A09EAD);
-  text-transform: uppercase;
-}
-
-.categoryWinner {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--text-primary, #F5F1E8);
-}
-
-.categoryScore {
+.auditSection h4 {
   font-size: 12px;
-  font-weight: 700;
-  color: var(--blue-light, #86B4FA);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #857F72);
+  margin: 0;
 }
 
-/* ── Deep Dive Audit Card ── */
-.auditCard {
-  background: var(--bg-surface, #1E1D26);
-  border: 2px solid var(--border-subtle, rgba(245,241,232,0.3));
-  border-radius: 8px;
-  padding: 14px;
+.auditGrid {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -473,25 +390,22 @@
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
-  padding: 4px 0;
-  border-bottom: 1px dashed var(--border-subtle, rgba(245,241,232,0.15));
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-subtle, rgba(20, 18, 14, 0.15));
 }
 
 .auditRow:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .auditLabel {
-  color: var(--text-muted, #A09EAD);
+  color: var(--text-secondary, #4A4740);
+  font-weight: 600;
 }
 
 .auditVal {
-  font-weight: 700;
-  color: var(--text-primary, #F5F1E8);
-}
-
-.verifiedTag {
-  color: var(--green, #27AE60);
+  color: var(--text-primary, #14120E);
   font-weight: 800;
 }
 
@@ -501,19 +415,12 @@
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 20px;
-  background: var(--bg-elevated, #26242F);
-  border-top: var(--border-width, 3px) solid var(--ink, #fff);
+  padding: 16px 24px;
+  background: var(--bg-elevated, #FFF6DE);
+  border-top: var(--border-width, 3px) solid var(--ink, #14120E);
 }
 
 @media (max-width: 640px) {
-  .categoryGrid {
-    grid-template-columns: 1fr;
-  }
-  .winnerHeader {
-    flex-direction: column;
-    align-items: flex-start;
-  }
   .modalFooter {
     flex-direction: column;
   }
