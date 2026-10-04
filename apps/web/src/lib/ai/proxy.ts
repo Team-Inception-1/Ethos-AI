@@ -71,7 +71,7 @@ export async function forwardAiRequest(request: Request, path: string) {
   try {
     const response = await fetch(new URL(`/api/ai/${path}`, serviceUrl), {
       method: request.method, headers, body: body as BodyInit | undefined,
-      signal: AbortSignal.timeout(60_000), cache: 'no-store', redirect: 'error',
+      signal: AbortSignal.timeout(request.method === 'GET' ? 5_000 : 60_000), cache: 'no-store', redirect: 'error',
     });
     if (!response.ok) {
       const status = [400, 413, 415, 422, 429].includes(response.status) ? response.status : 503;
