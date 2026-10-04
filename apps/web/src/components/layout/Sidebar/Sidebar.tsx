@@ -269,6 +269,12 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <DashboardIcon />,
         },
         {
+          href: '/dashboard/agency-directory',
+          label: 'Agency Directory',
+          labelBn: 'এজেন্সি ডিরেক্টরি',
+          icon: <DirectoryIcon />,
+        },
+        {
           href: '/dashboard/applications',
           label: 'Applications',
           labelBn: 'আবেদন',
@@ -340,7 +346,7 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <DashboardIcon />,
         },
         {
-          href: '/directory',
+          href: '/dashboard/agency-directory',
           label: 'Agency Directory',
           labelBn: 'এজেন্সি ডিরেক্টরি',
           icon: <DirectoryIcon />,

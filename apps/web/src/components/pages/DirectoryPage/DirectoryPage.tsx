@@ -74,11 +74,15 @@ const COUNTRY_MAP: Record<string, string[]> = {
   malaysia: ['MYS'],
 };
 
-export default function DirectoryPage() {
-  return <Suspense fallback={<p>Loading agency directory…</p>}><DirectoryContent /></Suspense>;
+export default function DirectoryPage({ inDashboard = false }: { inDashboard?: boolean } = {}) {
+  return (
+    <Suspense fallback={<p>Loading agency directory…</p>}>
+      <DirectoryContent inDashboard={inDashboard} />
+    </Suspense>
+  );
 }
 
-function DirectoryContent() {
+function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
   const params = useSearchParams();
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sortBy, setSortBy]             = useState('rating');
@@ -150,9 +154,18 @@ function DirectoryContent() {
     setCompare(c => c.includes(id) ? c.filter(x => x !== id) : c.length < 4 ? [...c, id] : c);
   };
 
+  const RootTag = inDashboard ? 'div' : 'main';
+
   return (
-    <main className={styles.page} style={{ paddingTop: 'var(--topbar-height)' }} suppressHydrationWarning>
-      <div className={`${styles.inner} container`}>
+    <RootTag
+      className={styles.page}
+      style={{
+        paddingTop: inDashboard ? 0 : 'var(--topbar-height)',
+        minHeight: inDashboard ? 'auto' : '100vh',
+      }}
+      suppressHydrationWarning
+    >
+      <div className={`${styles.inner} ${inDashboard ? styles.innerDashboard : 'container'}`}>
         {/* Header */}
         <div className={styles.pageHeader}>
           <div>
@@ -165,7 +178,7 @@ function DirectoryContent() {
                   type="button"
                   onClick={() => {
                     setCountryCleared(true);
-                    window.history.replaceState({}, '', '/directory');
+                    window.history.replaceState({}, '', inDashboard ? '/dashboard/agency-directory' : '/directory');
                   }}
                   style={{
                     background: 'transparent',
@@ -357,7 +370,7 @@ function DirectoryContent() {
 
                 {/* Actions */}
                 <div className={styles.cardActions}>
-                  <Link href={`/directory/${a.id}`} style={{ flex: 1 }}>
+                  <Link href={inDashboard ? `/dashboard/agency-directory/${a.id}` : `/directory/${a.id}`} style={{ flex: 1 }}>
                     <Button size="md" variant="ghost" fullWidth>View Profile</Button>
                   </Link>
                   <button
@@ -378,6 +391,6 @@ function DirectoryContent() {
           </div>
         </div>
       </div>
-    </main>
+    </RootTag>
   );
 }
