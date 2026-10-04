@@ -45,18 +45,23 @@ export async function GET(request: Request) {
 
     return Response.json(
       {
-        agencies: agencies.map((agency) => ({
-          ...agency,
-          feeMinPoisha: agency.feeMinPoisha.toString(),
-          feeMaxPoisha: agency.feeMaxPoisha.toString(),
-          feeMin: Number(agency.feeMinPoisha) / 100,
-          feeMax: Number(agency.feeMaxPoisha) / 100,
-          pricingServices: agency.pricingServices.map((p) => ({
-            ...p,
-            amountPoisha: p.amountPoisha.toString(),
-            amountBdt: Number(p.amountPoisha) / 100,
-          })),
-        })),
+        agencies: agencies.map((agency) => {
+          const hasReviews = agency.reviewCount > 0;
+          return {
+            ...agency,
+            rating: hasReviews ? agency.rating : 0,
+            successRate: hasReviews ? agency.successRate : 0,
+            feeMinPoisha: agency.feeMinPoisha.toString(),
+            feeMaxPoisha: agency.feeMaxPoisha.toString(),
+            feeMin: Number(agency.feeMinPoisha) / 100,
+            feeMax: Number(agency.feeMaxPoisha) / 100,
+            pricingServices: agency.pricingServices.map((p) => ({
+              ...p,
+              amountPoisha: p.amountPoisha.toString(),
+              amountBdt: Number(p.amountPoisha) / 100,
+            })),
+          };
+        }),
       },
       { headers: { 'Cache-Control': 'no-store' } }
     );

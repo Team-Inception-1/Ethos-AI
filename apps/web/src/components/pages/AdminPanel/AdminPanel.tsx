@@ -923,8 +923,17 @@ export default function AdminPanel() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 800 }}>★ {agency.rating} / 5.0</div>
-                      <div className={styles.subInfo}>{agency.successRate}% visa success</div>
+                      {agency.reviewCount > 0 ? (
+                        <>
+                          <div style={{ fontWeight: 800 }}>★ {agency.rating.toFixed(1)} / 5.0</div>
+                          <div className={styles.subInfo}>{agency.successRate}% visa success</div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Unrated</div>
+                          <div className={styles.subInfo}>No placement record yet</div>
+                        </>
+                      )}
                     </td>
                     <td>
                       <span className={`${styles.riskBadge} ${riskClass}`}>
@@ -2025,7 +2034,9 @@ export default function AdminPanel() {
               <div className={styles.dossierRow}>
                 <span className={styles.dossierLabel}>Placement Track Record</span>
                 <span className={styles.dossierValue}>
-                  {selectedAgencyDossier.successRate}% visa success · {selectedAgencyDossier.reviewCount} reviews
+                  {selectedAgencyDossier.reviewCount > 0
+                    ? `${selectedAgencyDossier.successRate}% visa success · ${selectedAgencyDossier.reviewCount} reviews`
+                    : 'No placement record yet · 0 reviews'}
                 </span>
               </div>
               <div className={styles.dossierRow}>

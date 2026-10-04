@@ -53,7 +53,7 @@ export async function GET(_request: Request, context: RouteContext) {
           licenseNo: agency.licenseNo,
           licenseStatus: agency.licenseStatus,
           verified,
-          rating: agency.rating,
+          rating: agency.reviewCount > 0 ? agency.rating : 0,
           reviewCount: agency.reviewCount,
           reviews: agency.reviews.map((r) => ({
             id: r.id,
@@ -62,8 +62,8 @@ export async function GET(_request: Request, context: RouteContext) {
             authorName: r.student?.name ? `${r.student.name.charAt(0)}***` : 'Verified Student',
             createdAt: r.createdAt.toISOString(),
           })),
-          success: agency.successRate,
-          successRate: agency.successRate,
+          success: agency.reviewCount > 0 ? agency.successRate : 0,
+          successRate: agency.reviewCount > 0 ? agency.successRate : 0,
           riskScore: agency.riskScore,
           feeMinPoisha: agency.feeMinPoisha.toString(),
           feeMaxPoisha: agency.feeMaxPoisha.toString(),
@@ -89,12 +89,16 @@ export async function GET(_request: Request, context: RouteContext) {
           })),
           strengthsEn: [
             `Government license (${agency.licenseNo}) verified by Ethos AI.`,
-            `${agency.successRate}% verified success rate across all partner destinations.`,
+            agency.reviewCount > 0 && agency.successRate > 0
+              ? `${agency.successRate}% verified success rate across all partner destinations.`
+              : 'Placement history and student reviews pending first student cohort.',
             'Milestone-based escrow payment protection required for all student contracts.',
           ],
           strengthsBn: [
             `সরকারি লাইসেন্স (${agency.licenseNo}) Ethos AI দ্বারা যাচাইকৃত।`,
-            `সকল পার্টনার দেশে ${agency.successRate}% যাচাইকৃত ভিসা সফলতার হার।`,
+            agency.reviewCount > 0 && agency.successRate > 0
+              ? `সকল পার্টনার দেশে ${agency.successRate}% যাচাইকৃত ভিসা সফলতার হার।`
+              : 'প্রথম স্টুডেন্ট কোহর্টের পর ভিসা সফলতার তথ্য হালনাগাদ হবে।',
             'সকল স্টুডেন্ট চুক্তির জন্য বাধ্যতামূলক মাইলস্টোন এসক্রো পেমেন্ট সুরক্ষা।',
           ],
         },

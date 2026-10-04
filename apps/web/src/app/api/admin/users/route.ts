@@ -51,6 +51,9 @@ export async function POST(request: Request) {
               licenseNo: 'MOE-BD-' + (new Date().getFullYear()) + '-' + Math.floor(100 + Math.random() * 900),
               licenseStatus: data.isVerified ? 'VERIFIED' : 'PENDING',
               countriesServed: ['CAN', 'GBR', 'USA', 'AUS'],
+              rating: 0,
+              reviewCount: 0,
+              successRate: 0,
               description: 'Verified study-abroad consultancy.',
             },
           });

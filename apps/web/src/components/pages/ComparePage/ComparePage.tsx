@@ -74,12 +74,16 @@ function transformApiAgency(a: ApiAgency): AgencyDetail {
     address: a.address || 'Dhaka, Bangladesh',
     strengthsEn: [
       `Official license verified by Ethos AI.`,
-      `${a.successRate}% verified success rate across all partner destinations.`,
+      a.reviewCount > 0 && a.successRate > 0
+        ? `${a.successRate}% verified success rate across all partner destinations.`
+        : 'Placement history and student reviews pending first student cohort.',
       `Milestone-based escrow payment protection required for all student contracts.`,
     ],
     strengthsBn: [
       `সরকারি লাইসেন্স Ethos AI দ্বারা যাচাইকৃত।`,
-      `সকল পার্টনার দেশে ${a.successRate}% যাচাইকৃত ভিসা সফলতার হার।`,
+      a.reviewCount > 0 && a.successRate > 0
+        ? `সকল পার্টনার দেশে ${a.successRate}% যাচাইকৃত ভিসা সফলতার হার।`
+        : 'প্রথম স্টুডেন্ট কোহর্টের পর ভিসা সফলতার তথ্য হালনাগাদ হবে।',
       `সকল স্টুডেন্ট চুক্তির জন্য বাধ্যতামূলক মাইলস্টোন এসক্রো পেমেন্ট সুরক্ষা।`,
     ],
   };

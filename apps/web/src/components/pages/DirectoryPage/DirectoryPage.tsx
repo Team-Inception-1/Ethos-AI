@@ -339,8 +339,17 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
 
                 {/* Rating */}
                 <div>
-                  <StarRating rating={a.rating} />
-                  <div className={styles.reviewCount}>{a.reviews} reviews</div>
+                  {a.reviews > 0 ? (
+                    <>
+                      <StarRating rating={a.rating} />
+                      <div className={styles.reviewCount}>{a.reviews} reviews</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }}>New agency · Unrated</div>
+                      <div className={styles.reviewCount}>0 alumni reviews</div>
+                    </>
+                  )}
                 </div>
 
                 {/* Countries */}
@@ -356,10 +365,12 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
                 <div>
                   <div className={styles.successRow}>
                     <span className={styles.successLabel}>Success Rate</span>
-                    <span className={styles.successPct}>{a.success}%</span>
+                    <span className={styles.successPct}>
+                      {a.reviews > 0 && a.success > 0 ? `${a.success}%` : 'New'}
+                    </span>
                   </div>
-                  <div className={styles.successBar} role="progressbar" aria-valuenow={a.success} aria-valuemin={0} aria-valuemax={100}>
-                    <div className={styles.successFill} style={{ width: `${a.success}%` }} />
+                  <div className={styles.successBar} role="progressbar" aria-valuenow={a.reviews > 0 ? a.success : 0} aria-valuemin={0} aria-valuemax={100}>
+                    <div className={styles.successFill} style={{ width: `${a.reviews > 0 ? a.success : 0}%` }} />
                   </div>
                 </div>
 

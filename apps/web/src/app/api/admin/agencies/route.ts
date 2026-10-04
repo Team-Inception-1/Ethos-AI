@@ -12,10 +12,18 @@ export async function GET() {
     const rows = await prisma.agency.findMany({ include: {
       owner: { select: { name: true, email: true, phone: true } }, _count: { select: { pricingServices: true } },
     }, orderBy: { createdAt: 'desc' }, take: 500 });
-    const agencies = rows.map(({ feeMinPoisha, feeMaxPoisha, _count, ...row }) => ({ ...row,
-      feeMinPoisha: feeMinPoisha.toString(), feeMaxPoisha: feeMaxPoisha.toString(),
-      pricingsCount: _count.pricingServices, submittedDocs: [],
-    }));
+    const agencies = rows.map(({ feeMinPoisha, feeMaxPoisha, _count, ...row }) => {
+      const hasReviews = row.reviewCount > 0;
+      return {
+        ...row,
+        rating: hasReviews ? row.rating : 0,
+        successRate: hasReviews ? row.successRate : 0,
+        feeMinPoisha: feeMinPoisha.toString(),
+        feeMaxPoisha: feeMaxPoisha.toString(),
+        pricingsCount: _count.pricingServices,
+        submittedDocs: [],
+      };
+    });
     return success({ agencies });
   } catch (error) { return platformError(error); }
 }
