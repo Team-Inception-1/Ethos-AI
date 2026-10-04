@@ -71,30 +71,39 @@ describe('Notifications API (/api/notifications)', () => {
     expect(mockPrisma.notification.updateMany).not.toHaveBeenCalled();
   });
 
-  it('returns notifications and seeds defaults if database has no notifications for user', async () => {
-    mockPrisma.notification.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        {
-          id: 'notif-1',
-          userId: 'test-user-id',
-          type: 'DOCUMENT',
-          title: 'Offer Letter Verification Ready',
-          message: 'Upload acceptance letters to check for fraud.',
-          entityType: 'DOCUMENT',
-          entityId: '/dashboard/documents',
-          readAt: null,
-          createdAt: new Date(),
-        },
-      ]);
+  it('returns empty notifications list without seeding defaults if database has no notifications for user', async () => {
+    mockPrisma.notification.findMany.mockResolvedValueOnce([]);
 
     const res = await GET();
     expect(res.status).toBe(200);
     const data = await res.json();
 
-    expect(mockPrisma.notification.createMany).toHaveBeenCalledOnce();
+    expect(mockPrisma.notification.createMany).not.toHaveBeenCalled();
+    expect(data.notifications).toHaveLength(0);
+    expect(data.unreadCount).toBe(0);
+  });
+
+  it('returns real notifications from database when available', async () => {
+    mockPrisma.notification.findMany.mockResolvedValueOnce([
+      {
+        id: 'notif-1',
+        userId: 'test-user-id',
+        type: 'APPLICATION',
+        title: 'Application Confirmed',
+        message: 'Your application has been confirmed.',
+        entityType: 'APPLICATION',
+        entityId: 'app-1',
+        readAt: null,
+        createdAt: new Date(),
+      },
+    ]);
+
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
     expect(data.notifications).toHaveLength(1);
-    expect(data.notifications[0].title).toBe('Offer Letter Verification Ready');
+    expect(data.notifications[0].title).toBe('Application Confirmed');
     expect(data.notifications[0].read).toBe(false);
     expect(data.unreadCount).toBe(1);
   });

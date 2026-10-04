@@ -8,86 +8,14 @@ import styles from './TopBar.module.css';
 
 import { usePathname } from 'next/navigation';
 
-const STUDENT_NOTIFICATIONS = [
-  {
-    id: 'n1',
-    title: 'Offer Letter Verified',
-    desc: 'AI Scanner verified University of Toronto letter with 0 fraud flags.',
-    time: '12m ago',
-    link: '/dashboard/documents',
-    read: false,
-  },
-  {
-    id: 'n2',
-    title: 'Escrow Milestone Held',
-    desc: '৳25,000 held safely in escrow for Offer Processing.',
-    time: '1h ago',
-    link: '/dashboard/payments',
-    read: false,
-  },
-  {
-    id: 'n3',
-    title: 'German Blocked Amount Updated',
-    desc: 'Official benchmark €11,904 verified by licensed agencies & Auswärtiges Amt.',
-    time: '2h ago',
-    link: '/dashboard/campus-living',
-    read: false,
-  },
-];
-
-const AGENCY_NOTIFICATIONS = [
-  {
-    id: 'ag-1',
-    title: 'New Student Inquiry',
-    desc: 'Sara Islam inquired regarding German blocked account & TU Berlin admissions.',
-    time: '8m ago',
-    link: '/agency/chat',
-    read: false,
-  },
-  {
-    id: 'ag-2',
-    title: 'Cost Benchmark Verified',
-    desc: 'Admin approved your Germany Blocked Account benchmark (€11,904/yr).',
-    time: '45m ago',
-    link: '/agency/dashboard',
-    read: false,
-  },
-  {
-    id: 'ag-3',
-    title: 'Escrow Milestone Released',
-    desc: '৳18,000 released for Riya Ahmed (Milestone 1: Offer Letter Received).',
-    time: '2h ago',
-    link: '/agency/dashboard',
-    read: false,
-  },
-];
-
-const ADMIN_NOTIFICATIONS = [
-  {
-    id: 'adm-1',
-    title: 'Dispute Docket Review',
-    desc: 'Escrow dispute #DSP-8821 filed for Global Edu BD milestone release.',
-    time: '14m ago',
-    link: '/admin#disputes',
-    read: false,
-  },
-  {
-    id: 'adm-2',
-    title: 'New Agency Audit Dossier',
-    desc: 'Crescent Pathway Consultancy submitted license documentation.',
-    time: '50m ago',
-    link: '/admin#agencies',
-    read: false,
-  },
-  {
-    id: 'adm-3',
-    title: 'Cost Benchmark Verification',
-    desc: 'Germany Auswärtiges Amt €11,904 benchmark approved for student view.',
-    time: '2h ago',
-    link: '/admin#provenance',
-    read: false,
-  },
-];
+interface NotificationItem {
+  id: string;
+  title: string;
+  desc: string;
+  time: string;
+  link: string;
+  read: boolean;
+}
 
 export default function TopBar() {
   const { user } = useAuth();
@@ -108,13 +36,7 @@ export default function TopBar() {
   }
   const initial = userName ? userName.charAt(0).toUpperCase() : 'U';
 
-  const fallbackNotifs = React.useMemo(() => {
-    return effectiveRole === 'agency' ? AGENCY_NOTIFICATIONS :
-      effectiveRole === 'admin' ? ADMIN_NOTIFICATIONS :
-      STUDENT_NOTIFICATIONS;
-  }, [effectiveRole]);
-
-  const [notifs, setNotifs] = React.useState(fallbackNotifs);
+  const [notifs, setNotifs] = React.useState<NotificationItem[]>([]);
   const [openNotifs, setOpenNotifs] = React.useState(false);
   const [failedAvatar, setFailedAvatar] = React.useState<string | null>(null);
   const notifRef = React.useRef<HTMLDivElement>(null);
@@ -125,12 +47,12 @@ export default function TopBar() {
       fetch('/api/notifications')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (mounted && data?.notifications && Array.isArray(data.notifications) && data.notifications.length > 0) {
+          if (mounted && data?.notifications && Array.isArray(data.notifications)) {
             setNotifs(data.notifications);
           }
         })
         .catch(() => {
-          // Fallback to initial notifications on error
+          // Keep empty on error
         });
     }, 0);
     return () => {

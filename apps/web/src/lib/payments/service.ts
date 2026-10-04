@@ -73,6 +73,40 @@ async function recordTransition(tx: Prisma.TransactionClient, milestone: {
   const receipt = target === 'DISPUTED' ? null : await tx.receipt.create({ data: {
     ledgerEntryId: id, receiptNumber: `ETHOS-SANDBOX-${id}`, amountPoisha: milestone.amountPoisha, currency: 'BDT',
   } });
+
+  if (tx.notification?.create) {
+    try {
+      const formattedAmount = (Number(milestone.amountPoisha) / 100).toLocaleString('en-IN');
+      let notifTitle = 'Escrow Updated';
+      let notifMsg = `Milestone status updated to ${target}.`;
+      if (target === 'HELD') {
+        notifTitle = 'Escrow Deposit Confirmed';
+        notifMsg = `BDT ${formattedAmount} has been safely deposited into escrow for Milestone #${milestone.id.slice(0, 8)}.`;
+      } else if (target === 'RELEASED') {
+        notifTitle = 'Escrow Funds Released';
+        notifMsg = `BDT ${formattedAmount} has been released from escrow for Milestone #${milestone.id.slice(0, 8)}.`;
+      } else if (target === 'DISPUTED') {
+        notifTitle = 'Dispute Filed';
+        notifMsg = `An escrow dispute has been opened for Milestone #${milestone.id.slice(0, 8)}.`;
+      } else if (target === 'REFUNDED') {
+        notifTitle = 'Escrow Refund Confirmed';
+        notifMsg = `BDT ${formattedAmount} has been refunded from escrow for Milestone #${milestone.id.slice(0, 8)}.`;
+      }
+      await tx.notification.create({
+        data: {
+          userId: actorId,
+          type: 'ESCROW',
+          title: notifTitle,
+          message: notifMsg,
+          entityType: 'ESCROW',
+          entityId: milestone.id,
+        },
+      });
+    } catch {
+      // Non-blocking notification creation
+    }
+  }
+
   return { milestone: { ...milestone, status: target }, ledgerEntry, receipt };
 }
 

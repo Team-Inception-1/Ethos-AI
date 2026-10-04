@@ -56,6 +56,8 @@ export async function POST(request: Request) {
       where: { id: input.agencyId, licenseStatus: 'VERIFIED' },
       select: {
         id: true,
+        name: true,
+        ownerUserId: true,
         pricingServices: {
           where: { id: { in: input.pricingServiceIds } },
           select: { id: true, serviceName: true, amountPoisha: true, whenCharged: true },
@@ -134,6 +136,31 @@ export async function POST(request: Request) {
             },
           },
         });
+      }
+
+      if (tx.notification?.create) {
+        await tx.notification.create({
+          data: {
+            userId: authorization.user.id,
+            type: 'APPLICATION',
+            title: 'Application Confirmed',
+            message: `Your application to ${input.targetUniversity} via ${agency.name} has been confirmed.`,
+            entityType: 'APPLICATION',
+            entityId: createdApp.id,
+          },
+        }).catch(() => {});
+        if (agency.ownerUserId) {
+          await tx.notification.create({
+            data: {
+              userId: agency.ownerUserId,
+              type: 'APPLICATION',
+              title: 'New Student Application',
+              message: `A new application to ${input.targetUniversity} was submitted by a student.`,
+              entityType: 'APPLICATION',
+              entityId: createdApp.id,
+            },
+          }).catch(() => {});
+        }
       }
 
       return createdApp;

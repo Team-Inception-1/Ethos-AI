@@ -29,82 +29,6 @@ function getDefaultLink(entityType: string | null, entityId: string | null, role
   return '/dashboard';
 }
 
-function getInitialNotificationsForRole(role: string) {
-  if (role === 'AGENCY') {
-    return [
-      {
-        type: 'AGENCY',
-        title: 'New Student Inquiry',
-        message: 'Inquiries received regarding destination universities and intake deadlines.',
-        entityType: 'CHAT',
-        entityId: '/agency/chat',
-      },
-      {
-        type: 'VERIFICATION',
-        title: 'Licensing Verification',
-        message: 'Maintain verified agency badge by keeping MOE licensing info up to date.',
-        entityType: 'AGENCY',
-        entityId: '/agency/dashboard',
-      },
-      {
-        type: 'ESCROW',
-        title: 'Escrow Milestone Vaults Active',
-        message: 'Student milestone deposits are securely tracked in the cryptographic ledger.',
-        entityType: 'ESCROW',
-        entityId: '/agency/dashboard',
-      },
-    ];
-  }
-  if (role === 'ADMIN') {
-    return [
-      {
-        type: 'DISPUTE',
-        title: 'Dispute Docket Review',
-        message: 'Platform escrow dispute resolution panel is operational.',
-        entityType: 'DISPUTE',
-        entityId: '/admin#disputes',
-      },
-      {
-        type: 'AUDIT',
-        title: 'Agency Audit Dossier',
-        message: 'Review newly submitted consultancy licensing credentials.',
-        entityType: 'AUDIT',
-        entityId: '/admin#agencies',
-      },
-      {
-        type: 'SCAM',
-        title: 'Scam Alert Broadcast',
-        message: 'Verify alerts to protect students from predatory consultancies.',
-        entityType: 'SCAM',
-        entityId: '/admin#scam-alerts',
-      },
-    ];
-  }
-  return [
-    {
-      type: 'DOCUMENT',
-      title: 'Offer Letter Verification Ready',
-      message: 'Upload university acceptance letters to scan for forgery and credential authenticity.',
-      entityType: 'DOCUMENT',
-      entityId: '/dashboard/documents',
-    },
-    {
-      type: 'ESCROW',
-      title: 'Milestone Escrow Protection',
-      message: 'Deposit funds into protected milestone vaults with verified release conditions.',
-      entityType: 'ESCROW',
-      entityId: '/dashboard/payments',
-    },
-    {
-      type: 'COMMUNITY',
-      title: 'International Student Community',
-      message: 'Connect with verified Bangladeshi students studying in Canada, UK, USA, and Germany.',
-      entityType: 'COMMUNITY',
-      entityId: '/dashboard/community',
-    },
-  ];
-}
-
 export async function GET() {
   try {
     const authorization = await requireUser();
@@ -112,31 +36,11 @@ export async function GET() {
     const userId = authorization.user.id;
     const role = authorization.user.role;
 
-    let items = await prisma.notification.findMany({
+    const items = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
-
-    // Auto-seed initial domain notifications if empty for this user
-    if (items.length === 0) {
-      const defaults = getInitialNotificationsForRole(role);
-      await prisma.notification.createMany({
-        data: defaults.map((d) => ({
-          userId,
-          type: d.type,
-          title: d.title,
-          message: d.message,
-          entityType: d.entityType,
-          entityId: d.entityId,
-        })),
-      });
-      items = await prisma.notification.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: 50,
-      });
-    }
 
     const notifications = items.map((item) => ({
       id: item.id,
