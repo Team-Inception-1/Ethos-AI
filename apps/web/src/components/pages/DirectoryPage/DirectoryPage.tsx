@@ -47,6 +47,7 @@ type DirectoryAgency = {
 type PublicAgency = {
   id: string; name: string; licenseStatus: string; rating: number; reviewCount: number;
   countriesServed: string[]; successRate: number; feeMinPoisha: string; feeMaxPoisha: string;
+  riskScore?: number; flagCount?: number; lastAssessedAt?: string | null;
 };
 
 function StarRating({ rating }: { rating: number }) {
@@ -112,13 +113,30 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
         }));
         if (cancelled) return;
         setAgenciesList(agencies);
+
+        // Pre-populate risk scores immediately from the directory response so badges render with zero delay
+        const initialScores: Record<string, AgencyRiskScore> = {};
+        for (const a of data.agencies) {
+          const risk = a.riskScore ?? 0;
+          initialScores[a.id] = {
+            agency_id: a.id,
+            risk_score: risk,
+            flag_count: a.flagCount ?? (risk > 0 ? 1 : 0),
+            last_updated: a.lastAssessedAt ?? new Date().toISOString(),
+            recent_events: [],
+          };
+        }
+        setRiskScores(initialScores);
         setLoading(false);
-        // Fetch risk scores from AI microservice — silently fall back if unavailable.
+
+        // Fetch live risk scores in the background if microservice is up — non-blocking
         try {
           const scores = await getAgencyRiskScores(agencies.map(a => a.id));
-          if (!cancelled) setRiskScores(scores);
+          if (!cancelled && Object.keys(scores).length > 0) {
+            setRiskScores(prev => ({ ...(prev ?? {}), ...scores }));
+          }
         } catch {
-          if (!cancelled) setRiskScores({});
+          // Silently keep the bundled scores
         }
       } catch {
         if (!cancelled) {
@@ -321,7 +339,10 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
                   ) : (
                     (() => {
                       const score = riskScores[a.id];
-                      if (!score || score.flag_count === 0) return <Badge variant="pending" size="sm">{score ? 'Not yet assessed' : 'Risk unavailable'}</Badge>;
+                      if (!score) return <Badge variant="pending" size="sm">Risk unavailable</Badge>;
+                      if (score.flag_count === 0 && score.risk_score === 0 && a.reviews === 0) {
+                        return <Badge variant="pending" size="sm">Not yet assessed</Badge>;
+                      }
                       const risk = score.risk_score;
                       return (
                         <div

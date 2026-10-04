@@ -446,13 +446,20 @@ export interface AgencyRiskScore {
 
 /** GET /api/ai/agencies/{agency_id}/risk-score — rolling risk score for an agency. */
 export async function getAgencyRiskScore(agencyId: string): Promise<AgencyRiskScore> {
-  const resp = await fetch(
-    `${AI_SERVICE_URL}/api/ai/agencies/${encodeURIComponent(agencyId)}/risk-score`
-  );
-  if (!resp.ok) {
-    throw new AiServiceError(await parseErrorDetail(resp), resp.status);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3500);
+  try {
+    const resp = await fetch(
+      `${AI_SERVICE_URL}/api/ai/agencies/${encodeURIComponent(agencyId)}/risk-score`,
+      { signal: controller.signal }
+    );
+    if (!resp.ok) {
+      throw new AiServiceError(await parseErrorDetail(resp), resp.status);
+    }
+    return await resp.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return resp.json();
 }
 
 /**
