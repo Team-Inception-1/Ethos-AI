@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
@@ -50,126 +51,21 @@ const DEFAULT_VAULT_DOCS: VaultDocSummary[] = [
   { id: 'doc-demo-transcript', name: 'Academic Transcript.pdf', size: '1.8 MB' },
 ];
 
-const DEFAULT_THREADS: ChatThreadSummary[] = [
-  {
-    id: 'thd-001',
-    applicationId: 'app-001',
-    agencyId: 'agt-001',
-    agencyName: 'Global Edu BD',
-    studentName: 'Riya Ahmed',
-    targetUniversity: 'University of Toronto',
-    targetCountry: 'Canada 🇨🇦',
-    lastMessage: {
-      text: 'Great, thank you! Please also share the visa processing timeline.',
-      time: '2026-07-25T11:00:00Z',
-      senderRole: 'STUDENT',
-    },
-    unreadCount: 0,
-    createdAt: '2026-07-10T11:05:00Z',
-    updatedAt: '2026-07-25T11:00:00Z',
-  },
-  {
-    id: 'thd-002',
-    applicationId: 'app-002',
-    agencyId: 'agt-002',
-    agencyName: 'Dream Abroad Ltd',
-    studentName: 'Riya Ahmed',
-    targetUniversity: 'TU Munich',
-    targetCountry: 'Germany 🇩🇪',
-    lastMessage: {
-      text: 'Your German blocked account documents are verified.',
-      time: '2026-08-01T09:30:00Z',
-      senderRole: 'AGENCY',
-    },
-    unreadCount: 1,
-    createdAt: '2026-08-01T09:00:00Z',
-    updatedAt: '2026-08-01T09:30:00Z',
-  },
-];
+const DEFAULT_THREADS: ChatThreadSummary[] = [];
 
-const DEFAULT_MESSAGES: Record<string, ChatMessageItem[]> = {
-  'thd-001': [
-    {
-      id: 'msg-001',
-      threadId: 'thd-001',
-      senderId: 'usr-agency-01',
-      senderRole: 'AGENCY',
-      body: 'Hello Riya! We have received your application for U of Toronto and are reviewing your academic transcripts.',
-      msgHash: '8f48a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-07-25T10:00:00Z',
-      status: 'sent',
-    },
-    {
-      id: 'msg-002',
-      threadId: 'thd-001',
-      senderId: 'usr-student-01',
-      senderRole: 'STUDENT',
-      body: 'Thank you! When can I expect the official offer letter?',
-      msgHash: '7e37a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-07-25T10:15:00Z',
-      status: 'sent',
-    },
-    {
-      id: 'msg-003',
-      threadId: 'thd-001',
-      senderId: 'usr-agency-01',
-      senderRole: 'AGENCY',
-      body: 'We expect to receive the official letter within 5-7 business days. We will upload it directly to your Document Vault.',
-      msgHash: '6d26a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-07-25T10:18:00Z',
-      status: 'sent',
-    },
-    {
-      id: 'msg-004',
-      threadId: 'thd-001',
-      senderId: 'usr-student-01',
-      senderRole: 'STUDENT',
-      body: 'Great, thank you! Please also share the visa processing timeline.',
-      msgHash: '5c15a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-07-25T11:00:00Z',
-      status: 'sent',
-    },
-  ],
-  'thd-002': [
-    {
-      id: 'msg-201',
-      threadId: 'thd-002',
-      senderId: 'usr-agency-02',
-      senderRole: 'AGENCY',
-      body: 'Welcome! We have started reviewing your application for TU Munich.',
-      msgHash: '4b14a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: true,
-      sentAt: '2026-08-01T09:00:00Z',
-      status: 'sent',
-    },
-    {
-      id: 'msg-202',
-      threadId: 'thd-002',
-      senderId: 'usr-agency-02',
-      senderRole: 'AGENCY',
-      body: 'Your German blocked account documents are verified.',
-      msgHash: '3a13a1d2e9bc35a64d1f2b3c4d5e6f7a',
-      isRead: false,
-      sentAt: '2026-08-01T09:30:00Z',
-      status: 'sent',
-    },
-  ],
-};
+const DEFAULT_MESSAGES: Record<string, ChatMessageItem[]> = {};
 
 export default function ChatPage() {
   const { user } = useAuth();
   const isAgency = user?.role?.toLowerCase() === 'agency';
   const isAdmin = user?.role?.toLowerCase() === 'admin';
-  const [threads, setThreads] = useState<ChatThreadSummary[]>(DEFAULT_THREADS);
+  const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
+  const [loadingThreads, setLoadingThreads] = useState<boolean>(true);
   // Wait for the authenticated thread list before requesting messages. Starting
   // with the demo thread ID caused every live chat visit to make a guaranteed
   // 403 request before the user's real conversation was selected.
   const [activeThreadId, setActiveThreadId] = useState<string>('');
-  const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessageItem[]>>(DEFAULT_MESSAGES);
+  const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessageItem[]>>({});
   const [nextCursorByThread, setNextCursorByThread] = useState<Record<string, string | null>>({});
   const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
   const [input, setInput] = useState('');
@@ -190,46 +86,58 @@ export default function ChatPage() {
   // Load threads on mount / user change with query navigation (AUD-017)
   useEffect(() => {
     let isMounted = true;
+    setLoadingThreads(true);
     fetchChatThreads()
       .then(async (res) => {
         if (!isMounted) return;
-        if (res && res.length > 0) {
-          setThreads(res);
+        const threadList = res || [];
+        setThreads(threadList);
 
+        if (threadList.length > 0) {
+          let matched: ChatThreadSummary | undefined;
           if (typeof window !== 'undefined') {
             const search = new URLSearchParams(window.location.search);
             const reqThread = search.get('thread') || search.get('threadId') || '';
             const reqApp = search.get('application') || search.get('applicationId') || '';
             const reqAgency = search.get('agency') || search.get('agencyId') || '';
 
-            let matched = res.find((t) => t.id === reqThread);
+            matched = threadList.find((t) => t.id === reqThread);
             if (!matched && reqApp) {
-              matched = res.find((t) => t.applicationId === reqApp);
+              matched = threadList.find((t) => t.applicationId === reqApp);
               if (!matched) {
                 try {
                   const created = await createChatThread(reqApp);
                   if (!isMounted) return;
                   const refreshed = await fetchChatThreads();
                   if (!isMounted) return;
-                  setThreads(refreshed);
-                  matched = refreshed.find((t) => t.id === created.id) || created;
+                  const refreshedList = refreshed || [];
+                  setThreads(refreshedList);
+                  matched = refreshedList.find((t) => t.id === created.id) || created;
                 } catch (err) {
                   console.warn('Could not auto-provision chat thread for application:', err);
                 }
               }
             }
             if (!matched && reqAgency) {
-              matched = res.find((t) => t.agencyId === reqAgency);
-            }
-            const nextThread = matched || res[0];
-            if (nextThread?.id) {
-              setActiveThreadId(nextThread.id);
+              matched = threadList.find((t) => t.agencyId === reqAgency);
             }
           }
+          const nextThread = matched || threadList[0];
+          if (nextThread?.id) {
+            setActiveThreadId(nextThread.id);
+          }
+        } else {
+          setActiveThreadId('');
         }
       })
       .catch((e) => {
         console.warn('Could not load live threads:', e);
+        if (!isMounted) return;
+        setThreads([]);
+        setActiveThreadId('');
+      })
+      .finally(() => {
+        if (isMounted) setLoadingThreads(false);
       });
 
     return () => {
@@ -378,7 +286,7 @@ export default function ChatPage() {
   }, [activeThreadId]);
 
   const activeThread = useMemo(
-    () => threads.find((t) => t.id === activeThreadId) || threads[0],
+    () => (activeThreadId ? threads.find((t) => t.id === activeThreadId) : null) || (threads.length > 0 ? threads[0] : null),
     [threads, activeThreadId]
   );
 
@@ -499,7 +407,7 @@ export default function ChatPage() {
   };
 
   const handleSend = async () => {
-    const threadId = activeThreadId || threads[0]?.id || 'thd-001';
+    const threadId = activeThreadId || threads[0]?.id;
     if (!threadId || (!input.trim() && !attachedDoc)) return;
     const textToSend = input.trim();
     const docToAttach = attachedDoc;
@@ -745,18 +653,51 @@ export default function ChatPage() {
               </div>
             );
           })}
-          {threads.length === 0 && (
-            <p style={{ padding: '18px 8px', color: 'var(--text-muted)', fontSize: '13px' }}>
-              No application conversations available yet.
+          {loadingThreads && (
+            <p style={{ padding: '18px 12px', color: 'var(--text-muted)', fontSize: '13px' }}>
+              Loading conversations…
             </p>
+          )}
+          {!loadingThreads && threads.length === 0 && (
+            <div style={{ padding: '24px 14px', color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center' }}>
+              <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>No active chats</p>
+              <p style={{ margin: 0, fontSize: '12px' }}>
+                {isAgency
+                  ? 'Client conversations will appear here once students submit an application.'
+                  : 'Apply to an agency in the directory to start a verified conversation.'}
+              </p>
+            </div>
           )}
         </div>
 
         {/* ─── Chat Window ─── */}
         <div className={styles.chatWindow}>
-          {/* Chat Window Header */}
-          <div className={styles.chatHeader}>
-            <div className={styles.chatHeaderLeft}>
+          {loadingThreads ? (
+            <div style={{ margin: 'auto', textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>
+              Loading conversation…
+            </div>
+          ) : !activeThread ? (
+            <div style={{ margin: 'auto', textAlign: 'center', padding: '48px 24px', maxWidth: '440px' }}>
+              <div style={{ fontSize: '42px', marginBottom: '12px' }}>💬</div>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                No Application Conversations Yet
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.5, marginBottom: '20px' }}>
+                {isAgency
+                  ? 'Your agency does not have any active student applications yet. Once a student applies, an official consultation channel will appear here.'
+                  : 'You have not submitted an application to any agency yet. Once you apply through an agency, a verified 1-on-1 consultation channel with audit logging and document vault access will be created.'}
+              </p>
+              {!isAgency && (
+                <Link href="/directory">
+                  <Button variant="emerald" size="sm">Find an Agency</Button>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Chat Window Header */}
+              <div className={styles.chatHeader}>
+                <div className={styles.chatHeaderLeft}>
               <div className={styles.chatAvatar} aria-hidden="true">
                 {isAdmin ? '⚖' : isAgency ? (activeThread?.studentName?.[0] || 'S') : (activeThread?.agencyName?.[0] || 'G')}
               </div>
@@ -1001,6 +942,8 @@ export default function ChatPage() {
               <span>Messages stored with SHA-256 cryptographic integrity hashes</span>
             </div>
           </div>}
+            </>
+          )}
         </div>
       </div>
 
