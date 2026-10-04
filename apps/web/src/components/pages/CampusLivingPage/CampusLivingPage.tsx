@@ -320,7 +320,7 @@ export default function CampusLivingPage() {
               {activeVarsity.dormSituation}
             </div>
 
-            {/* Accompanying Spouse (Tasfa) Toggle */}
+            {/* Accompanying Spouse Toggle */}
             <div className={styles.spouseCard}>
               <label className={styles.spouseToggleHeader}>
                 <input
@@ -328,7 +328,7 @@ export default function CampusLivingPage() {
                   checked={withSpouse}
                   onChange={handleSpouseToggle}
                 />
-                <span className={styles.spouseTitle}>Accompanied by Spouse (Tasfa) 👫</span>
+                <span className={styles.spouseTitle}>Accompanied by Spouse 👫</span>
               </label>
               <span className={styles.spouseSubtitle}>
                 Calculates for 2 people: requires private 1BHK/2BHK, scales grocery costs (1.8x), and adds dependent medical insurance.
