@@ -6,7 +6,7 @@ This report distinguishes automated contract coverage from live acceptance. A pa
 
 ## Executive result
 
-- Web automated tests: **234 passed, 5 skipped** across 35 files.
+- Web automated tests: **236 passed, 5 skipped** across 37 files.
 - AI automated tests: **122 passed, 2 skipped**.
 - Production-build browser tests: **7 passed**.
 - Next.js production build and TypeScript: **passed**.
@@ -14,7 +14,7 @@ This report distinguishes automated contract coverage from live acceptance. A pa
 - Stable audited Preview URL: `https://ethos-ai-preview-parvez-ahmed-tasins-projects.vercel.app` (Vercel Authentication protection enabled; deployment `dpl_4VuWsrdXrk6WVZqdee6LTSH3trfW`, `iad1`).
 - Vercel Production deployment: **ready** at `https://ethos-ai-fawn.vercel.app` (deployment `dpl_BNPaa3DBMHxnDMkismZnsEXaM76D`, `iad1`). Production runtime secrets/configuration are installed, Neon Auth trusts the production origin, and Agency/Admin password authentication and dashboard data loads pass live.
 - Git deployment integration: Vercel is connected to `Team-Inception-1/Ethos-AI` with repository-scoped GitHub App access.
-- Live authenticated acceptance: **student, agency, and admin pass**. Parent acceptance is pending a test account.
+- Live authenticated acceptance: **student, parent, agency, and admin pass**. Disposable verified Student and Parent accounts completed the guardian-link flow on Production.
 - Live payments: **not implemented**. The current bKash, Nagad, and SSLCOMMERZ paths are signed sandbox simulations only.
 - Malware scanning: **not implemented**. Uploads do enforce size, MIME, and file-signature checks and use private object storage.
 
@@ -24,18 +24,18 @@ This report distinguishes automated contract coverage from live acceptance. A pa
 | --- | --- | --- | --- |
 | Public landing, directory, comparison, agency detail | API tests, build, browser smoke | Public pages and `/api/agencies` return 200 | Pass |
 | Campus/living-cost directory | Route tests and build | `/api/campus-living` returns 200 | Pass; displayed costs remain planning estimates unless explicitly audited |
-| Password/OTP registration and login | Registration boundary tests and 3 browser auth scenarios | Student authentication succeeds on stable Preview; Agency and Admin password authentication also succeed on Production | Pass for three roles; parent pending |
-| Student/parent/agency/admin authorization | Forged-role, RBAC, relationship, and session tests | Student, agency, and admin role routes enforce the correct destination | Pass for tested roles; parent pending |
-| Guardian link request, approval, removal | Route and relationship authorization tests | No live authenticated run | Logic passes; acceptance pending |
-| Student creates an application and selects agency packages | Six integration scenarios, including cross-agency and empty-package denial | Created `Codex E2E Test University` with Global Edu BD package | Pass live; creation took about 6 s |
+| Password/OTP registration and login | Registration boundary tests and 3 browser auth scenarios | Verified Student, Parent, Agency, and Admin password authentication succeeds on Production | Pass for all four roles |
+| Student/parent/agency/admin authorization | Forged-role, RBAC, relationship, and session tests | All four role dashboards enforce the correct destination; Parent mutations are hidden and blocked server-side | Pass for all four roles |
+| Guardian link request, approval, removal | Route and relationship authorization tests | Parent requested a link by code; Student approved it; Parent immediately received linked access | Request and approval pass live; removal intentionally not exercised |
+| Student creates an application and selects agency packages | Six integration scenarios, including cross-agency and empty-package denial | Created `Codex E2E Test University` and disposable `E2E Test University` applications with Global Edu BD packages | Pass live; linked Parent can view the disposable application |
 | Application stage tracking | Persistence/state APIs compile and seeded records exist | Agency queue loads four linked applications and exposes valid next-stage controls | Pass read-only acceptance; no live stage mutation performed |
-| Private document upload/download/delete | Storage and route tests; browser failure-state test | Student upload/download and agency-scoped vault navigation pass | Pass for upload/download/navigation; delete intentionally not exercised |
+| Private document upload/download/delete | Storage and route tests; browser failure-state test; Parent mutation regressions | Student upload/download and agency-scoped vault navigation pass; Parent receives view-only linked access | Pass for upload/download/navigation; Parent upload/scan/delete UI and APIs are blocked; delete intentionally not exercised |
 | Offer-letter and agreement analysis | Gateway/client contracts and 122 AI tests | Synthetic offer letter: 100/100 high risk; synthetic agreement: 88/100 high risk; vault PDF: 85/100 high risk | Pass live after verdict normalization fix; cold offer scan was 35.8 s |
 | Student ↔ agency chat | Nine integration scenarios; optimistic UI; delta polling | Test message persisted; server acknowledgement took about 14.2 s | Pass functionally; latency remains poor |
 | Community join/post/comment/like/direct message/report/block | Integration/database tests and full browser workflow | Canada join 3.4 s; post publish 1.9 s; persisted after reload | Pass for join/post/isolation; remaining mutations pending |
 | Counselor shortlist and roadmap | Route tests | Seeded shortlist/roadmap records exist | Logic passes; live acceptance pending |
 | Scholar live search and outreach | AI and web route tests | Outreach records exist | Logic passes; seeded demo data is now disabled in production |
-| Sandbox escrow hold/release/refund/dispute | Payment service, route, signature, concurrency, and rollback tests | Preview-only sandbox enabled; exact ৳50,000 test milestone held via SSLCOMMERZ in 4.4 s; ledger increased 7→8 | Hold passes live; release/refund/dispute role checks pending |
+| Sandbox escrow hold/release/refund/dispute | Payment service, route, signature, concurrency, and rollback tests | Preview-only sandbox enabled; exact ৳50,000 test milestone held via SSLCOMMERZ in 4.4 s; linked Parent can view the disposable ৳50,000 pending milestone without a payment action | Hold and Parent read-only view pass live; release/refund/dispute role checks pending |
 | Real bKash/Nagad/SSLCOMMERZ settlement | None | None | Not implemented |
 | Agency fee submission and admin approval | Persistence and authorization tests | Agency packages/submission history and Admin dossier queue load correctly | Pass read-only acceptance; no approval mutation performed |
 | Complaints, verification reports, subscriptions, moderation reports | Schemas/routes are present in parts | Zero live records | Not proven end to end |
@@ -74,6 +74,7 @@ The direct Neon measurement explains the poor localhost experience: every sequen
 - Cross-role denials now redirect Agency and Admin users to their own canonical dashboards instead of the generic student dashboard URL.
 - Agency document-vault links now target the deployed `/dashboard/documents` route instead of a 404.
 - Admin communication transcripts are read-only and label student/agency senders correctly.
+- Parent application and document pages now match the promised read-only relationship: application creation and document upload/scan/delete controls are hidden, while APIs independently reject those mutations.
 
 ## Integrity corrections
 
@@ -87,8 +88,8 @@ The direct Neon measurement explains the poor localhost experience: every sequen
 
 ## Remaining blockers and next acceptance run
 
-1. Provision or sign in a verified parent test account for the remaining live role matrix.
-2. Continue mutation acceptance only with explicit test authorization: agency stage updates → guardian approval/view → admin review/dispute resolution.
+1. Continue high-impact mutation acceptance with action-time confirmation: agency stage updates, guardian removal, admin review/dispute resolution, and sandbox release/refund/dispute.
+2. Complete the remaining community comment/like/direct-message/report/block mutations and counselor/scholar live saves; message-like actions require action-time confirmation.
 3. Investigate remaining live latency: cold offer scan 35.8 s, chat acknowledgement 14.2 s, application creation about 6 s, and auth/data page loads up to about 7.5 s.
 4. Replace sandbox gateways and add malware scanning before claiming either capability as production-ready.
 5. The repository ESLint gate still reports pre-existing errors in campus, scholar, counselor, admin, and utility-script files even though build/type-check succeeds; clean these before making lint a required CI gate.

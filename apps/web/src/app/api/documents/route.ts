@@ -86,6 +86,9 @@ export async function POST(request: Request) {
   try {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
+    if (authorization.user.role === 'PARENT') {
+      return apiError('FORBIDDEN', 'Parents have view-only access to linked student documents.', 403);
+    }
     if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const form = await request.formData();
     const file = form.get('file');

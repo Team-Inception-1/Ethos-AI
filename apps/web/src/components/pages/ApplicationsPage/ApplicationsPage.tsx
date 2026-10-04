@@ -9,6 +9,7 @@ import GlassCard from '@/components/ui/GlassCard';
 import { applicationListSchema, stageLabel, type ApplicationItem } from '@/lib/applications/contracts';
 import { useApplicationData } from '@/lib/applications/use-data';
 import { ApplicationListSkeleton } from '@/components/ui/Skeleton';
+import { useAuth } from '@/context/AuthContext';
 import styles from './ApplicationsPage.module.css';
 
 type BadgeVariant = 'verified' | 'pending' | 'rejected' | 'warning' | 'info';
@@ -50,9 +51,11 @@ function formatDate(value: string) {
 }
 
 export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsPageProps) {
+  const { user } = useAuth();
+  const canCreateApplication = user?.role === 'student';
   const { data, error, loading, retry } = useApplicationData('/api/applications', applicationListSchema);
   const agencies = useApplicationData('/api/agencies', agencyListSchema);
-  const [isFormOpen, setIsFormOpen] = useState(Boolean(initialAgencyId));
+  const [isFormOpen, setIsFormOpen] = useState(Boolean(initialAgencyId) && canCreateApplication);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdMessage, setCreatedMessage] = useState<string | null>(null);
@@ -95,7 +98,7 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
       const count = created.data.application.milestoneCount;
       setCreatedMessage(
         count > 0
-          ? `Application ${created.data.application.id.slice(0, 8)} was created and ${count} escrow milestone${count === 1 ? '' : 's'} are ready.`
+          ? `Application ${created.data.application.id.slice(0, 8)} was created and ${count} escrow milestone${count === 1 ? ' is' : 's are'} ready.`
           : `Application ${created.data.application.id.slice(0, 8)} was created.`
       );
       setIsFormOpen(false);
@@ -112,10 +115,16 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1>My Applications</h1>
-          <p className={styles.target}>Applications available to your signed-in account.</p>
+          <h1>{canCreateApplication ? 'My Applications' : 'Authorized Applications'}</h1>
+          <p className={styles.target}>
+            {canCreateApplication
+              ? 'Applications available to your signed-in account.'
+              : 'View-only applications shared by your linked students.'}
+          </p>
         </div>
-        <Button size="sm" onClick={() => { setSubmitError(null); setIsFormOpen(true); }}>+ New Application</Button>
+        {canCreateApplication && (
+          <Button size="sm" onClick={() => { setSubmitError(null); setIsFormOpen(true); }}>+ New Application</Button>
+        )}
       </div>
 
       {createdMessage && <div className={styles.successBanner} role="status">✓ {createdMessage}</div>}
@@ -132,8 +141,12 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
       {data && data.applications.length === 0 && (
         <GlassCard padding="lg">
           <h2>No applications yet</h2>
-          <p className={styles.target}>When an application is created, its verified status and milestones will appear here.</p>
-          <Link href="/directory"><Button size="sm" variant="outline">Find an agency</Button></Link>
+          <p className={styles.target}>
+            {canCreateApplication
+              ? 'When an application is created, its verified status and milestones will appear here.'
+              : 'Applications from approved linked students will appear here.'}
+          </p>
+          {canCreateApplication && <Link href="/directory"><Button size="sm" variant="outline">Find an agency</Button></Link>}
         </GlassCard>
       )}
 
@@ -175,7 +188,7 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
         </div>
       )}
 
-      {isFormOpen && (
+      {canCreateApplication && isFormOpen && (
         <div className={styles.modalBackdrop} role="presentation" onMouseDown={event => {
           if (event.target === event.currentTarget && !submitting) setIsFormOpen(false);
         }}>

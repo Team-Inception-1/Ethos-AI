@@ -13,7 +13,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (authorization.response) return authorization.response;
     if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const { id } = await context.params;
-    if (!await canAccessDocument(authorization.user, id)) return forbiddenResponse();
+    if (!await canAccessDocument(authorization.user, id, true)) return forbiddenResponse();
     const document = await prisma.document.findUnique({ where: { id } });
     if (!document) return apiError('NOT_FOUND', 'Document not found.', 404);
     const serviceUrl = process.env.AI_SERVICE_URL;
