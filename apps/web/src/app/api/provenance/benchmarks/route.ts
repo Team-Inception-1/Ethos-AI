@@ -9,8 +9,36 @@ import { sameOrigin } from '@/lib/auth/registration';
 export async function GET(request: Request) {
   try {
     const user = await getAuthenticatedUser();
-    const countryParam = new URL(request.url).searchParams.get('country');
+    const url = new URL(request.url);
+    const countryParam = url.searchParams.get('country');
+    const mineParam = url.searchParams.get('mine') === 'true';
     const country = countryParam ? shortText.parse(countryParam) : undefined;
+
+    if (mineParam) {
+      if (!user) return apiError('UNAUTHORIZED', 'Authentication required.', 401);
+      const submissions = await prisma.countryBenchmarkSubmission.findMany({
+        where: { submittedById: user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 300,
+      });
+      const benchmarks = submissions.map(proposal => {
+        const payload = benchmarkInput.parse(proposal.payload);
+        return {
+          ...payload,
+          id: proposal.id,
+          isVerified: proposal.status === 'VERIFIED',
+          status: proposal.status,
+          verifiedByAdminId: proposal.reviewedByAdminId,
+          lastAuditedAt: proposal.reviewedAt ?? proposal.createdAt,
+          createdAt: proposal.createdAt,
+          updatedAt: proposal.updatedAt,
+          isProposal: true,
+          submittedById: proposal.submittedById,
+        };
+      });
+      return success({ benchmarks, count: benchmarks.length });
+    }
+
     const visibility = user?.role === 'ADMIN' ? {} : { isVerified: true };
     if (country) {
       const row = await prisma.countryCostBenchmark.findFirst({ where: { ...visibility, OR: [
@@ -25,6 +53,7 @@ export async function GET(request: Request) {
     }) : [];
     const benchmarks = [ ...rows.map(benchmarkDto), ...pending.map(proposal => ({
       ...benchmarkInput.parse(proposal.payload), id: proposal.id, isVerified: false,
+      status: proposal.status,
       verifiedByAdminId: null, lastAuditedAt: proposal.createdAt, createdAt: proposal.createdAt,
       updatedAt: proposal.updatedAt, isProposal: true, submittedById: proposal.submittedById,
     })) ];

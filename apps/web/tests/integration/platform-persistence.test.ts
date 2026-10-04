@@ -102,6 +102,26 @@ describe('durable platform routes', () => {
       where: expect.objectContaining({ isVerified: true, status: 'VERIFIED' }),
     }));
   });
+  it('scopes benchmark proposals to authenticated user when mine=true is requested', async () => {
+    mocks.getAuthenticatedUser.mockResolvedValue({ id: 'actor', role: 'AGENCY' });
+    mocks.countryBenchmarkSubmission.findMany.mockResolvedValue([
+      { id: 'sub-1', country: 'Canada', payload: benchmark, status: 'PENDING', submittedById: 'actor', reviewedByAdminId: null, reviewedAt: null, createdAt: new Date(), updatedAt: new Date() }
+    ]);
+    const response = await benchmarksGet(new Request('http://localhost/api/provenance/benchmarks?mine=true'));
+    expect(response.status).toBe(200);
+    expect(mocks.countryBenchmarkSubmission.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { submittedById: 'actor' },
+    }));
+    const data = await response.json();
+    expect(data.data.benchmarks).toHaveLength(1);
+    expect(data.data.benchmarks[0].country).toBe('Canada');
+    expect(data.data.benchmarks[0].status).toBe('PENDING');
+  });
+  it('requires authentication for mine=true benchmarks query', async () => {
+    mocks.getAuthenticatedUser.mockResolvedValue(null);
+    const response = await benchmarksGet(new Request('http://localhost/api/provenance/benchmarks?mine=true'));
+    expect(response.status).toBe(401);
+  });
   it('requires a real verified exchange benchmark instead of fabricating currency conversion', async () => {
     mocks.countryCostBenchmark.findFirst.mockResolvedValue(null);
     const response = await catalogPost(request('provenance/catalogs', { universityName: 'University', country: 'Canada',
