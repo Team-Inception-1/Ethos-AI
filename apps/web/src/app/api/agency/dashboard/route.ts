@@ -22,6 +22,9 @@ export async function GET() {
           licenseNo: 'MOE-BD-' + (new Date().getFullYear()) + '-' + Math.floor(100 + Math.random() * 900),
           licenseStatus: auth.user.isVerified ? 'VERIFIED' : 'PENDING',
           countriesServed: ['CAN', 'GBR', 'USA', 'AUS'],
+          rating: 0,
+          reviewCount: 0,
+          successRate: 0,
           description: 'Study-abroad consultancy awaiting administrative credential verification.',
         },
         select: {

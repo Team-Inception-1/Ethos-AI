@@ -262,10 +262,14 @@ export default function AgencyDetailPage({ agencyId, inDashboard = false }: Agen
                     Student Satisfaction
                   </div>
                   <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--blue-primary)', marginTop: '4px' }}>
-                    ⭐ {agency.rating} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>/ 5.0</span>
+                    {agency.reviewCount > 0 ? (
+                      <>⭐ {agency.rating.toFixed(1)} <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>/ 5.0</span></>
+                    ) : (
+                      <span style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>Unrated</span>
+                    )}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {agency.reviewCount} verified alumni reviews
+                    {agency.reviewCount > 0 ? `${agency.reviewCount} verified alumni reviews` : 'No alumni reviews yet'}
                   </div>
                 </GlassCard>
 
@@ -274,10 +278,14 @@ export default function AgencyDetailPage({ agencyId, inDashboard = false }: Agen
                     Visa Success Rate
                   </div>
                   <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--emerald-dark)', marginTop: '4px' }}>
-                    🎯 {agency.success}%
+                    {agency.reviewCount > 0 && agency.success > 0 ? (
+                      <>🎯 {agency.success}%</>
+                    ) : (
+                      <span style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>Pending</span>
+                    )}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    Verified embassy filings
+                    {agency.reviewCount > 0 && agency.success > 0 ? 'Verified embassy filings' : 'Awaiting first cohort completion'}
                   </div>
                 </GlassCard>
 

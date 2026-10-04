@@ -1059,11 +1059,11 @@ export default function CounselorPage() {
                       </div>
                       <div className={styles.agencyMetricsRow}>
                         <span className={styles.agencyMetric}>
-                          ⭐ {agency.rating.toFixed(1)}
+                          ⭐ {agency.rating > 0 ? agency.rating.toFixed(1) : 'New'}
                         </span>
                         <span className={styles.agencyMetricDot}>•</span>
                         <span className={styles.agencyMetric}>
-                          🎯 {agency.successRate}% {lang === 'en' ? 'Visa Success' : 'ভিসা সাফল্য'}
+                          🎯 {agency.successRate > 0 ? `${agency.successRate}%` : 'New'} {lang === 'en' ? 'Visa Success' : 'ভিসা সাফল্য'}
                         </span>
                         <span className={styles.agencyMetricDot}>•</span>
                         <span className={`${styles.agencyRiskPill} ${agency.riskScore <= 15 ? styles.riskPillLow : styles.riskPillMed}`}>
@@ -1957,7 +1957,7 @@ export default function CounselorPage() {
                   <div className={styles.dossierStatRow}>
                     <div className={styles.dossierStatBox}>
                       <span className={styles.dossierStatNumber}>
-                        {agencyVerificationModal.agency.successRate}%
+                        {agencyVerificationModal.agency.successRate > 0 ? `${agencyVerificationModal.agency.successRate}%` : 'New'}
                       </span>
                       <span className={styles.dossierStatLabel}>
                         {lang === 'en' ? 'Visa Success Rate' : 'ভিসা সাফল্য হার'}
@@ -1965,12 +1965,14 @@ export default function CounselorPage() {
                     </div>
                     <div className={styles.dossierStatBox}>
                       <span className={styles.dossierStatNumber}>
-                        ⭐ {agencyVerificationModal.agency.rating.toFixed(1)}
+                        {agencyVerificationModal.agency.rating > 0 ? `⭐ ${agencyVerificationModal.agency.rating.toFixed(1)}` : 'Unrated'}
                       </span>
                       <span className={styles.dossierStatLabel}>
                         {'reviewsCount' in agencyVerificationModal.agency
                           ? `${agencyVerificationModal.agency.reviewsCount} ${lang === 'en' ? 'Verified Reviews' : 'ছাত্র রিভিউ'}`
-                          : '350+ Verified Reviews'}
+                          : agencyVerificationModal.agency.rating > 0
+                          ? '350+ Verified Reviews'
+                          : '0 Verified Reviews'}
                       </span>
                     </div>
                   </div>

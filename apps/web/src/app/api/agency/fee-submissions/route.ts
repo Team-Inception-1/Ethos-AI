@@ -25,6 +25,9 @@ export async function GET(request: Request) {
           licenseNo: 'MOE-BD-' + (new Date().getFullYear()) + '-' + Math.floor(100 + Math.random() * 900),
           licenseStatus: auth.user.isVerified ? 'VERIFIED' : 'PENDING',
           countriesServed: ['CAN', 'GBR', 'USA', 'AUS'],
+          rating: 0,
+          reviewCount: 0,
+          successRate: 0,
         },
         select: { id: true },
       });
@@ -52,6 +55,9 @@ export async function POST(request: Request) {
           licenseNo: 'MOE-BD-' + (new Date().getFullYear()) + '-' + Math.floor(100 + Math.random() * 900),
           licenseStatus: auth.user.isVerified ? 'VERIFIED' : 'PENDING',
           countriesServed: ['CAN', 'GBR', 'USA', 'AUS'],
+          rating: 0,
+          reviewCount: 0,
+          successRate: 0,
         },
         select: { id: true },
       });

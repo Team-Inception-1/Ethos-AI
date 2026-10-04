@@ -130,9 +130,9 @@ model Agency {
   countriesServed String[] // e.g. ["CAN", "GBR", "AUS", "USA"]
   foundedYear     Int           @default(2020)
   riskScore       Int           @default(0) // 0-100 from Module 5.10
-  rating          Float         @default(5.0)
+  rating          Float         @default(0.0)
   reviewCount     Int           @default(0)
-  successRate     Int           @default(90) // percentage 0-100
+  successRate     Int           @default(0) // percentage 0-100
   feeMinPoisha    BigInt        @default(2500000) // in poisha (e.g. 25,000 BDT)
   feeMaxPoisha    BigInt        @default(8000000) // in poisha (e.g. 80,000 BDT)
   address         String?
