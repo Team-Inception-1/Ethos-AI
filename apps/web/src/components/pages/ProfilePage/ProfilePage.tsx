@@ -161,10 +161,14 @@ function ProfileEditor() {
 
   const handleLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!linkInput.trim()) return;
     setLinkMessage(null);
-    const res = await linkStudent(linkInput);
+    const res = await linkStudent(linkInput.trim());
     setLinkMessage({ success: res.success, text: res.message });
-    if (res.success) setLinkInput('');
+    if (res.success) {
+      setLinkInput('');
+      await refreshSession();
+    }
   };
 
   return (
@@ -529,6 +533,36 @@ function ProfileEditor() {
                     )}
                   </form>
                 </div>
+
+                {/* Pending Student Link Requests */}
+                {user.pendingStudentRequests && user.pendingStudentRequests.length > 0 && (
+                  <div style={{ marginBottom: 'var(--space-4)' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: 'var(--space-2)' }}>
+                      Pending Student Link Requests ({user.pendingStudentRequests.length})
+                    </h3>
+                    <div className={styles.guardianList}>
+                      {user.pendingStudentRequests.map((req) => (
+                        <div key={req.id} className={styles.guardianCard} style={{ borderLeft: '3px solid var(--amber, #f59e0b)' }}>
+                          <div className={styles.guardianInfo}>
+                            <div className={styles.guardianAvatar} style={{ background: 'var(--amber, #f59e0b)', color: '#fff' }}>⏳</div>
+                            <div>
+                              <div style={{ fontWeight: 700 }}>{req.student.name}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {req.student.email} • Awaiting student approval
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <Badge variant="pending">Awaiting Approval</Badge>
+                            <Button size="sm" variant="ghost" onClick={() => void unlinkRelationship(req.id)}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Linked Student Cards */}
                 <div>
