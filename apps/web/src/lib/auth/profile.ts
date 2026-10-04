@@ -53,6 +53,12 @@ export function profileDTO(user: Profile) {
       requestedAt: link.linkedAt.toISOString(),
       parent: relationshipUser(link.parent),
     })),
+    pendingStudentRequests: user.parentLinksAsParent.filter(link => !link.isApproved).map(link => ({
+      id: link.id,
+      relationship: link.relationship,
+      requestedAt: link.linkedAt.toISOString(),
+      student: relationshipUser(link.student),
+    })),
     studentDetails: user.studentProfile ? {
       targetCountries: user.studentProfile.targetCountries, targetField: user.studentProfile.targetField ?? '',
       budgetRange: user.studentProfile.budgetRange ?? '', ieltsScore: user.studentProfile.ieltsScore ?? '',

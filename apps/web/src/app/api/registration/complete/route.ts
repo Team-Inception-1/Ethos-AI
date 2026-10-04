@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const roles = { student: 'STUDENT', parent: 'PARENT', agency: 'AGENCY' } as const;
     const profile = await prisma.user.create({ data: {
       id: identity.id, name: draft.name, email, phone: draft.phone, role: roles[draft.role], isVerified: draft.role !== 'agency',
-      ...(draft.role === 'student' ? { studentProfile: { create: { targetCountries: [], linkCode: 'ETHOS-' + randomUUID() } } } : {}),
+      ...(draft.role === 'student' ? { studentProfile: { create: { targetCountries: [], linkCode: 'ETHOS-STU-' + Math.floor(1000 + Math.random() * 9000) } } } : {}),
       ...(draft.role === 'agency' ? {
         agencyProfile: {
           create: {

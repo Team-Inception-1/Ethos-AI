@@ -26,8 +26,26 @@ export async function GET() {
   try {
     const authorization = await requireUser();
     if (authorization.response) return authorization.response;
-    const user = await prisma.user.findUnique({ where: { id: authorization.user.id }, include: profileInclude });
+    let user = await prisma.user.findUnique({ where: { id: authorization.user.id }, include: profileInclude });
     if (!user) return apiError('NOT_FOUND', 'Profile not found.', 404);
+
+    if (authorization.user.role === 'STUDENT' && !user.studentProfile && prisma.studentProfile?.create) {
+      const code = 'ETHOS-STU-' + Math.floor(1000 + Math.random() * 9000);
+      try {
+        await prisma.studentProfile.create({
+          data: {
+            userId: user.id,
+            targetCountries: [],
+            linkCode: code,
+          },
+        });
+        const reloaded = await prisma.user.findUnique({ where: { id: authorization.user.id }, include: profileInclude });
+        if (reloaded) user = reloaded;
+      } catch {
+        // Continue if profile creation is handled concurrently or mocked in unit tests
+      }
+    }
+
     return NextResponse.json({ data: profileDTO(user) }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) { return handleApiError(error); }
 }
@@ -42,7 +60,18 @@ export async function PUT(request: Request) {
     if (agencyDetails && authorization.user.role !== 'AGENCY') return apiError('FORBIDDEN', 'Only agencies can update agency details.', 403);
     const user = await prisma.user.update({ where: { id: authorization.user.id }, data: {
       ...updates,
-      ...(studentDetails ? { studentProfile: { update: studentDetails } } : {}),
+      ...(studentDetails ? {
+        studentProfile: {
+          upsert: {
+            create: {
+              ...studentDetails,
+              targetCountries: studentDetails.targetCountries ?? [],
+              linkCode: 'ETHOS-STU-' + Math.floor(1000 + Math.random() * 9000),
+            },
+            update: studentDetails,
+          },
+        },
+      } : {}),
       ...(agencyDetails ? { agencyProfile: { update: {
         name: agencyDetails.agencyName,
         licenseNo: agencyDetails.licenseNo,

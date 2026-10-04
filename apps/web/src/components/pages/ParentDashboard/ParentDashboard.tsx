@@ -15,8 +15,26 @@ export default function ParentDashboard() {
       <Link href="/dashboard/profile"><Button variant="outline" size="sm">Relationship settings</Button></Link>
     </header>
     {linkedStudents.length === 0 ? <section className={styles.activityCard}>
-      <h2 className={styles.cardTitle}>No approved student relationship</h2>
-      <p>For privacy, entering an email or link code does not grant access. A server-approved parent relationship is required before applications, documents, or payments appear here.</p>
+      {user?.pendingStudentRequests && user.pendingStudentRequests.length > 0 ? (
+        <>
+          <h2 className={styles.cardTitle}>⏳ Guardian Link Request Pending</h2>
+          <p>
+            You sent a link request to <strong>{user.pendingStudentRequests[0].student.name}</strong> ({user.pendingStudentRequests[0].student.email}).
+            The student must log in and approve the request in their Profile Settings before applications and records appear here.
+          </p>
+          <div style={{ marginTop: 'var(--space-3)' }}>
+            <Link href="/dashboard/profile"><Button size="sm" variant="outline">View pending request in Profile</Button></Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <h2 className={styles.cardTitle}>No approved student relationship</h2>
+          <p>To view your child&apos;s applications, escrow milestones, and documents, enter their Ethos Link Code in Profile Settings.</p>
+          <div style={{ marginTop: 'var(--space-3)' }}>
+            <Link href="/dashboard/profile"><Button size="sm">Link Student Account</Button></Link>
+          </div>
+        </>
+      )}
     </section> : <section className={styles.grid}>
       {linkedStudents.map(student => <article className={styles.appCard} key={student.id}>
         <div className={styles.appInfo}><h2 className={styles.appTarget}>{student.name}</h2>

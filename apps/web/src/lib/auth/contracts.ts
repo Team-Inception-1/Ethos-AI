@@ -19,6 +19,9 @@ export const currentUserSchema = z.object({
   pendingGuardianRequests: z.array(z.object({
     id: z.string(), relationship: z.string(), requestedAt: z.string(), parent: relationshipUserSchema,
   })),
+  pendingStudentRequests: z.array(z.object({
+    id: z.string(), relationship: z.string(), requestedAt: z.string(), student: relationshipUserSchema,
+  })).default([]),
   studentDetails: z.object({ targetCountries: z.array(z.string()), targetField: z.string(),
     budgetRange: z.string(), ieltsScore: z.string(), linkCode: z.string() }).optional(),
   agencyDetails: z.object({ agencyName: z.string(), licenseNo: z.string(),
