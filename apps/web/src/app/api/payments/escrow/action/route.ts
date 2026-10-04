@@ -8,6 +8,8 @@ import { sameOrigin } from '@/lib/auth/registration';
 import { prisma } from '@/lib/prisma';
 import { reconcilePayment } from '@/lib/payments/service';
 import { paymentJson } from '@/lib/payments/http';
+import { formatPoishaToBDT } from '@/lib/escrowStateMachine';
+import { sendNotification } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -42,6 +44,42 @@ export async function POST(request: Request) {
         currency: 'BDT',
         status: 'VALID',
       });
+
+      if (result.status === 'HELD' && !result.duplicate) {
+        const milestone = await prisma.milestone.findUnique({
+          where: { id: body.milestoneId },
+          include: {
+            application: {
+              select: {
+                studentId: true,
+                agency: { select: { ownerUserId: true, name: true } },
+              },
+            },
+          },
+        });
+        if (milestone) {
+          const bdt = formatPoishaToBDT(milestone.amountPoisha);
+          await sendNotification({
+            userId: authorization.user.id,
+            type: 'ESCROW',
+            title: 'Escrow Milestone Funded',
+            message: `Deposit of ${bdt} for milestone "${milestone.name}" is now safely secured in cryptographic escrow vault.`,
+            entityType: 'ESCROW',
+            entityId: '/dashboard/payments',
+          });
+          if (milestone.application?.agency?.ownerUserId) {
+            await sendNotification({
+              userId: milestone.application.agency.ownerUserId,
+              type: 'ESCROW',
+              title: 'Student Funded Milestone Escrow',
+              message: `Student deposited ${bdt} into escrow for milestone "${milestone.name}". Funds will be held safely until release conditions are met.`,
+              entityType: 'ESCROW',
+              entityId: '/agency/dashboard',
+            });
+          }
+        }
+      }
+
       return paymentJson(result);
     }
     return apiError('INVALID_ACTION', 'Unsupported escrow action.', 400);

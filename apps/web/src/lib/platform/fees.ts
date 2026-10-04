@@ -1,6 +1,7 @@
 import type { AgencyFeeSubmission } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { PlatformConflict, toBdt } from './http';
+import { sendNotification } from '@/lib/notifications';
 
 export function feeDto(submission: AgencyFeeSubmission & { agency: { name: string } }) {
   const { amountPoisha, agency, ...rest } = submission;
@@ -9,14 +10,14 @@ export function feeDto(submission: AgencyFeeSubmission & { agency: { name: strin
     submittedAt: submission.createdAt };
 }
 export async function reviewFee(id: string, action: 'APPROVED' | 'REJECTED', feedback: string, actorId: string) {
-  return prisma.$transaction(async tx => {
+  const result = await prisma.$transaction(async tx => {
     const claimed = await tx.agencyFeeSubmission.updateMany({ where: { id, status: 'PENDING' }, data: {
       status: action === 'APPROVED' ? 'VERIFIED' : 'REJECTED', adminFeedback: feedback,
       reviewedAt: new Date(), reviewedByAdminId: actorId,
     } });
     if (!claimed.count) throw new PlatformConflict('The submission is missing or has already been reviewed.');
     const submission = await tx.agencyFeeSubmission.findUniqueOrThrow({ where: { id },
-      include: { agency: { select: { name: true } } } });
+      include: { agency: { select: { name: true, ownerUserId: true } } } });
     if (action === 'APPROVED') {
       const pricing = await tx.agencyPricing.findFirst({ where: { agencyId: submission.agencyId,
         serviceName: { equals: submission.serviceName, mode: 'insensitive' } } });
@@ -27,6 +28,25 @@ export async function reviewFee(id: string, action: 'APPROVED' | 'REJECTED', fee
     }
     await tx.governanceAudit.create({ data: { actorId, action: `FEE_${action}`, entityType: 'AgencyFeeSubmission',
       entityId: id, details: { feedback } } });
-    return feeDto(submission);
+    return {
+      dto: feeDto(submission),
+      ownerUserId: submission.agency.ownerUserId,
+      serviceName: submission.serviceName,
+    };
   }, { isolationLevel: 'Serializable' });
+
+  if (result.ownerUserId) {
+    await sendNotification({
+      userId: result.ownerUserId,
+      type: 'VERIFICATION',
+      title: action === 'APPROVED' ? 'Service Package Approved' : 'Service Package Rejected',
+      message: action === 'APPROVED'
+        ? `Your fee package "${result.serviceName}" has been approved and published.`
+        : `Your fee package "${result.serviceName}" was rejected by admin. Feedback: ${feedback}`,
+      entityType: 'AGENCY',
+      entityId: '/agency/dashboard',
+    });
+  }
+
+  return result.dto;
 }

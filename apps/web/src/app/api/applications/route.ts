@@ -7,6 +7,7 @@ import { applicationAccessWhere } from '@/lib/auth/relationships';
 import { applicationDocumentAccessWhere, applicationSelect } from '@/lib/applications/access';
 import { apiError, handleApiError } from '@/lib/api/response';
 import { sameOrigin } from '@/lib/auth/registration';
+import { sendNotification } from '@/lib/notifications';
 
 const createApplicationSchema = z.object({
   agencyId: z.string().trim().min(1).max(100),
@@ -56,6 +57,8 @@ export async function POST(request: Request) {
       where: { id: input.agencyId, licenseStatus: 'VERIFIED' },
       select: {
         id: true,
+        name: true,
+        ownerUserId: true,
         pricingServices: {
           where: { id: { in: input.pricingServiceIds } },
           select: { id: true, serviceName: true, amountPoisha: true, whenCharged: true },
@@ -140,6 +143,27 @@ export async function POST(request: Request) {
     });
 
     const { _count, ...created } = application as typeof application & { _count: { documents: number; milestones: number } };
+
+    // Notify agency owner of new application submission
+    await sendNotification({
+      userId: agency.ownerUserId,
+      type: 'APPLICATION',
+      title: 'New Student Application Received',
+      message: `Student (${authorization.user.email}) submitted an application for ${input.targetUniversity} (${input.targetCountry}) with ${agency.pricingServices.length} milestone service package(s).`,
+      entityType: 'APPLICATION',
+      entityId: created.id,
+    });
+
+    // Notify student confirmation
+    await sendNotification({
+      userId: authorization.user.id,
+      type: 'APPLICATION',
+      title: 'Application Initiated',
+      message: `Your application to ${input.targetUniversity} (${input.targetProgram}) via ${agency.name} has been initiated. Milestone escrow vaults are ready.`,
+      entityType: 'APPLICATION',
+      entityId: created.id,
+    });
+
     return NextResponse.json({ data: { application: {
       ...created, documentCount: _count.documents, milestoneCount: _count.milestones,
     } } }, { status: 201 });

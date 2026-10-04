@@ -6,6 +6,7 @@ import { transitionEscrow } from '@/lib/payments/service';
 import { paymentJson, paymentErrorResponse, requirePaymentRequest } from '@/lib/payments/http';
 import { formatPoishaToBDT, poishaToBdt } from '@/lib/escrowStateMachine';
 import { apiError } from '@/lib/api/response';
+import { sendNotification } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -74,6 +75,15 @@ export async function POST(request: Request) {
     // Ensure the disputed milestone exists
     const milestone = await prisma.milestone.findUnique({
       where: { id: body.milestoneId },
+      include: {
+        application: {
+          select: {
+            id: true,
+            studentId: true,
+            agency: { select: { id: true, name: true, ownerUserId: true } },
+          },
+        },
+      },
     });
     if (!milestone) {
       return apiError('NOT_FOUND', 'Disputed milestone not found.', 404);
@@ -111,6 +121,51 @@ export async function POST(request: Request) {
       body.reason,
       true
     );
+
+    const formattedAmount = formatPoishaToBDT(milestone.amountPoisha);
+    if (body.action === 'REFUND') {
+      if (milestone.application?.studentId) {
+        await sendNotification({
+          userId: milestone.application.studentId,
+          type: 'ESCROW',
+          title: 'Dispute Resolved: Refund Approved',
+          message: `Admin approved a refund of ${formattedAmount} for milestone "${milestone.name}". Reason: ${body.reason}`,
+          entityType: 'ESCROW',
+          entityId: '/dashboard/payments',
+        });
+      }
+      if (milestone.application?.agency?.ownerUserId) {
+        await sendNotification({
+          userId: milestone.application.agency.ownerUserId,
+          type: 'DISPUTE',
+          title: 'Dispute Resolved: Refunded to Student',
+          message: `Admin resolved the dispute on milestone "${milestone.name}" (${formattedAmount}) with a refund to the student. Reason: ${body.reason}`,
+          entityType: 'DISPUTE',
+          entityId: '/agency/dashboard',
+        });
+      }
+    } else {
+      if (milestone.application?.studentId) {
+        await sendNotification({
+          userId: milestone.application.studentId,
+          type: 'ESCROW',
+          title: 'Dispute Resolved: Escrow Released',
+          message: `Admin authorized release of ${formattedAmount} for milestone "${milestone.name}" to ${milestone.application.agency.name}. Reason: ${body.reason}`,
+          entityType: 'ESCROW',
+          entityId: '/dashboard/payments',
+        });
+      }
+      if (milestone.application?.agency?.ownerUserId) {
+        await sendNotification({
+          userId: milestone.application.agency.ownerUserId,
+          type: 'ESCROW',
+          title: 'Dispute Resolved: Escrow Released to Agency',
+          message: `Admin authorized the release of ${formattedAmount} for milestone "${milestone.name}" to your agency. Reason: ${body.reason}`,
+          entityType: 'ESCROW',
+          entityId: '/agency/dashboard',
+        });
+      }
+    }
 
     return paymentJson({
       ...result,

@@ -5,6 +5,7 @@ import { apiError } from '@/lib/api/response';
 import { benchmarkData, benchmarkDto, benchmarkInput } from '@/lib/platform/provenance';
 import { identifier, PlatformConflict, platformError, shortText, success } from '@/lib/platform/http';
 import { sameOrigin } from '@/lib/auth/registration';
+import { sendNotification } from '@/lib/notifications';
 
 export async function GET(request: Request) {
   try {
@@ -85,7 +86,7 @@ export async function PATCH(request: Request) {
     if (auth.response) return auth.response;
     if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const input = z.object({ id: identifier, isVerified: z.boolean() }).parse(await request.json());
-    const row = await prisma.$transaction(async tx => {
+    const { benchmark: row, proposalSubmitterId, proposalCountry } = await prisma.$transaction(async tx => {
       const proposal = await tx.countryBenchmarkSubmission.findUnique({ where: { id: input.id } });
       if (proposal) {
         const claimed = await tx.countryBenchmarkSubmission.updateMany({ where: { id: input.id, status: 'PENDING' },
@@ -102,15 +103,33 @@ export async function PATCH(request: Request) {
         await tx.governanceAudit.create({ data: { actorId: auth.user.id, action: 'BENCHMARK_PROPOSAL_REVIEWED',
           entityType: 'CountryBenchmarkSubmission', entityId: input.id, details: { isVerified: input.isVerified,
             publishedId: published?.id ?? null } } });
-        return published ? benchmarkDto(published) : { ...payload, id: proposal.id, isVerified: false, status: 'REJECTED' };
+        return {
+          benchmark: published ? benchmarkDto(published) : { ...payload, id: proposal.id, isVerified: false, status: 'REJECTED' },
+          proposalSubmitterId: proposal.submittedById,
+          proposalCountry: proposal.country,
+        };
       }
       const saved = await tx.countryCostBenchmark.update({ where: { id: input.id }, data: {
         isVerified: input.isVerified, verifiedByAdminId: auth.user.id, lastAuditedAt: new Date(),
       } });
       await tx.governanceAudit.create({ data: { actorId: auth.user.id, action: 'BENCHMARK_REVIEWED',
         entityType: 'CountryCostBenchmark', entityId: saved.id, details: { isVerified: input.isVerified } } });
-      return benchmarkDto(saved);
+      return { benchmark: benchmarkDto(saved), proposalSubmitterId: null, proposalCountry: saved.country };
     });
+
+    if (proposalSubmitterId) {
+      await sendNotification({
+        userId: proposalSubmitterId,
+        type: 'BENCHMARK',
+        title: input.isVerified ? 'Country Cost Benchmark Approved' : 'Country Cost Benchmark Rejected',
+        message: input.isVerified
+          ? `Your proposed cost benchmark for ${proposalCountry} has been approved and published to the public provenance ledger.`
+          : `Your proposed cost benchmark for ${proposalCountry} was rejected by platform administrators.`,
+        entityType: 'BENCHMARK',
+        entityId: '/agency/dashboard',
+      });
+    }
+
     return success({ benchmark: row, message: input.isVerified ? 'Benchmark published.' : 'Benchmark rejected or verification revoked.' });
   } catch (error) { return platformError(error); }
 }
