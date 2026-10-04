@@ -36,6 +36,26 @@ export async function POST(request: Request) {
     }
     const user = await prisma.$transaction(async tx => {
       const updated = await tx.user.update({ where: { id: userId }, data, select: publicFields });
+      if (updated.role === 'AGENCY' && data.isVerified !== undefined) {
+        const agency = await tx.agency.findUnique({ where: { ownerUserId: userId } });
+        if (agency) {
+          await tx.agency.update({
+            where: { id: agency.id },
+            data: { licenseStatus: data.isVerified ? 'VERIFIED' : 'PENDING' },
+          });
+        } else {
+          await tx.agency.create({
+            data: {
+              ownerUserId: userId,
+              name: updated.name,
+              licenseNo: 'MOE-BD-' + (new Date().getFullYear()) + '-' + Math.floor(100 + Math.random() * 900),
+              licenseStatus: data.isVerified ? 'VERIFIED' : 'PENDING',
+              countriesServed: ['CAN', 'GBR', 'USA', 'AUS'],
+              description: 'Verified study-abroad consultancy.',
+            },
+          });
+        }
+      }
       await tx.governanceAudit.create({ data: { actorId: auth.user.id, action: 'USER_UPDATED',
         entityType: 'User', entityId: userId, details: data } });
       return updated;

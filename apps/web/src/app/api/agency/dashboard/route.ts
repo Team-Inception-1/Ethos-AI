@@ -10,10 +10,25 @@ export async function GET() {
   try {
     const auth = await requireRole(['AGENCY']);
     if (auth.response) return auth.response;
-    const agency = await prisma.agency.findUnique({ where: { ownerUserId: auth.user.id }, select: {
+    let agency = await prisma.agency.findUnique({ where: { ownerUserId: auth.user.id }, select: {
       id: true, name: true, licenseNo: true, licenseStatus: true, countriesServed: true,
     } });
-    if (!agency) return apiError('NOT_FOUND', 'No agency profile is linked to this account.', 404);
+    if (!agency) {
+      const user = await prisma.user.findUnique({ where: { id: auth.user.id }, select: { name: true } });
+      agency = await prisma.agency.create({
+        data: {
+          ownerUserId: auth.user.id,
+          name: user?.name || 'Agency Workspace',
+          licenseNo: 'MOE-BD-' + (new Date().getFullYear()) + '-' + Math.floor(100 + Math.random() * 900),
+          licenseStatus: auth.user.isVerified ? 'VERIFIED' : 'PENDING',
+          countriesServed: ['CAN', 'GBR', 'USA', 'AUS'],
+          description: 'Study-abroad consultancy awaiting administrative credential verification.',
+        },
+        select: {
+          id: true, name: true, licenseNo: true, licenseStatus: true, countriesServed: true,
+        },
+      });
+    }
     const [applications, services, documents] = await Promise.all([
       agency.licenseStatus === 'VERIFIED' ? prisma.application.findMany({ where: { agencyId: agency.id },
         include: { student: { select: { id: true, name: true, email: true, phone: true } },

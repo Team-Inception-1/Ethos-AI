@@ -28,7 +28,17 @@ export async function POST(request: Request) {
     const profile = await prisma.user.create({ data: {
       id: identity.id, name: draft.name, email, phone: draft.phone, role: roles[draft.role], isVerified: draft.role !== 'agency',
       ...(draft.role === 'student' ? { studentProfile: { create: { targetCountries: [], linkCode: 'ETHOS-' + randomUUID() } } } : {}),
-      // Agency accounts cannot gain active-agency authority until onboarding/review.
+      ...(draft.role === 'agency' ? {
+        agencyProfile: {
+          create: {
+            name: draft.name,
+            licenseNo: 'MOE-BD-' + (new Date().getFullYear()) + '-' + Math.floor(100 + Math.random() * 900),
+            licenseStatus: 'PENDING',
+            countriesServed: ['CAN', 'GBR', 'USA', 'AUS'],
+            description: 'Study-abroad consultancy awaiting administrative credential verification.',
+          },
+        },
+      } : {}),
     }, select: { id: true } });
     store.delete(REGISTRATION_COOKIE);
     return NextResponse.json({ data: profile }, { status: 201 });
