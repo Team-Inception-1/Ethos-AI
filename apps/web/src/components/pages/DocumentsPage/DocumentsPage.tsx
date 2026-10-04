@@ -50,6 +50,7 @@ export default function DocumentsPage() {
 
 function DocumentVault() {
   const { user } = useAuth();
+  const canManageDocuments = user?.role !== 'parent';
   const [docs, setDocs] = useState<DocItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -92,7 +93,7 @@ function DocumentVault() {
   }, [user?.id]);
 
   const processUpload = async (file: File) => {
-    if (uploading) return;
+    if (uploading || !canManageDocuments) return;
     if (!file.size || file.size > 10 * 1024 * 1024 || !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
       setError('Choose a nonempty PDF, JPEG, or PNG file up to 10 MB.'); return;
     }
@@ -148,6 +149,7 @@ function DocumentVault() {
   };
 
   const handleScan = async (doc: DocItem) => {
+    if (!canManageDocuments) return;
     setError('');
     setScanningId(doc.id);
     try {
@@ -166,6 +168,7 @@ function DocumentVault() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canManageDocuments) return;
     if (!confirm('Are you sure you want to remove this document?')) return;
     setError('');
     try {
@@ -210,13 +213,15 @@ function DocumentVault() {
       {/* ─── Top Header ─── */}
       <div className={styles.header}>
         <div className={styles.titleArea}>
-          <h1>Document Vault & Storage</h1>
+          <h1>{canManageDocuments ? 'Document Vault & Storage' : 'Authorized Documents'}</h1>
           <p>
-            Document storage with <strong>Offer & Agreement Analysis</strong> when the scanning service is configured
+            {canManageDocuments
+              ? <>Document storage with <strong>Offer & Agreement Analysis</strong> when the scanning service is configured</>
+              : 'View-only documents shared by your approved linked students.'}
           </p>
         </div>
 
-        <div className={styles.quickUploadBar}>
+        {canManageDocuments && <div className={styles.quickUploadBar}>
           <select
             value={selectedType}
             onChange={(e) => { const type = e.target.value; if (type === 'offer_letter' || type === 'agreement' || type === 'passport' || type === 'transcript') setSelectedType(type); }}
@@ -245,7 +250,7 @@ function DocumentVault() {
           >
             {uploading ? 'Uploading…' : '+ Upload Document'}
           </Button>
-        </div>
+        </div>}
       </div>
 
       {/* ─── Executive KPI Stat Cards ─── */}
@@ -290,7 +295,7 @@ function DocumentVault() {
       </div>
 
       {/* ─── Interactive Drag & Drop Upload Zone ─── */}
-      <div
+      {canManageDocuments && <div
         className={`${styles.uploadZone} ${isDragging ? styles.uploadZoneDragActive : ''}`}
         onClick={() => fileInputRef.current?.click()}
         onDragOver={handleDragOver}
@@ -328,7 +333,7 @@ function DocumentVault() {
           <Badge variant="neutral" size="sm">PDF / JPEG / PNG</Badge>
           <Badge variant="neutral" size="sm">Authenticated Downloads</Badge>
         </div>
-      </div>
+      </div>}
 
       {/* ─── Filter & Search Dock ─── */}
       <div className={styles.controlBar}>
@@ -403,9 +408,11 @@ function DocumentVault() {
           <div className={styles.emptyText}>
             {searchQuery
               ? `No document matching "${searchQuery}". Try a different keyword.`
-              : `You haven't uploaded any documents in this category yet.`}
+              : canManageDocuments
+                ? `You haven't uploaded any documents in this category yet.`
+                : 'No documents are available from your approved linked students.'}
           </div>
-          <Button
+          {canManageDocuments && <Button
             size="sm"
             variant="outline"
             onClick={() => {
@@ -414,7 +421,7 @@ function DocumentVault() {
             }}
           >
             + Upload New Document
-          </Button>
+          </Button>}
         </div>
       ) : (
         <div className={styles.docGrid} role="list" aria-label="Uploaded documents">
@@ -478,14 +485,14 @@ function DocumentVault() {
                   Preview
                 </Button>
 
-                <Button
+                {canManageDocuments && <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleScan(d)}
                   disabled={scanningId === d.id}
                 >
                   {scanningId === d.id ? 'Scanning Heuristics…' : '⚡ AI Scan'}
-                </Button>
+                </Button>}
 
                 {d.verdict && (
                   <Button size="sm" variant="ghost" onClick={() => setScanModalDoc(d)}>
@@ -504,14 +511,14 @@ function DocumentVault() {
                   </Button>
                 </a>
 
-                <Button
+                {canManageDocuments && <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => handleDelete(d.id)}
                   style={{ color: 'var(--red-danger)', marginLeft: 'auto' }}
                 >
                   Delete
-                </Button>
+                </Button>}
               </div>
             </div>
           ))}

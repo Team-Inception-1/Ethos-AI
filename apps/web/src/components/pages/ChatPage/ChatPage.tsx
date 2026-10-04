@@ -677,7 +677,7 @@ export default function ChatPage() {
       {/* ─── Top Header & Trust Row (AUD-025 truthful claims) ─── */}
       <div className={styles.headerRow}>
         <div className={styles.titleArea}>
-          <h1>{isAdmin ? 'Dispute & Communication Transcripts' : '1-on-1 Secure Agency Chat'}</h1>
+          <h1>{isAdmin ? 'Dispute & Communication Transcripts' : 'Secure Application Chat'}</h1>
           <p className={styles.headerSubtitle}>
             {isAdmin
               ? 'Read-only student-agency conversations with SHA-256 server audit records'
