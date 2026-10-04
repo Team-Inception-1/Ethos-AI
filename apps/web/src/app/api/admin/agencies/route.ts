@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth/authorization';
 import { identifier, platformError, success } from '@/lib/platform/http';
 import { sameOrigin } from '@/lib/auth/registration';
 import { apiError } from '@/lib/api/response';
+import { sendNotification } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -44,6 +45,38 @@ export async function POST(request: Request) {
         entityType: 'Agency', entityId: updated.id, details: { note: input.note ?? '' } } });
       return { ...updated, feeMinPoisha: updated.feeMinPoisha.toString(), feeMaxPoisha: updated.feeMaxPoisha.toString() };
     });
+
+    const statusMessages: Record<string, { title: string; message: string }> = {
+      VERIFIED: {
+        title: 'Agency License Verified',
+        message: 'Congratulations! Your consultancy license has been verified by platform administrators. Your profile is now publicly visible in the agency directory.',
+      },
+      REJECTED: {
+        title: 'Agency Verification Rejected',
+        message: `Your agency verification request was rejected.${input.note ? ` Reason: ${input.note}` : ' Please review your licensing documents and contact support.'}`,
+      },
+      SUSPENDED: {
+        title: 'Agency Account Suspended',
+        message: `Your agency profile has been temporarily suspended.${input.note ? ` Reason: ${input.note}` : ''}`,
+      },
+      PENDING: {
+        title: 'Agency Verification Pending',
+        message: 'Your agency licensing status has been set to pending review.',
+      },
+    };
+
+    const notif = statusMessages[input.action];
+    if (notif && agency.ownerUserId) {
+      await sendNotification({
+        userId: agency.ownerUserId,
+        type: 'VERIFICATION',
+        title: notif.title,
+        message: notif.message,
+        entityType: 'AGENCY',
+        entityId: '/agency/dashboard',
+      });
+    }
+
     return success({ agency, message: 'Agency status updated.' });
   } catch (error) { return platformError(error); }
 }

@@ -5,6 +5,7 @@ import { apiError } from '@/lib/api/response';
 import { applicationStages, stageTransitions } from '@/lib/platform/agency-contracts';
 import { identifier, PlatformConflict, platformError, success, toBdt } from '@/lib/platform/http';
 import { sameOrigin } from '@/lib/auth/registration';
+import { sendNotification } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -58,17 +59,44 @@ export async function PATCH(request: Request) {
     const input = z.object({ applicationId: identifier, stage: z.enum(applicationStages),
       note: z.string().trim().max(10000).optional() }).parse(await request.json());
     const result = await prisma.$transaction(async tx => {
-      const application = await tx.application.findFirst({ where: { id: input.applicationId,
-        agency: { ownerUserId: auth.user.id, licenseStatus: 'VERIFIED' } }, select: { id: true, stage: true } });
+      const application = await tx.application.findFirst({
+        where: { id: input.applicationId, agency: { ownerUserId: auth.user.id, licenseStatus: 'VERIFIED' } },
+        select: {
+          id: true,
+          stage: true,
+          studentId: true,
+          targetUniversity: true,
+          targetCountry: true,
+          agency: { select: { name: true } },
+        },
+      });
       if (!application) return null;
       if (!stageTransitions[application.stage].includes(input.stage)) throw new PlatformConflict('This stage transition is not allowed.');
       const changed = await tx.application.updateMany({ where: { id: application.id, stage: application.stage }, data: { stage: input.stage } });
       if (!changed.count) throw new PlatformConflict('The application was updated by another request. Refresh and retry.');
       await tx.stageEvent.create({ data: { applicationId: application.id, stage: input.stage,
         actorId: auth.user.id, actorRole: 'AGENCY', note: input.note } });
-      return { id: application.id, stage: input.stage };
+      return {
+        id: application.id,
+        stage: input.stage,
+        studentId: application.studentId,
+        targetUniversity: application.targetUniversity,
+        targetCountry: application.targetCountry,
+        agencyName: application.agency.name,
+      };
     });
     if (!result) return apiError('FORBIDDEN', 'Application is not accessible to this verified agency.', 403);
-    return success({ application: result, message: 'Application stage saved. Escrow balances are unchanged.' });
+
+    const formattedStage = input.stage.replace(/_/g, ' ');
+    await sendNotification({
+      userId: result.studentId,
+      type: 'APPLICATION',
+      title: `Application Update: ${formattedStage}`,
+      message: `${result.agencyName} updated your application for ${result.targetUniversity} (${result.targetCountry}) to "${formattedStage}".${input.note ? ` Note: ${input.note}` : ''}`,
+      entityType: 'APPLICATION',
+      entityId: result.id,
+    });
+
+    return success({ application: { id: result.id, stage: result.stage }, message: 'Application stage saved. Escrow balances are unchanged.' });
   } catch (error) { return platformError(error); }
 }
