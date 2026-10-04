@@ -4,6 +4,7 @@
 
 .page { min-height: 100vh; }
 .inner { padding-top: var(--space-8); padding-bottom: var(--space-16); }
+.innerDashboard { padding-top: 0; padding-bottom: var(--space-8); width: 100%; }
 
 .pageHeader {
   display: flex;

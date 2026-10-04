@@ -103,6 +103,7 @@ export default function TopBar() {
   const pageTitle =
     pathname?.startsWith('/admin') ? 'Platform Governance' :
     pathname?.startsWith('/agency') ? 'Agency Operations' :
+    pathname?.includes('/agency-directory') || pathname?.includes('/dashboard/directory') ? 'Agency Directory' :
     pathname?.includes('/counselor') ? 'AI Counselor' :
     pathname?.includes('/scholar-finder') ? 'Scholar Finder' :
     pathname?.includes('/campus-living') ? 'Living Cost Estimator' :

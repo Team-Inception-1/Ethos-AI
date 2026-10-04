@@ -146,7 +146,7 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
               ? 'When an application is created, its verified status and milestones will appear here.'
               : 'Applications from approved linked students will appear here.'}
           </p>
-          {canCreateApplication && <Link href="/directory"><Button size="sm" variant="outline">Find an agency</Button></Link>}
+          {canCreateApplication && <Link href="/dashboard/agency-directory"><Button size="sm" variant="outline">Find an agency</Button></Link>}
         </GlassCard>
       )}
 
