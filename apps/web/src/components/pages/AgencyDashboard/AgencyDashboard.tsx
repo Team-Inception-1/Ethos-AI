@@ -25,7 +25,17 @@ const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(22
 const fieldStyle = { display: 'grid', gap: 6, fontSize: 14 };
 const inputStyle = { width: '100%', padding: 10, border: '1px solid var(--border)', borderRadius: 6,
   background: 'var(--bg-elevated)', color: 'var(--text-primary)' };
-const human = (value: string) => value.replaceAll('_', ' ');
+const STAGE_LABELS: Record<string, string> = {
+  SUBMITTED: 'Submitted',
+  UNDER_REVIEW: 'Under Review',
+  OFFER_RECEIVED: 'Offer Received',
+  PAYMENT_PENDING: 'Payment Pending',
+  VISA_PROCESSING: 'Visa Processing',
+  VISA_APPROVED: 'Visa Approved',
+  VISA_REJECTED: 'Visa Rejected',
+  COMPLETED: 'Completed',
+};
+const human = (value: string) => STAGE_LABELS[value] ?? value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 const money = (value: number) => `৳${value.toLocaleString('en-BD', { maximumFractionDigits: 2 })}`;
 
 export default function AgencyDashboard() {
@@ -128,6 +138,10 @@ export default function AgencyDashboard() {
           }}>View application</Button></td></tr>)}
       </tbody></table>{dashboard.applications.length === 0 && <p>No applications found.</p>}</GlassCard>
       {selectedApplication && <GlassCard><h2>{selectedApplication.student.name} · Application details</h2>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', margin: '8px 0 12px 0' }}>
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Current stage:</span>
+          <Badge variant="outline">{human(selectedApplication.stage)}</Badge>
+        </div>
         <p>{selectedApplication.lastNote ?? 'No stage notes recorded.'}</p>
         <p>Documents: {selectedApplication.documents.length === 0 ? 'None' : selectedApplication.documents.map(document => document.fileName).join(', ')}</p>
         <Link href="/dashboard/documents">Open document vault</Link>
@@ -136,9 +150,9 @@ export default function AgencyDashboard() {
             body: JSON.stringify({ applicationId: selectedApplication.id, stage: nextStage, note: stageNote }) });
           setSelectedApplication(null); setNotice('Stage saved. No escrow funds were moved.');
         }); }} style={{ display: 'grid', gap: 12, marginTop: 16 }}>
-          <label style={fieldStyle}>Next stage<select style={inputStyle} value={nextStage} onChange={event => setNextStage(event.target.value as ApplicationStage)}>
+          <label style={fieldStyle}>Update stage to<select style={inputStyle} value={nextStage} onChange={event => setNextStage(event.target.value as ApplicationStage)}>
             {stageTransitions[selectedApplication.stage].map(stage => <option key={stage} value={stage}>{human(stage)}</option>)}</select></label>
-          <label style={fieldStyle}>Stage note<textarea style={inputStyle} maxLength={10000} value={stageNote} onChange={event => setStageNote(event.target.value)} /></label>
+          <label style={fieldStyle}>Stage note<textarea style={inputStyle} placeholder="Add an optional progress update or note for the student" maxLength={10000} value={stageNote} onChange={event => setStageNote(event.target.value)} /></label>
           <Button type="submit" loading={busy}>Save stage</Button>
         </form>}<Button variant="ghost" onClick={() => setSelectedApplication(null)}>Close details</Button></GlassCard>}
     </>}

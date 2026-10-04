@@ -87,7 +87,7 @@ export async function PATCH(request: Request) {
     });
     if (!result) return apiError('FORBIDDEN', 'Application is not accessible to this verified agency.', 403);
 
-    const formattedStage = input.stage.replace(/_/g, ' ');
+    const formattedStage = input.stage.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     await sendNotification({
       userId: result.studentId,
       type: 'APPLICATION',
