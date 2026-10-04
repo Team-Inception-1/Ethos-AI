@@ -28,6 +28,10 @@ export async function POST(request: Request) {
       note: z.string().trim().max(10000).optional() }).parse(await request.json());
     const agency = await prisma.$transaction(async tx => {
       const updated = await tx.agency.update({ where: { id: input.agencyId }, data: { licenseStatus: input.action } });
+      await tx.user.update({
+        where: { id: updated.ownerUserId },
+        data: { isVerified: input.action === 'VERIFIED' },
+      });
       await tx.governanceAudit.create({ data: { actorId: auth.user.id, action: `AGENCY_${input.action}`,
         entityType: 'Agency', entityId: updated.id, details: { note: input.note ?? '' } } });
       return { ...updated, feeMinPoisha: updated.feeMinPoisha.toString(), feeMaxPoisha: updated.feeMaxPoisha.toString() };

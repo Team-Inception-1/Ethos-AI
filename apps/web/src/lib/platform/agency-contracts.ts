@@ -20,6 +20,7 @@ export interface BenchmarkView {
   livingCostMonthlyBdtMin: number; livingCostMonthlyBdtMax: number; blockedAccountOrGicBdt: number;
   visaFeeBdt: number; healthInsuranceYearlyBdt: number; requirementType: string;
   officialGovUrl: string; officialGovSourceTitle: string; keyRequirements: string[]; isVerified: boolean;
+  status?: string;
 }
 export interface FeeSubmissionView {
   id: string; serviceName: string; country: string; amountBdt: number; status: string; adminFeedback?: string | null;

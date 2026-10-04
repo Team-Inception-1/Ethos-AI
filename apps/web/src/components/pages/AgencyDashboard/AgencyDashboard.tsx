@@ -53,7 +53,7 @@ export default function AgencyDashboard() {
     try {
       const [data, benchmarkData, feeData] = await Promise.all([
         browserApi<AgencyDashboardData>('/api/agency/dashboard'),
-        browserApi<{ benchmarks: BenchmarkView[] }>('/api/provenance/benchmarks'),
+        browserApi<{ benchmarks: BenchmarkView[] }>('/api/provenance/benchmarks?mine=true'),
         browserApi<{ submissions: FeeSubmissionView[] }>('/api/agency/fee-submissions'),
       ]);
       setDashboard(data); setBenchmarks(benchmarkData.benchmarks); setSubmissions(feeData.submissions); setError(null);
@@ -172,13 +172,35 @@ export default function AgencyDashboard() {
       </li>)}</ul>}
     </GlassCard>}
     {tab === 'benchmarks' && <>
-      <Button onClick={() => { setBenchmarkForm(emptyBenchmark); setShowBenchmark(true); }}>Propose country benchmark</Button>
-      <div style={grid}>{benchmarks.map(benchmark => <GlassCard key={benchmark.id}><h2>{benchmark.flagEmoji} {benchmark.country}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Country cost benchmarks</h2>
+          <p style={{ margin: '4px 0 0 0', color: 'var(--muted-foreground, #666)', fontSize: 14 }}>
+            Benchmark proposals submitted by your agency. Administrators verify each proposal before publication.
+          </p>
+        </div>
+        <Button onClick={() => { setBenchmarkForm(emptyBenchmark); setShowBenchmark(true); }}>Propose country benchmark</Button>
+      </div>
+      <div style={grid}>{benchmarks.map(benchmark => <GlassCard key={benchmark.id}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h2 style={{ margin: 0 }}>{benchmark.flagEmoji} {benchmark.country}</h2>
+          <Badge variant={benchmark.status === 'VERIFIED' ? 'verified' : benchmark.status === 'REJECTED' ? 'rejected' : 'pending'}>
+            {benchmark.status || (benchmark.isVerified ? 'VERIFIED' : 'PENDING')}
+          </Badge>
+        </div>
         <p>{human(benchmark.requirementType)}: {money(benchmark.blockedAccountOrGicBdt)}</p>
         <p>Monthly living: {money(benchmark.livingCostMonthlyBdtMin)}–{money(benchmark.livingCostMonthlyBdtMax)}</p>
         <a href={benchmark.officialGovUrl} target="_blank" rel="noopener noreferrer">{benchmark.officialGovSourceTitle}</a><br />
-        <Button size="sm" variant="outline" onClick={() => editBenchmark(benchmark)}>Propose correction</Button></GlassCard>)}</div>
-      {benchmarks.length === 0 && !loading && <p>No verified country benchmarks are published.</p>}
+        <Button size="sm" variant="outline" onClick={() => editBenchmark(benchmark)} style={{ marginTop: 8 }}>Propose correction</Button></GlassCard>)}</div>
+      {benchmarks.length === 0 && !loading && (
+        <GlassCard style={{ textAlign: 'center', padding: '36px 20px', marginTop: 12 }}>
+          <h3>No benchmark submissions yet</h3>
+          <p style={{ maxWidth: 480, margin: '8px auto 20px', color: 'var(--muted-foreground, #666)', fontSize: 14 }}>
+            Your agency has not submitted any country cost benchmarks yet. Sourced cost benchmarks help students understand official living and visa expenses.
+          </p>
+          <Button onClick={() => { setBenchmarkForm(emptyBenchmark); setShowBenchmark(true); }}>Propose country benchmark</Button>
+        </GlassCard>
+      )}
       {showBenchmark && <GlassCard><h2>Benchmark proposal</h2><p>Provide sourced values. An administrator must review this proposal before publication.</p>
         <form onSubmit={proposeBenchmark} style={{ display: 'grid', gap: 16 }}><div style={grid}>
           {([['country', 'Country'], ['countryCode', 'Country code (2 or 3 uppercase letters)'], ['currency', 'Currency code (3 uppercase letters)'], ['officialGovUrl', 'Official source URL (HTTPS)'], ['officialGovSourceTitle', 'Official source title']] as const).map(([key, label]) =>
