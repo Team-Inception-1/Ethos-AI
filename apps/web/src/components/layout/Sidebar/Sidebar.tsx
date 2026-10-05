@@ -210,6 +210,13 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <VerificationQueueIcon />,
         },
         {
+          href: '/admin?tab=releases',
+          label: 'Escrow Releases',
+          labelBn: 'এসক্রো রিলিজ',
+          icon: <PaymentsIcon />,
+          badge: 'Verify',
+        },
+        {
           href: '/directory',
           label: 'Agency Directory',
           labelBn: 'এজেন্সি ডিরেক্টরি',

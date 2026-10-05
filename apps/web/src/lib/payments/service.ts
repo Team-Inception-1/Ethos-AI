@@ -57,7 +57,7 @@ async function recordTransition(tx: Prisma.TransactionClient, milestone: {
   // one can win this conditional update. All accompanying writes roll back on loss.
   const changed = await tx.milestone.updateMany({ where: {
     id: milestone.id, status: milestone.status, amountPoisha: milestone.amountPoisha,
-  }, data: { status: target } });
+  }, data: { status: target, ...(target === 'RELEASED' || target === 'REFUNDED' ? { releaseRequested: false } : {}) } });
   if (changed.count !== 1) throw new PaymentError('ESCROW_CONFLICT', 'The escrow state changed. Refresh and retry.');
   const id = randomUUID();
   const timestamp = new Date();

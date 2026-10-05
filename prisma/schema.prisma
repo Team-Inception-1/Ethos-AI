@@ -345,11 +345,17 @@ model Milestone {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Escrow Release Verification Workflow
+  releaseRequested   Boolean   @default(false)
+  releaseRequestedAt DateTime?
+  releaseNote        String?
+
   ledgerEntries   LedgerEntry[]
   paymentAttempts PaymentAttempt[]
 
   @@index([applicationId])
   @@index([status])
+  @@index([releaseRequested])
 }
 
 enum LedgerEntryType {

@@ -15,6 +15,27 @@ interface AdminStats {
   escrow: { held: number; released: number; pending: number; totalSecuredBDT: number; totalSecuredFormatted: string };
   scamAlerts: { pendingCount: number; totalCount: number };
   users: { total: number; students: number; parents: number; agencies: number; admins: number };
+  escrowReleases?: { pendingCount: number; pendingBDT: number; pendingFormatted: string };
+}
+
+interface EscrowReleaseItem {
+  id: string;
+  milestoneId: string;
+  applicationId: string;
+  milestoneName: string;
+  orderIndex: number;
+  releaseCondition: string;
+  amountPoisha: string;
+  amountBDT: number;
+  amountFormatted: string;
+  status: string;
+  releaseRequested: boolean;
+  releaseRequestedAt: string;
+  releaseNote: string;
+  student: { id: string; name: string; email: string; phone?: string | null };
+  agency: { id: string; name: string; licenseNo: string; ownerUserId?: string | null };
+  application: { targetUniversity: string; targetProgram: string; targetCountry: string };
+  heldAt: string;
 }
 
 interface AgencyItem {
@@ -153,12 +174,16 @@ interface FeeSubmissionItem {
   submittedAt: string;
 }
 
-type TabType = 'Agency Verification' | 'Data Provenance' | 'Disputes' | 'Scam Alerts' | 'Users' | 'Audit Ledger';
-const TABS: TabType[] = ['Agency Verification', 'Data Provenance', 'Disputes', 'Scam Alerts', 'Users', 'Audit Ledger'];
+type TabType = 'Agency Verification' | 'Escrow Releases' | 'Data Provenance' | 'Disputes' | 'Scam Alerts' | 'Users' | 'Audit Ledger';
+const TABS: TabType[] = ['Agency Verification', 'Escrow Releases', 'Data Provenance', 'Disputes', 'Scam Alerts', 'Users', 'Audit Ledger'];
 
 const TAB_MAP: Record<string, TabType> = {
   agencies: 'Agency Verification',
   agency: 'Agency Verification',
+  releases: 'Escrow Releases',
+  release: 'Escrow Releases',
+  escrow: 'Escrow Releases',
+  'escrow-releases': 'Escrow Releases',
   provenance: 'Data Provenance',
   benchmarks: 'Data Provenance',
   disputes: 'Disputes',
@@ -175,6 +200,7 @@ const TAB_MAP: Record<string, TabType> = {
 
 const TAB_REVERSE_MAP: Record<TabType, string> = {
   'Agency Verification': 'agencies',
+  'Escrow Releases': 'releases',
   'Data Provenance': 'provenance',
   'Disputes': 'disputes',
   'Scam Alerts': 'scams',
@@ -243,6 +269,7 @@ export default function AdminPanel() {
   const [benchmarks, setBenchmarks] = useState<CountryBenchmarkItem[]>([]);
   const [courseCatalogs, setCourseCatalogs] = useState<CourseCatalogItem[]>([]);
   const [feeSubmissions, setFeeSubmissions] = useState<FeeSubmissionItem[]>([]);
+  const [escrowReleases, setEscrowReleases] = useState<EscrowReleaseItem[]>([]);
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -256,6 +283,8 @@ export default function AdminPanel() {
   const [selectedScamReport, setSelectedScamReport] = useState<ScamAlertItem | null>(null);
   const [selectedFeeSubDossier, setSelectedFeeSubDossier] = useState<FeeSubmissionItem | null>(null);
   const [selectedUserDossier, setSelectedUserDossier] = useState<UserItem | null>(null);
+  const [selectedReleaseDossier, setSelectedReleaseDossier] = useState<EscrowReleaseItem | null>(null);
+  const [releaseActionNote, setReleaseActionNote] = useState<string>('');
   const [feeSubFeedback, setFeeSubFeedback] = useState<string>('');
   const [agencyAuditNote, setAgencyAuditNote] = useState<string>('');
   const [disputeResolutionNote, setDisputeResolutionNote] = useState<string>('');
@@ -285,7 +314,7 @@ export default function AdminPanel() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [ovRes, agRes, dpRes, scRes, usRes, ldRes, bmRes, ctRes, fsRes] = await Promise.all([
+      const [ovRes, agRes, dpRes, scRes, usRes, ldRes, bmRes, ctRes, fsRes, relRes] = await Promise.all([
         browserApi<{ stats: AdminStats }>('/api/admin/overview'),
         browserApi<{ agencies: AgencyItem[] }>('/api/admin/agencies'),
         browserApi<{ disputes: DisputeItem[] }>('/api/admin/disputes'),
@@ -295,10 +324,12 @@ export default function AdminPanel() {
         browserApi<{ benchmarks: CountryBenchmarkItem[] }>('/api/provenance/benchmarks'),
         browserApi<{ catalogs: CourseCatalogItem[] }>('/api/provenance/catalogs'),
         browserApi<{ submissions: FeeSubmissionItem[] }>('/api/admin/fee-submissions'),
+        browserApi<{ releases: EscrowReleaseItem[] }>('/api/admin/escrow/releases').catch(() => ({ releases: [] as EscrowReleaseItem[] })),
       ]);
       setStats(ovRes.stats); setAgencies(agRes.agencies); setDisputes(dpRes.disputes);
       setScamAlerts(scRes.alerts); setUsersList(usRes.users); setLedgerEntries(ldRes.entries);
       setBenchmarks(bmRes.benchmarks); setCourseCatalogs(ctRes.catalogs); setFeeSubmissions(fsRes.submissions);
+      setEscrowReleases(relRes.releases || []);
     } catch (err) {
       setFeedback(errorMessage(err, 'Unable to load admin dashboard. Refresh to retry.'));
     } finally {
@@ -549,6 +580,39 @@ export default function AdminPanel() {
     }
   };
 
+  // Handler: Escrow Release Action (Approve / Reject)
+  const handleEscrowReleaseAction = async (milestoneId: string, action: 'APPROVE' | 'REJECT', note?: string) => {
+    try {
+      setActionLoadingId(milestoneId);
+      const res = await fetch('/api/admin/escrow/releases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          milestoneId,
+          action,
+          note: note || (action === 'APPROVE' ? 'Admin verified milestone requirements: Escrow released to agency.' : 'Admin rejected release request.'),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(errorMessage(data.error, 'Failed to process escrow release'));
+      }
+      showToast(
+        data.message ||
+          (action === 'APPROVE'
+            ? '✓ Escrow funds successfully verified and disbursed to agency.'
+            : '✕ Escrow release request rejected. Funds remain held.')
+      );
+      setSelectedReleaseDossier(null);
+      setReleaseActionNote('');
+      await fetchData();
+    } catch (err) {
+      showToast(`Error: ${errorMessage(err)}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   // Filtered agencies
   const filteredAgencies = useMemo(() => {
     return agencies.filter((a) => {
@@ -582,9 +646,29 @@ export default function AdminPanel() {
     });
   }, [usersList, userRoleFilter, searchQuery]);
 
+  // Filtered escrow releases
+  const filteredEscrowReleases = useMemo(() => {
+    return escrowReleases.filter((r) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        (r.milestoneName || '').toLowerCase().includes(q) ||
+        (r.student?.name || '').toLowerCase().includes(q) ||
+        (r.student?.email || '').toLowerCase().includes(q) ||
+        (r.agency?.name || '').toLowerCase().includes(q) ||
+        (r.agency?.licenseNo || '').toLowerCase().includes(q) ||
+        (r.application?.targetUniversity || '').toLowerCase().includes(q) ||
+        (r.application?.targetProgram || '').toLowerCase().includes(q) ||
+        (r.releaseCondition || '').toLowerCase().includes(q) ||
+        (r.releaseNote || '').toLowerCase().includes(q)
+      );
+    });
+  }, [escrowReleases, searchQuery]);
+
   const pendingAgenciesCount = agencies.filter((a) => a.licenseStatus === 'PENDING').length;
   const activeDisputesCount = disputes.filter((d) => d.status === 'disputed').length;
   const pendingScamCount = scamAlerts.filter((s) => s.status === 'PENDING_REVIEW' || s.status === 'FLAGGED').length;
+  const pendingReleasesCount = escrowReleases.length;
 
   return (
     <div className={styles.page}>
@@ -647,7 +731,35 @@ export default function AdminPanel() {
           </div>
         </button>
 
-        {/* Box 2: Disputes */}
+        {/* Box 2: Escrow Releases */}
+        <button
+          type="button"
+          className={`${styles.statCard} ${activeTab === 'Escrow Releases' ? styles.statCardActive : ''}`}
+          onClick={() => {
+            setActiveTab('Escrow Releases');
+            setSearchQuery('');
+          }}
+          aria-label="View Escrow Releases verification queue"
+        >
+          {activeTab === 'Escrow Releases' && (
+            <span className={styles.activeIndicator}>● Viewing</span>
+          )}
+          <div className={styles.statIcon} style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#d97706' }}>
+            💳
+          </div>
+          <div>
+            <div className={styles.statValue}>
+              {stats?.escrowReleases?.pendingFormatted ?? `৳${escrowReleases.reduce((sum, r) => sum + r.amountBDT, 0).toLocaleString('en-IN')}`}
+            </div>
+            <div className={styles.statLabel}>Pending Escrow Releases</div>
+            <div className={styles.statSubtext}>{pendingReleasesCount} pending admin verification</div>
+            <div className={styles.clickHint}>
+              {activeTab === 'Escrow Releases' ? 'Viewing details below ↓' : 'Click to verify & release →'}
+            </div>
+          </div>
+        </button>
+
+        {/* Box 3: Disputes */}
         <button
           type="button"
           className={`${styles.statCard} ${activeTab === 'Disputes' ? styles.statCardActive : ''}`}
@@ -790,6 +902,7 @@ export default function AdminPanel() {
         </div>
         <div className={styles.activeViewSub}>
           {activeTab === 'Agency Verification' && '🔍 Inspecting agency trade licenses, visa success rates & accreditation'}
+          {activeTab === 'Escrow Releases' && '💳 Verifying student milestone completion criteria before executing cryptographic escrow release'}
           {activeTab === 'Data Provenance' && '🏛️ Cross-verifying country cost benchmarks, agency fee submissions & official catalogs'}
           {activeTab === 'Disputes' && '⚖️ Adjudicating student disputes with direct escrow refund & release controls'}
           {activeTab === 'Audit Ledger' && '🔒 Cryptographic SHA-256 escrow chain & real-time fund allocations'}
@@ -805,6 +918,8 @@ export default function AdminPanel() {
             const count =
               t === 'Agency Verification'
                 ? pendingAgenciesCount
+                : t === 'Escrow Releases'
+                ? pendingReleasesCount
                 : t === 'Disputes'
                 ? activeDisputesCount
                 : t === 'Scam Alerts'
@@ -995,6 +1110,180 @@ export default function AdminPanel() {
                     <div className={styles.emptyState}>
                       <div className={styles.emptyIcon}>📂</div>
                       <div>No consultancies match the selected search or filter criteria.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* TAB: ESCROW RELEASES */}
+      {activeTab === 'Escrow Releases' && (
+        <div className={styles.tableContainer}>
+          <div className={styles.controlsBar}>
+            <div className={styles.searchWrap}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search releases by student, agency, milestone, or university..."
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              🛡️ Student release requests require admin authorization before money is disbursed to agency.
+            </div>
+          </div>
+
+          <table className={styles.table} aria-label="Pending escrow releases queue">
+            <thead>
+              <tr>
+                <th>Milestone</th>
+                <th>Release Criteria</th>
+                <th>Student</th>
+                <th>Agency</th>
+                <th>Target University</th>
+                <th>Held Amount</th>
+                <th>Requested At</th>
+                <th>Status</th>
+                <th>Verification</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} aria-hidden="true">
+                    <td><Skeleton width={110} height={14} /><Skeleton width={70} height={12} style={{ marginTop: 4 }} /></td>
+                    <td><Skeleton width={140} height={14} /></td>
+                    <td><Skeleton width={110} height={14} /><Skeleton width={130} height={12} style={{ marginTop: 4 }} /></td>
+                    <td><Skeleton width={110} height={14} /></td>
+                    <td><Skeleton width={120} height={14} /></td>
+                    <td><Skeleton width={80} height={14} /></td>
+                    <td><Skeleton width={80} height={14} /></td>
+                    <td><Skeleton width={70} height={20} rounded="full" /></td>
+                    <td><Skeleton width={90} height={30} rounded="md" /></td>
+                  </tr>
+                ))
+              ) : (
+                filteredEscrowReleases.map((release) => {
+                  const isActionLoading = actionLoadingId === release.milestoneId;
+
+                  return (
+                    <tr key={release.id}>
+                      <td>
+                        <div className={styles.primaryCell}>{release.milestoneName}</div>
+                        <div className={styles.subInfo}>Step #{release.orderIndex + 1}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)', maxWidth: '240px' }}>
+                          {release.releaseCondition}
+                        </div>
+                        {release.releaseNote && (
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              color: 'var(--text-muted)',
+                              marginTop: '3px',
+                              maxWidth: '240px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={release.releaseNote}
+                          >
+                            💬 &quot;{release.releaseNote}&quot;
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div className={styles.primaryCell}>{release.student.name}</div>
+                        <div className={styles.subInfo}>{release.student.email}</div>
+                      </td>
+                      <td>
+                        <div className={styles.primaryCell}>{release.agency.name}</div>
+                        <div className={styles.subInfo}>Lic: {release.agency.licenseNo}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700 }}>{release.application.targetUniversity}</div>
+                        <div className={styles.subInfo}>{release.application.targetProgram}</div>
+                      </td>
+                      <td className={styles.amount}>{release.amountFormatted}</td>
+                      <td>
+                        <div style={{ fontSize: '12px', fontWeight: 600 }}>
+                          {new Date(release.releaseRequestedAt).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </div>
+                        <div className={styles.subInfo}>
+                          {new Date(release.releaseRequestedAt).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </div>
+                      </td>
+                      <td>
+                        <Badge variant="warning" size="sm">
+                          ⏳ PENDING AUDIT
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className={styles.actions}>
+                          <Button
+                            size="sm"
+                            variant="emerald"
+                            loading={isActionLoading}
+                            disabled={isActionLoading}
+                            onClick={() =>
+                              handleEscrowReleaseAction(
+                                release.milestoneId,
+                                'APPROVE',
+                                'Admin verified milestone requirements: Escrow released to agency.'
+                              )
+                            }
+                            title="Verify and release escrow funds directly to agency"
+                          >
+                            ✓ Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            disabled={isActionLoading}
+                            onClick={() => {
+                              setSelectedReleaseDossier(release);
+                              setReleaseActionNote('');
+                            }}
+                            title="Reject release request"
+                          >
+                            ✕ Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedReleaseDossier(release);
+                              setReleaseActionNote('');
+                            }}
+                            title="Inspect release dossier"
+                          >
+                            Dossier
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+              {!loading && filteredEscrowReleases.length === 0 && (
+                <tr>
+                  <td colSpan={9}>
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>🎉</div>
+                      <div>No pending escrow release requests awaiting verification.</div>
                     </div>
                   </td>
                 </tr>
@@ -2619,6 +2908,156 @@ export default function AdminPanel() {
               )}
               <Button variant="ghost" size="sm" onClick={() => setSelectedUserDossier(null)}>
                 Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ESCROW RELEASE VERIFICATION DOSSIER */}
+      {selectedReleaseDossier && (
+        <div className={styles.modalBackdrop} onClick={() => setSelectedReleaseDossier(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>
+                💳 Escrow Release Verification: {selectedReleaseDossier.milestoneName}
+              </h2>
+              <button
+                className={styles.closeBtn}
+                onClick={() => setSelectedReleaseDossier(null)}
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Milestone ID</span>
+                <span className={styles.dossierValue} style={{ fontFamily: 'monospace' }}>
+                  {selectedReleaseDossier.milestoneId}
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Held Escrow Amount</span>
+                <span className={styles.dossierValue} style={{ fontSize: '16px', color: 'var(--emerald)' }}>
+                  {selectedReleaseDossier.amountFormatted}
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Release Criterion</span>
+                <span className={styles.dossierValue}>
+                  {selectedReleaseDossier.releaseCondition}
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Student Authorization</span>
+                <span className={styles.dossierValue}>
+                  {selectedReleaseDossier.student.name} ({selectedReleaseDossier.student.email})
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Student Release Note</span>
+                <span className={styles.dossierValue} style={{ fontStyle: 'italic', color: 'var(--blue-primary)' }}>
+                  &quot;{selectedReleaseDossier.releaseNote}&quot;
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Beneficiary Agency</span>
+                <span className={styles.dossierValue}>
+                  {selectedReleaseDossier.agency.name} (License: {selectedReleaseDossier.agency.licenseNo})
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Target Program</span>
+                <span className={styles.dossierValue}>
+                  {selectedReleaseDossier.application.targetUniversity} — {selectedReleaseDossier.application.targetProgram} ({selectedReleaseDossier.application.targetCountry})
+                </span>
+              </div>
+              <div className={styles.dossierRow}>
+                <span className={styles.dossierLabel}>Release Requested At</span>
+                <span className={styles.dossierValue}>
+                  {new Date(selectedReleaseDossier.releaseRequestedAt).toLocaleString()}
+                </span>
+              </div>
+
+              {/* Admin Note Input */}
+              <div
+                style={{
+                  background: 'var(--bg-elevated)',
+                  padding: '14px',
+                  border: '1.5px solid var(--ink)',
+                  borderRadius: '6px',
+                }}
+              >
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                  }}
+                >
+                  📝 Admin Verification / Audit Note (recorded in SHA-256 ledger):
+                </label>
+                <textarea
+                  value={releaseActionNote}
+                  onChange={(e) => setReleaseActionNote(e.target.value)}
+                  placeholder="e.g. Verified student offer letter authenticity with university registrar. Approving release."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '4px',
+                    border: '1.5px solid var(--ink)',
+                    background: 'var(--bg-surface)',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'inherit',
+                    fontSize: '13px',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                ℹ️ <strong>Approval</strong> transitions this milestone into <code>RELEASED</code> status, commits a SHA-256 chained transaction record to the immutable ledger, and disburses funds to the agency.
+                <br />
+                ℹ️ <strong>Rejection</strong> cancels the release request, restores milestone to <code>HELD</code>, and notifies both parties with your reason.
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <Button
+                variant="emerald"
+                size="sm"
+                loading={actionLoadingId === selectedReleaseDossier.milestoneId}
+                disabled={actionLoadingId === selectedReleaseDossier.milestoneId}
+                onClick={() =>
+                  handleEscrowReleaseAction(
+                    selectedReleaseDossier.milestoneId,
+                    'APPROVE',
+                    releaseActionNote || 'Admin verified milestone requirements: Escrow released to agency.'
+                  )
+                }
+              >
+                ✓ Approve & Release Funds
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                loading={actionLoadingId === selectedReleaseDossier.milestoneId}
+                disabled={actionLoadingId === selectedReleaseDossier.milestoneId}
+                onClick={() =>
+                  handleEscrowReleaseAction(
+                    selectedReleaseDossier.milestoneId,
+                    'REJECT',
+                    releaseActionNote || 'Milestone verification requirements not yet satisfied.'
+                  )
+                }
+              >
+                ✕ Reject Request
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedReleaseDossier(null)}>
+                Cancel
               </Button>
             </div>
           </div>

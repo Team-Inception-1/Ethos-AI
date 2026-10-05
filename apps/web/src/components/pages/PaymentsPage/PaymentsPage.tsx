@@ -20,6 +20,9 @@ interface MilestoneItem {
   agencyName?: string;
   agencyId?: string;
   ledgerCount?: number;
+  releaseRequested?: boolean;
+  releaseRequestedAt?: string;
+  releaseNote?: string;
 }
 
 interface LedgerItem {
@@ -45,7 +48,8 @@ interface ReceiptItem {
   generatedAt: string;
 }
 
-const statusVariant = (s: string) => {
+const statusVariant = (s: string, releaseRequested?: boolean) => {
+  if (releaseRequested) return 'warning';
   const norm = s.toLowerCase();
   if (norm === 'released') return 'success';
   if (norm === 'held') return 'info';
@@ -203,8 +207,9 @@ export default function PaymentsPage() {
 
       const data = await res.json();
       if (res.ok) {
-        showToast(`Sandbox release recorded. Receipt ${data.receipt?.receiptNumber ?? ''}. No real money was transferred.`);
+        showToast(data.message || '✓ Escrow release requested! Admin will verify the criteria before funds are disbursed.');
         setReleaseModalItem(null);
+        setReleaseNote('');
         await fetchEscrow();
         if (data.receipt) {
           setActiveReceipt({
@@ -213,7 +218,9 @@ export default function PaymentsPage() {
             ledger: data.ledgerEntry,
           });
         }
-      } else showToast(data.error?.message ?? 'Release failed.');
+      } else {
+        showToast(data.error?.message ?? 'Release request failed.');
+      }
     } catch {
       alert('Release action failed');
     } finally {
@@ -450,12 +457,16 @@ export default function PaymentsPage() {
                       </td>
                       <td className={styles.amount}>৳{amountBDT.toLocaleString()}</td>
                       <td>
-                        <Badge variant={statusVariant(m.status)} size="sm">
-                          {m.status === 'HELD' ? '🔒 HELD IN ESCROW' : m.status}
+                        <Badge variant={statusVariant(m.status, m.releaseRequested)} size="sm">
+                          {m.status === 'HELD'
+                            ? m.releaseRequested
+                              ? '⏳ PENDING ADMIN VERIFICATION'
+                              : '🔒 HELD IN ESCROW'
+                            : m.status}
                         </Badge>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                           {m.status === 'PENDING' && (
                             sandboxAvailable ? (
                               <Button size="sm" variant="emerald" glow onClick={() => setPayModalItem(m)}>
@@ -469,9 +480,15 @@ export default function PaymentsPage() {
                           )}
                           {m.status === 'HELD' && (
                             <>
-                              <Button size="sm" variant="emerald" onClick={() => setReleaseModalItem(m)}>
-                                Release Payment
-                              </Button>
+                              {m.releaseRequested ? (
+                                <span style={{ fontSize: '12px', color: 'var(--amber)', fontWeight: 700, padding: '4px 8px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '6px', border: '1px solid var(--amber)' }}>
+                                  ⏳ Awaiting Admin Approval
+                                </span>
+                              ) : (
+                                <Button size="sm" variant="emerald" onClick={() => setReleaseModalItem(m)}>
+                                  Request Release
+                                </Button>
+                              )}
                               <Button size="sm" variant="danger" onClick={() => setDisputeModalItem(m)}>
                                 Dispute
                               </Button>
@@ -643,7 +660,7 @@ export default function PaymentsPage() {
           >
             <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>✓ Authorize Escrow Release</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              By releasing this milestone, you confirm that the agency has successfully verified the condition:
+              By authorizing release, you submit a request for platform administrators to verify that the milestone condition has been met. Funds will be released to the agency only after admin verification.
             </p>
 
             <div style={{ background: 'var(--bg-elevated)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }}>
@@ -658,7 +675,7 @@ export default function PaymentsPage() {
 
             <div style={{ marginBottom: '16px' }}>
               <label style={{ fontSize: '12px', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-                Approval Note (Optional)
+                Student Verification Note (Optional)
               </label>
               <input
                 type="text"
@@ -682,7 +699,7 @@ export default function PaymentsPage() {
                 Cancel
               </Button>
               <Button size="sm" variant="emerald" glow onClick={handleRelease} disabled={isProcessing}>
-                {isProcessing ? 'Releasing Funds…' : 'Confirm & Release Payment'}
+                {isProcessing ? 'Submitting Request…' : 'Submit for Admin Verification'}
               </Button>
             </div>
           </div>
