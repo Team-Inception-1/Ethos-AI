@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { z } from 'zod';
 import Badge from '@/components/ui/Badge';
@@ -52,13 +53,16 @@ function formatDate(value: string) {
 
 export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsPageProps) {
   const { user } = useAuth();
-  const canCreateApplication = user?.role === 'student';
+  const searchParams = useSearchParams();
+  const canCreateApplication = user?.role?.toLowerCase() === 'student';
   const { data, error, loading, retry } = useApplicationData('/api/applications', applicationListSchema);
   const agencies = useApplicationData('/api/agencies', agencyListSchema);
   const [isFormOpen, setIsFormOpen] = useState(Boolean(initialAgencyId) && canCreateApplication);
+  const [withdrawnBanner, setWithdrawnBanner] = useState(searchParams.get('withdrawn') === 'true');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdMessage, setCreatedMessage] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     agencyId: initialAgencyId,
     pricingServiceIds: [] as string[],
@@ -128,6 +132,19 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
       </div>
 
       {createdMessage && <div className={styles.successBanner} role="status">✓ {createdMessage}</div>}
+      {withdrawnBanner && (
+        <div className={styles.successBanner} role="status" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>✓ Application has been successfully withdrawn.</span>
+          <button
+            type="button"
+            onClick={() => setWithdrawnBanner(false)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 16 }}
+            aria-label="Dismiss banner"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {loading && <ApplicationListSkeleton count={3} />}
 
@@ -159,7 +176,14 @@ export default function ApplicationsPage({ initialAgencyId = '' }: ApplicationsP
                 <div>
                   <div className={styles.agencyName}>{application.agency.name}</div>
                   <div className={styles.target}>{application.targetUniversity}, {application.targetCountry}</div>
-                  <div className={styles.date}>{application.targetProgram} · Updated {formatDate(application.updatedAt)}</div>
+                  <div className={styles.date}>
+                    {user?.role?.toLowerCase() === 'parent' && application.student?.name && (
+                      <span style={{ fontWeight: 700, color: 'var(--blue-primary)', marginRight: 6 }}>
+                        Student: {application.student.name} ·
+                      </span>
+                    )}
+                    {application.targetProgram} · Updated {formatDate(application.updatedAt)}
+                  </div>
                 </div>
               </div>
               <div className={styles.appRight}>
