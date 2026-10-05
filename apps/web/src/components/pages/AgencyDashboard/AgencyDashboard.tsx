@@ -7,11 +7,11 @@ import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { browserApi, errorMessage } from '@/lib/platform/browser';
-import { stageTransitions, type AgencyDashboardData, type ApplicationStage, type BenchmarkView, type FeeSubmissionView } from '@/lib/platform/agency-contracts';
+import { stageTransitions, type AgencyDashboardData, type AgencyPayoutItem, type ApplicationStage, type BenchmarkView, type FeeSubmissionView } from '@/lib/platform/agency-contracts';
 import { AdminTableSkeleton } from '@/components/ui/Skeleton';
 import styles from './AgencyDashboard.module.css';
 
-const tabs = ['applications', 'services', 'license', 'benchmarks'] as const;
+const tabs = ['applications', 'payouts', 'services', 'license', 'benchmarks'] as const;
 const emptyPackage = { serviceName: '', country: '', amountBdt: '', whenCharged: '', refundPolicy: '', proofUrl: '' };
 const emptyBenchmark = { country: '', countryCode: '', flagEmoji: '', currency: '', exchangeRateBdt: '',
   livingCostMonthlyBdtMin: '', livingCostMonthlyBdtMax: '', blockedAccountOrGicBdt: '', visaFeeBdt: '',
@@ -54,6 +54,9 @@ export default function AgencyDashboard() {
   const [benchmarkForm, setBenchmarkForm] = useState(emptyBenchmark);
   const [showBenchmark, setShowBenchmark] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<AgencyDashboardData['applications'][number] | null>(null);
+  const [selectedPayout, setSelectedPayout] = useState<AgencyPayoutItem | null>(null);
+  const [payoutFilter, setPayoutFilter] = useState<'ALL' | 'RELEASED' | 'AWAITING_ADMIN' | 'HELD'>('ALL');
+  const [payoutSearch, setPayoutSearch] = useState('');
   const [nextStage, setNextStage] = useState<ApplicationStage>('UNDER_REVIEW');
   const [stageNote, setStageNote] = useState('');
   const [search, setSearch] = useState('');
@@ -112,21 +115,72 @@ export default function AgencyDashboard() {
     setShowBenchmark(true);
   }
 
+  const filteredPayouts = (dashboard?.payouts ?? []).filter(p => {
+    if (payoutFilter === 'RELEASED' && p.status !== 'RELEASED') return false;
+    if (payoutFilter === 'AWAITING_ADMIN' && !(p.status === 'HELD' && p.releaseRequested)) return false;
+    if (payoutFilter === 'HELD' && !(p.status === 'HELD' && !p.releaseRequested)) return false;
+    if (!payoutSearch.trim()) return true;
+    const term = payoutSearch.toLowerCase();
+    return (
+      p.student.name.toLowerCase().includes(term) ||
+      p.student.email.toLowerCase().includes(term) ||
+      p.milestoneName.toLowerCase().includes(term) ||
+      p.application.targetUniversity.toLowerCase().includes(term) ||
+      p.application.targetProgram.toLowerCase().includes(term) ||
+      (p.providerTxnId && p.providerTxnId.toLowerCase().includes(term)) ||
+      (p.txHash && p.txHash.toLowerCase().includes(term))
+    );
+  });
+
   return <div className={styles.page}>
-    <div className={styles.header}><div><h1>Agency Management Portal</h1>
-      <p className={styles.sub}>{dashboard?.agency.name ?? 'Agency account'} · {dashboard?.agency.licenseNo ?? 'Loading profile'}</p>
-      {dashboard && <Badge variant={dashboard.agency.licenseStatus === 'VERIFIED' ? 'verified' : 'pending'}>{dashboard.agency.licenseStatus}</Badge>}
-    </div><Button variant="outline" onClick={() => void refresh()} loading={loading}>Refresh</Button></div>
+    <div className={styles.header}>
+      <div>
+        <h1>Agency Management Portal</h1>
+        <p className={styles.sub}>{dashboard?.agency.name ?? 'Agency account'} · {dashboard?.agency.licenseNo ?? 'Loading profile'}</p>
+        {dashboard && <Badge variant={dashboard.agency.licenseStatus === 'VERIFIED' ? 'verified' : 'pending'}>{dashboard.agency.licenseStatus}</Badge>}
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Button variant="outline" onClick={() => void refresh()} loading={loading}>Refresh</Button>
+        <Button variant="primary" onClick={() => router.push('/agency/dashboard?tab=payouts', { scroll: false })}>
+          💰 Escrow Payouts {dashboard?.payoutsSummary ? `(${money(dashboard.payoutsSummary.totalReleasedBdt)})` : ''}
+        </Button>
+      </div>
+    </div>
     {error && <div role="alert" style={{ color: 'var(--red, #b91c1c)' }}>{error}</div>}
     {notice && <div role="status">{notice}</div>}
     <nav aria-label="Agency sections" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
       {tabs.map(value => <Button key={value} variant={tab === value ? 'primary' : 'outline'}
-        onClick={() => router.push(`/agency/dashboard?tab=${value}`, { scroll: false })}>{value === 'license' ? 'License & documents' : human(value)}</Button>)}
+        onClick={() => router.push(`/agency/dashboard?tab=${value}`, { scroll: false })}>
+        {value === 'license' ? 'License & documents' : value === 'payouts' ? 'Escrow & Payouts' : human(value)}
+      </Button>)}
     </nav>
     {!dashboard && loading && <AdminTableSkeleton rows={4} />}
     {dashboard && tab === 'applications' && <>
-      <div style={grid}><GlassCard><h2>{dashboard.applications.length}</h2><p>Applications in this view</p></GlassCard>
-        <GlassCard><h2>{money(dashboard.applications.reduce((sum, app) => sum + app.heldBdt, 0))}</h2><p>Recorded held escrow</p></GlassCard></div>
+      <div style={grid}>
+        <GlassCard>
+          <h2>{dashboard.applications.length}</h2>
+          <p>Applications in this view</p>
+        </GlassCard>
+        <GlassCard>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h2 style={{ color: '#10b981' }}>{money(dashboard.payoutsSummary?.totalReleasedBdt ?? 0)}</h2>
+              <p>Total Received Payouts (Admin Released)</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => router.push('/agency/dashboard?tab=payouts', { scroll: false })}>
+              View Payouts →
+            </Button>
+          </div>
+        </GlassCard>
+        <GlassCard>
+          <h2>{money(dashboard.payoutsSummary?.totalHeldBdt ?? dashboard.applications.reduce((sum, app) => sum + app.heldBdt, 0))}</h2>
+          <p>Recorded Held Escrow</p>
+        </GlassCard>
+        <GlassCard>
+          <h2 style={{ color: '#f59e0b' }}>{money(dashboard.payoutsSummary?.totalPendingAdminBdt ?? 0)}</h2>
+          <p>Awaiting Admin Verification</p>
+        </GlassCard>
+      </div>
       {dashboard.agency.licenseStatus !== 'VERIFIED' && <p>Student records become accessible after agency verification.</p>}
       <p>Applications appear here after students are linked to your agency. New applicant onboarding is not available in this portal.</p>
       <input aria-label="Search applications" placeholder="Search student, university or program" style={inputStyle} value={search} onChange={event => setSearch(event.target.value)} />
@@ -155,6 +209,301 @@ export default function AgencyDashboard() {
           <label style={fieldStyle}>Stage note<textarea style={inputStyle} placeholder="Add an optional progress update or note for the student" maxLength={10000} value={stageNote} onChange={event => setStageNote(event.target.value)} /></label>
           <Button type="submit" loading={busy}>Save stage</Button>
         </form>}<Button variant="ghost" onClick={() => setSelectedApplication(null)}>Close details</Button></GlassCard>}
+    </>}
+    {dashboard && tab === 'payouts' && <>
+      <div style={grid}>
+        <GlassCard>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Total Money Received (Admin Released)</span>
+          <h2 style={{ fontSize: 28, color: '#10b981', margin: '6px 0 2px 0' }}>
+            {money(dashboard.payoutsSummary?.totalReleasedBdt ?? 0)}
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+            {dashboard.payoutsSummary?.releasedCount ?? 0} disbursed milestones
+          </p>
+        </GlassCard>
+        <GlassCard>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Secured in Escrow</span>
+          <h2 style={{ fontSize: 28, color: '#3b82f6', margin: '6px 0 2px 0' }}>
+            {money(dashboard.payoutsSummary?.totalHeldBdt ?? 0)}
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+            {dashboard.payoutsSummary?.heldCount ?? 0} milestones currently held
+          </p>
+        </GlassCard>
+        <GlassCard>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Awaiting Admin Release</span>
+          <h2 style={{ fontSize: 28, color: '#f59e0b', margin: '6px 0 2px 0' }}>
+            {money(dashboard.payoutsSummary?.totalPendingAdminBdt ?? 0)}
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+            Student authorized; waiting for admin audit
+          </p>
+        </GlassCard>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {[
+            { id: 'ALL', label: 'All Transactions' },
+            { id: 'RELEASED', label: `Disbursed to Agency (${dashboard.payouts?.filter(p => p.status === 'RELEASED').length ?? 0})` },
+            { id: 'AWAITING_ADMIN', label: `Awaiting Admin (${dashboard.payouts?.filter(p => p.status === 'HELD' && p.releaseRequested).length ?? 0})` },
+            { id: 'HELD', label: `Held in Escrow (${dashboard.payouts?.filter(p => p.status === 'HELD' && !p.releaseRequested).length ?? 0})` },
+          ].map(f => (
+            <Button
+              key={f.id}
+              size="sm"
+              variant={payoutFilter === f.id ? 'primary' : 'outline'}
+              onClick={() => setPayoutFilter(f.id as any)}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
+        <div style={{ minWidth: 260, flex: 1, maxWidth: 420 }}>
+          <input
+            aria-label="Search payouts"
+            placeholder="Search student, email, university or milestone..."
+            style={inputStyle}
+            value={payoutSearch}
+            onChange={e => setPayoutSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <GlassCard className={styles.tableCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h2 style={{ margin: 0, fontSize: 18 }}>Escrow Payout Statement & Ledger</h2>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            Showing {filteredPayouts.length} of {dashboard.payouts?.length ?? 0} transactions
+          </span>
+        </div>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>From Whom (Student)</th>
+              <th>Where (Program & Milestone)</th>
+              <th>When (Release / Deposit)</th>
+              <th>Gateway / Ledger Proof</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredPayouts.map(payout => (
+              <tr key={payout.id}>
+                <td>
+                  <strong style={{ fontSize: 16, color: payout.status === 'RELEASED' ? '#10b981' : 'var(--text-primary)' }}>
+                    {money(payout.amountBdt)}
+                  </strong>
+                </td>
+                <td>
+                  {payout.status === 'RELEASED' ? (
+                    <Badge variant="verified">✅ Disbursed</Badge>
+                  ) : payout.status === 'HELD' && payout.releaseRequested ? (
+                    <Badge variant="pending">⏳ Awaiting Admin</Badge>
+                  ) : payout.status === 'HELD' ? (
+                    <Badge variant="outline">🔒 In Escrow</Badge>
+                  ) : (
+                    <Badge variant="outline">{payout.status}</Badge>
+                  )}
+                </td>
+                <td>
+                  <strong>{payout.student.name}</strong>
+                  <br />
+                  <small style={{ color: 'var(--text-secondary)' }}>{payout.student.email}</small>
+                  {payout.student.phone && <><br /><small style={{ color: 'var(--text-muted)' }}>{payout.student.phone}</small></>}
+                </td>
+                <td>
+                  <strong>{payout.milestoneName}</strong> (Step #{payout.orderIndex})
+                  <br />
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                    {payout.application.targetUniversity}
+                  </span>
+                  <br />
+                  <small style={{ color: 'var(--text-muted)' }}>
+                    {payout.application.targetProgram} · {payout.application.targetCountry}
+                  </small>
+                </td>
+                <td>
+                  {payout.releasedAt ? (
+                    <div>
+                      <span style={{ fontWeight: 600, color: '#10b981', fontSize: 13 }}>
+                        Disbursed: {new Date(payout.releasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                      <br />
+                      <small style={{ color: 'var(--text-muted)' }}>
+                        {new Date(payout.releasedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      </small>
+                    </div>
+                  ) : payout.heldAt ? (
+                    <div>
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                        Deposited: {new Date(payout.heldAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                      {payout.releaseRequested && (
+                        <>
+                          <br />
+                          <small style={{ color: '#f59e0b', fontWeight: 600 }}>Release requested</small>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <small style={{ color: 'var(--text-muted)' }}>Pending deposit</small>
+                  )}
+                </td>
+                <td>
+                  <Badge variant="outline" size="sm">{payout.provider}</Badge>
+                  {payout.txHash && (
+                    <div style={{ marginTop: 4 }}>
+                      <code style={{ fontSize: 10, background: 'var(--bg-elevated)', padding: '2px 4px', borderRadius: 4 }} title={payout.txHash}>
+                        {payout.txHash.slice(0, 8)}...{payout.txHash.slice(-6)}
+                      </code>
+                    </div>
+                  )}
+                </td>
+                <td>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedPayout(payout)}>
+                    View Voucher
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredPayouts.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>
+            No payouts match the selected filter or search term.
+          </div>
+        )}
+      </GlassCard>
+
+      {selectedPayout && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setSelectedPayout(null)}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 640 }}>
+            <GlassCard style={{ maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 16 }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 20 }}>Official Escrow Disbursement Voucher</h2>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                    Ledger Reference: {selectedPayout.id}
+                  </p>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => setSelectedPayout(null)}>✕ Close</Button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div style={{ background: 'var(--bg-elevated)', padding: 12, borderRadius: 8 }}>
+                  <span style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Disbursed Amount</span>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: selectedPayout.status === 'RELEASED' ? '#10b981' : 'var(--text-primary)', marginTop: 4 }}>
+                    {money(selectedPayout.amountBdt)}
+                  </div>
+                  <div style={{ marginTop: 6 }}>
+                    <Badge variant={selectedPayout.status === 'RELEASED' ? 'verified' : 'pending'}>
+                      {selectedPayout.status === 'RELEASED' ? 'Disbursed to Agency' : 'Held in Escrow'}
+                    </Badge>
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-elevated)', padding: 12, borderRadius: 8 }}>
+                  <span style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Payment Channel</span>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>{selectedPayout.provider}</div>
+                  {selectedPayout.providerTxnId && (
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, wordBreak: 'break-all' }}>
+                      Txn: {selectedPayout.providerTxnId}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gap: 12, fontSize: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>From (Student):</span>
+                  <div>
+                    <strong>{selectedPayout.student.name}</strong> ({selectedPayout.student.email})
+                    {selectedPayout.student.phone && <div>Phone: {selectedPayout.student.phone}</div>}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Payee (Agency):</span>
+                  <div>
+                    <strong>{dashboard.agency.name}</strong> (License: {dashboard.agency.licenseNo})
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Milestone:</span>
+                  <div>
+                    <strong>{selectedPayout.milestoneName}</strong> (Step #{selectedPayout.orderIndex})
+                    {selectedPayout.releaseCondition && (
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                        Criteria: {selectedPayout.releaseCondition}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Target Program:</span>
+                  <div>
+                    {selectedPayout.application.targetUniversity} · {selectedPayout.application.targetProgram}
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      {selectedPayout.application.targetCountry} ({selectedPayout.application.intakeSemester ?? 'N/A'})
+                    </div>
+                  </div>
+                </div>
+
+                {selectedPayout.releaseNote && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Student Note:</span>
+                    <div style={{ fontStyle: 'italic', background: 'var(--bg-elevated)', padding: '6px 10px', borderRadius: 4 }}>
+                      "{selectedPayout.releaseNote}"
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Timeline:</span>
+                  <div style={{ fontSize: 13 }}>
+                    {selectedPayout.heldAt && <div>Deposited: {new Date(selectedPayout.heldAt).toLocaleString()}</div>}
+                    {selectedPayout.releaseRequestedAt && <div>Release Authorized: {new Date(selectedPayout.releaseRequestedAt).toLocaleString()}</div>}
+                    {selectedPayout.releasedAt && <div style={{ color: '#10b981', fontWeight: 600 }}>Disbursed by Admin: {new Date(selectedPayout.releasedAt).toLocaleString()}</div>}
+                  </div>
+                </div>
+
+                {selectedPayout.txHash && (
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 4 }}>
+                    <span style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      Cryptographic Ledger Hash (SHA-256)
+                    </span>
+                    <div style={{ fontSize: 11, fontFamily: 'monospace', wordBreak: 'break-all', background: 'var(--bg-elevated)', padding: 8, borderRadius: 4, marginTop: 4 }}>
+                      {selectedPayout.txHash}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+                <Button variant="outline" onClick={() => window.print()}>Print Voucher</Button>
+                <Button variant="primary" onClick={() => setSelectedPayout(null)}>Done</Button>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      )}
     </>}
     {dashboard && tab === 'services' && <>
       <Button onClick={() => { setPackageForm(emptyPackage); setShowPackage(true); }}>Propose service package</Button>

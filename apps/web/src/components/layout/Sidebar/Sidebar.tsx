@@ -169,6 +169,13 @@ const getNavItems = (role?: string): NavItem[] => {
           icon: <ApplicationsIcon />,
         },
         {
+          href: '/agency/dashboard?tab=payouts',
+          label: 'Escrow & Payouts',
+          labelBn: 'এসক্রো ও পেমেন্ট',
+          icon: <PaymentsIcon />,
+          badge: 'Payouts',
+        },
+        {
           href: '/agency/dashboard?tab=services',
           label: 'Service Packages',
           labelBn: 'প্যাকেজ ও ফি',

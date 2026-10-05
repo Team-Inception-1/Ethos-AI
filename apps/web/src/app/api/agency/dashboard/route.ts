@@ -33,7 +33,7 @@ export async function GET() {
         },
       });
     }
-    const [applications, services, documents] = await Promise.all([
+    const [applications, services, documents, rawMilestones] = await Promise.all([
       agency.licenseStatus === 'VERIFIED' ? prisma.application.findMany({ where: { agencyId: agency.id },
         include: { student: { select: { id: true, name: true, email: true, phone: true } },
           documents: { select: { id: true, fileName: true, type: true } },
@@ -44,11 +44,87 @@ export async function GET() {
       prisma.agencyPricing.findMany({ where: { agencyId: agency.id }, orderBy: { serviceName: 'asc' } }),
       prisma.document.findMany({ where: { ownerId: auth.user.id },
         select: { id: true, fileName: true, type: true, uploadedAt: true }, orderBy: { uploadedAt: 'desc' }, take: 100 }),
+      prisma.milestone.findMany({
+        where: { application: { agencyId: agency.id } },
+        include: {
+          application: {
+            select: {
+              id: true,
+              targetUniversity: true,
+              targetProgram: true,
+              targetCountry: true,
+              intakeSemester: true,
+              stage: true,
+              student: { select: { id: true, name: true, email: true, phone: true } },
+            },
+          },
+          ledgerEntries: { orderBy: { timestamp: 'desc' } },
+          paymentAttempts: { where: { status: 'VALID' }, orderBy: { createdAt: 'desc' }, take: 1 },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 300,
+      }),
     ]);
-    return success({ agency, applications: applications.map(({ milestones, stageEvents, ...row }) => ({ ...row,
-      heldBdt: toBdt(milestones.reduce((sum, milestone) => sum + milestone.amountPoisha, BigInt(0))),
-      lastNote: stageEvents[0]?.note ?? null,
-    })), services: services.map(({ amountPoisha, ...row }) => ({ ...row, amountBdt: toBdt(amountPoisha) })), documents });
+
+    const payouts = rawMilestones.map(m => {
+      const releaseLedger = m.ledgerEntries.find(e => e.type === 'RELEASE');
+      const holdLedger = m.ledgerEntries.find(e => e.type === 'HOLD');
+      const latestLedger = m.ledgerEntries[0];
+      const validAttempt = m.paymentAttempts[0];
+
+      return {
+        id: m.id,
+        milestoneName: m.name,
+        orderIndex: m.orderIndex,
+        amountBdt: toBdt(m.amountPoisha),
+        status: m.status,
+        releaseCondition: m.releaseCondition,
+        releaseRequested: m.releaseRequested,
+        releaseRequestedAt: m.releaseRequestedAt ? m.releaseRequestedAt.toISOString() : null,
+        releaseNote: m.releaseNote,
+        createdAt: m.createdAt.toISOString(),
+        updatedAt: m.updatedAt.toISOString(),
+        releasedAt: releaseLedger ? releaseLedger.timestamp.toISOString() : (m.status === 'RELEASED' ? m.updatedAt.toISOString() : null),
+        heldAt: holdLedger ? holdLedger.timestamp.toISOString() : (m.status !== 'PENDING' ? m.createdAt.toISOString() : null),
+        provider: releaseLedger?.provider ?? holdLedger?.provider ?? validAttempt?.provider ?? 'SSLCOMMERZ',
+        providerTxnId: releaseLedger?.providerTxnId ?? holdLedger?.providerTxnId ?? validAttempt?.providerTxnId ?? null,
+        txHash: releaseLedger?.txHash ?? holdLedger?.txHash ?? latestLedger?.txHash ?? null,
+        student: {
+          id: m.application.student.id,
+          name: m.application.student.name,
+          email: m.application.student.email,
+          phone: m.application.student.phone,
+        },
+        application: {
+          id: m.application.id,
+          targetUniversity: m.application.targetUniversity,
+          targetProgram: m.application.targetProgram,
+          targetCountry: m.application.targetCountry,
+          intakeSemester: m.application.intakeSemester,
+          stage: m.application.stage,
+        },
+      };
+    });
+
+    const payoutsSummary = {
+      totalReleasedBdt: payouts.filter(p => p.status === 'RELEASED').reduce((sum, p) => sum + p.amountBdt, 0),
+      totalHeldBdt: payouts.filter(p => p.status === 'HELD').reduce((sum, p) => sum + p.amountBdt, 0),
+      totalPendingAdminBdt: payouts.filter(p => p.status === 'HELD' && p.releaseRequested).reduce((sum, p) => sum + p.amountBdt, 0),
+      releasedCount: payouts.filter(p => p.status === 'RELEASED').length,
+      heldCount: payouts.filter(p => p.status === 'HELD').length,
+    };
+
+    return success({
+      agency,
+      applications: applications.map(({ milestones, stageEvents, ...row }) => ({ ...row,
+        heldBdt: toBdt(milestones.reduce((sum, milestone) => sum + milestone.amountPoisha, BigInt(0))),
+        lastNote: stageEvents[0]?.note ?? null,
+      })),
+      services: services.map(({ amountPoisha, ...row }) => ({ ...row, amountBdt: toBdt(amountPoisha) })),
+      documents,
+      payouts,
+      payoutsSummary,
+    });
   } catch (error) { return platformError(error); }
 }
 export async function PATCH(request: Request) {
