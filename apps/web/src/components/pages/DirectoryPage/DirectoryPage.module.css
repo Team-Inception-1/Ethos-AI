@@ -31,7 +31,7 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 260px minmax(0, 1fr);
   gap: var(--space-8);
   align-items: start;
 }
@@ -145,8 +145,10 @@
 /* ── Agency Grid ── */
 .agencyGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: var(--space-5);
+  min-width: 0;
 }
 
 .agencyCard {
@@ -159,6 +161,10 @@
   gap: var(--space-4);
   box-shadow: var(--shadow-md);
   transition: transform var(--transition-base), box-shadow var(--transition-base);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  height: 100%;
 }
 
 .agencyCard:hover {
@@ -170,6 +176,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
+  min-height: 48px;
 }
 
 .agencyAvatar {
@@ -182,15 +189,24 @@
   box-shadow: 2px 2px 0 0 var(--ink);
 }
 
-.agencyMeta { flex: 1; min-width: 0; }
+.agencyMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
 .agencyName {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
 .riskBadge {
@@ -198,10 +214,14 @@
   padding: 3px 9px; border-radius: var(--radius-full);
   flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.05em;
   border: 2px solid var(--ink);
+  white-space: nowrap;
+  line-height: 1.2;
 }
 .riskLow  { background: var(--emerald); color: #08331F; }
 .riskMed  { background: var(--amber);   color: #3D2E00; }
 .riskHigh { background: var(--red-danger); color: #fff; }
+.riskUnassessed { background: var(--amber); color: #3D2E00; }
+.riskUnavailable { background: var(--glass-bg-elevated); color: var(--text-muted); }
 
 /* Loading skeleton shown while the live risk score fetch is in flight */
 .riskBadgeSkeleton {
@@ -224,29 +244,93 @@
   margin-bottom: var(--space-4);
 }
 
-/* Stars */
+/* Stars & Rating */
+.ratingSection {
+  min-height: 38px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.unratedTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
 .stars { display: flex; align-items: center; gap: 2px; }
 .starFilled { color: var(--amber); font-size: 14px; }
 .starEmpty  { color: var(--text-muted); font-size: 14px; opacity: 0.5; }
 .ratingNum  { font-size: 13px; font-weight: 700; margin-left: 6px; color: var(--text-primary); }
-.reviewCount { font-size: 11px; color: var(--text-muted); margin-top: -var(--space-1); }
+.reviewCount { font-size: 11px; color: var(--text-muted); line-height: 1.2; }
 
 /* Countries */
-.countries { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.countries {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 24px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.countryBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  background: var(--glass-bg-elevated);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+.countryMore {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: var(--glass-bg);
+  border-radius: var(--radius-full);
+  border: 1px dashed var(--glass-border);
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
 .flag { font-size: 18px; line-height: 1; }
 
 /* Success */
-.successRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.successSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 28px;
+}
+.successRow { display: flex; justify-content: space-between; align-items: center; }
 .successLabel { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
 .successPct   { font-size: 13px; font-weight: 800; color: var(--emerald-dark); }
 .successBar   { height: 8px; background: var(--glass-bg-elevated); border-radius: var(--radius-full); overflow: hidden; border: 2px solid var(--ink); }
 .successFill  { height: 100%; background: var(--emerald); border-radius: var(--radius-full); transition: width 0.6s ease; }
 
 /* Fee */
-.fee { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+.fee {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+}
 
 /* Card Actions */
-.cardActions { display: flex; gap: var(--space-2); align-items: center; margin-top: auto; padding-top: var(--space-3); border-top: 2px dashed var(--ink); }
+.cardActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 2px dashed var(--ink);
+}
 
 .compareBtn {
   font-size: 12px; font-weight: 700;
@@ -261,6 +345,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  min-width: 92px;
 }
 
 .compareBtn:hover {
@@ -275,12 +361,27 @@
   box-shadow: 2px 2px 0 0 var(--ink) !important;
 }
 
-@media (max-width: 1200px) { .agencyGrid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 1200px) {
+  .agencyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
-  .filterPanel { position: static; display: grid; grid-template-columns: repeat(2,1fr); gap: var(--space-4); }
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .filterPanel {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
 }
 @media (max-width: 600px) {
-  .agencyGrid { grid-template-columns: 1fr; }
-  .filterPanel { grid-template-columns: 1fr; }
+  .agencyGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .filterPanel {
+    grid-template-columns: 1fr;
+  }
 }

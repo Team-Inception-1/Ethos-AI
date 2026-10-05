@@ -339,9 +339,19 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
                   ) : (
                     (() => {
                       const score = riskScores[a.id];
-                      if (!score) return <Badge variant="pending" size="sm">Risk unavailable</Badge>;
+                      if (!score) {
+                        return (
+                          <div className={`${styles.riskBadge} ${styles.riskUnavailable}`} title="Risk score unavailable">
+                            RISK N/A
+                          </div>
+                        );
+                      }
                       if (score.flag_count === 0 && score.risk_score === 0 && a.reviews === 0) {
-                        return <Badge variant="pending" size="sm">Not yet assessed</Badge>;
+                        return (
+                          <div className={`${styles.riskBadge} ${styles.riskUnassessed}`} title="Not yet assessed">
+                            UNASSESSED
+                          </div>
+                        );
                       }
                       const risk = score.risk_score;
                       return (
@@ -359,7 +369,7 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
                 </div>
 
                 {/* Rating */}
-                <div>
+                <div className={styles.ratingSection}>
                   {a.reviews > 0 ? (
                     <>
                       <StarRating rating={a.rating} />
@@ -367,7 +377,7 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
                     </>
                   ) : (
                     <>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }}>New agency · Unrated</div>
+                      <div className={styles.unratedTitle}>New agency · Unrated</div>
                       <div className={styles.reviewCount}>0 alumni reviews</div>
                     </>
                   )}
@@ -375,15 +385,20 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
 
                 {/* Countries */}
                 <div className={styles.countries} aria-label="Countries served">
-                  {a.countries.map(c => (
-                    <span key={c} style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', background: 'var(--glass-bg-elevated)', borderRadius: 'var(--radius-full)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
+                  {a.countries.slice(0, 4).map(c => (
+                    <span key={c} className={styles.countryBadge}>
                       {c}
                     </span>
                   ))}
+                  {a.countries.length > 4 && (
+                    <span className={styles.countryMore} title={a.countries.slice(4).join(', ')}>
+                      +{a.countries.length - 4}
+                    </span>
+                  )}
                 </div>
 
                 {/* Success Bar */}
-                <div>
+                <div className={styles.successSection}>
                   <div className={styles.successRow}>
                     <span className={styles.successLabel}>Success Rate</span>
                     <span className={styles.successPct}>
@@ -402,7 +417,7 @@ function DirectoryContent({ inDashboard }: { inDashboard: boolean }) {
 
                 {/* Actions */}
                 <div className={styles.cardActions}>
-                  <Link href={inDashboard ? `/dashboard/agency-directory/${a.id}` : `/directory/${a.id}`} style={{ flex: 1 }}>
+                  <Link href={inDashboard ? `/dashboard/agency-directory/${a.id}` : `/directory/${a.id}`} style={{ flex: 1, minWidth: 0 }}>
                     <Button size="md" variant="ghost" fullWidth>View Profile</Button>
                   </Link>
                   <button
