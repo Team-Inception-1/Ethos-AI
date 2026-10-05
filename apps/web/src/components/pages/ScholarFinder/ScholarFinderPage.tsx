@@ -643,7 +643,7 @@ export default function ScholarFinderPage() {
   }, [simCountry, simRole, simCityCost]);
 
   // Save pipeline (persisting to Neon PostgreSQL and browser cache)
-  const savePipeline = async (items: PipelineItem[], changedItem?: PipelineItem) => {
+  const savePipeline = async (items: PipelineItem[], changedItem?: PipelineItem, prof?: ProfessorProfile) => {
     setPipeline(items);
     try {
       localStorage.setItem('ethos_scholar_pipeline', JSON.stringify(items));
@@ -665,6 +665,17 @@ export default function ScholarFinderPage() {
             draftedEmail: changedItem.draftedEmail,
             notes: changedItem.notes,
             sentAt: changedItem.sentAt,
+            country: prof?.country,
+            tier: prof?.tier,
+            department: prof?.department,
+            labUrl: prof?.lab_url,
+            email: prof?.email,
+            googleScholarUrl: prof?.google_scholar_url,
+            primaryDomain: prof?.primary_domain,
+            researchInterests: prof?.research_interests,
+            hIndex: prof?.h_index,
+            citationsCount: prof?.citations_count,
+            recentPublications: prof?.recent_publications,
           }),
         });
       } catch (err) {
@@ -889,7 +900,7 @@ export default function ScholarFinderPage() {
       sentAt: stage === 'contacted' ? new Date().toISOString() : undefined,
     };
     const updated = [newItem, ...pipeline];
-    void savePipeline(updated, newItem);
+    void savePipeline(updated, newItem, p);
     showToast(`Added ${p.name} to your ${stage.toUpperCase()} pipeline.`);
   };
 
@@ -1266,7 +1277,7 @@ export default function ScholarFinderPage() {
                   <Badge variant="ai" size="sm">
                     {p.tier}
                   </Badge>
-                  {p.h_index && (
+                  {Boolean(p.h_index && p.h_index > 0) && (
                     <span className={styles.hIndexBadge}>
                       h-index: <strong>{p.h_index}</strong> ({p.citations_count?.toLocaleString()} citations)
                     </span>

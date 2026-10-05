@@ -43,6 +43,7 @@ from app.schemas import (
     TARAGuideResponse,
 )
 from .scholar_knowledge import COLD_EMAIL_RULES, COUNTRY_FUNDING_GUIDES, SEED_PROFESSORS
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -695,15 +696,20 @@ async def search_openalex_live(
         "IN": "India", "IND": "India",
     }
 
+    settings = get_settings()
+    api_key_param = f"&api_key={settings.openalex_api_key}" if settings.openalex_api_key else ""
+
     works_url = (
-        f"https://api.openalex.org/works?search={encoded_query}&per_page=16"
+        f"https://api.openalex.org/works?search={encoded_query}&per_page=16{api_key_param}"
         "&select=id,title,display_name,publication_year,primary_location,doi,concepts,cited_by_count,authorships"
     )
     authors_url = (
-        f"https://api.openalex.org/authors?search={encoded_query}&per_page=10"
+        f"https://api.openalex.org/authors?search={encoded_query}&per_page=10{api_key_param}"
         "&select=id,display_name,last_known_institutions,summary_stats,cited_by_count,topics"
     )
     headers = {"User-Agent": "EthosAI-ScholarFinder/1.0 (mailto:scholar@ethosai.org)"}
+    if settings.openalex_api_key:
+        headers["api-key"] = settings.openalex_api_key
 
     profiles_map: dict[str, dict[str, Any]] = {}
     target_uni_name: str | None = None
@@ -713,7 +719,7 @@ async def search_openalex_live(
         async with httpx.AsyncClient(timeout=8.0) as client:
             if entity_type == "institutions":
                 inst_resp = await client.get(
-                    f"https://api.openalex.org/institutions?search={encoded_query}&per_page=3&select=id,display_name,country_code,homepage_url",
+                    f"https://api.openalex.org/institutions?search={encoded_query}&per_page=3{api_key_param}&select=id,display_name,country_code,homepage_url",
                     headers=headers,
                 )
                 inst_results = inst_resp.json().get("results", []) if inst_resp.status_code == 200 else []
@@ -726,11 +732,11 @@ async def search_openalex_live(
 
                     # Fetch leading faculty and recent works affiliated with this institution
                     authors_task = client.get(
-                        f"https://api.openalex.org/authors?filter=last_known_institutions.id:{inst_id}&sort=cited_by_count:desc&per_page={max(limit, 12)}&select=id,display_name,last_known_institutions,summary_stats,cited_by_count,topics",
+                        f"https://api.openalex.org/authors?filter=last_known_institutions.id:{inst_id}&sort=cited_by_count:desc&per_page={max(limit, 12)}{api_key_param}&select=id,display_name,last_known_institutions,summary_stats,cited_by_count,topics",
                         headers=headers,
                     )
                     works_task = client.get(
-                        f"https://api.openalex.org/works?filter=institutions.id:{inst_id}&per_page=12&select=id,title,display_name,publication_year,primary_location,doi,concepts,cited_by_count,authorships",
+                        f"https://api.openalex.org/works?filter=institutions.id:{inst_id}&per_page=12{api_key_param}&select=id,title,display_name,publication_year,primary_location,doi,concepts,cited_by_count,authorships",
                         headers=headers,
                     )
                     responses = await asyncio.gather(works_task, authors_task, return_exceptions=True)
@@ -740,19 +746,19 @@ async def search_openalex_live(
                     responses = await asyncio.gather(works_task, authors_task, return_exceptions=True)
             elif entity_type == "works":
                 works_task = client.get(
-                    f"https://api.openalex.org/works?search={encoded_query}&per_page={max(limit * 2, 20)}"
+                    f"https://api.openalex.org/works?search={encoded_query}&per_page={max(limit * 2, 20)}{api_key_param}"
                     "&select=id,title,display_name,publication_year,primary_location,doi,concepts,cited_by_count,authorships",
                     headers=headers,
                 )
                 responses = await asyncio.gather(works_task, return_exceptions=True)
             elif entity_type == "authors":
                 authors_task = client.get(
-                    f"https://api.openalex.org/authors?search={encoded_query}&per_page={max(limit, 12)}"
+                    f"https://api.openalex.org/authors?search={encoded_query}&per_page={max(limit, 12)}{api_key_param}"
                     "&select=id,display_name,last_known_institutions,summary_stats,cited_by_count,topics",
                     headers=headers,
                 )
                 works_task = client.get(
-                    f"https://api.openalex.org/works?search={encoded_query}&per_page=8"
+                    f"https://api.openalex.org/works?search={encoded_query}&per_page=8{api_key_param}"
                     "&select=id,title,display_name,publication_year,primary_location,doi,concepts,cited_by_count,authorships",
                     headers=headers,
                 )

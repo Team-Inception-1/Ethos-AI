@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # --- OCR / Vision provider (Optional fallback) ---------------------
     google_vision_api_key: str | None = None
 
+    # --- External Academic APIs ----------------------------------------
+    openalex_api_key: str | None = None
+
     # --- Service metadata ----------------------------------------------
     service_name: str = "ethos-ai-service"
     environment: str = "development"

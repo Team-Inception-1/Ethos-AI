@@ -9,6 +9,17 @@ const outreachPostSchema = z.object({
   profName: z.string().max(200).optional(),
   university: z.string().max(200).optional(),
   labName: z.string().max(200).optional(),
+  country: z.string().max(100).optional(),
+  tier: z.string().max(100).optional(),
+  department: z.string().max(200).optional(),
+  labUrl: z.string().max(500).optional().nullable(),
+  email: z.string().max(200).optional().nullable(),
+  googleScholarUrl: z.string().max(500).optional().nullable(),
+  primaryDomain: z.string().max(200).optional(),
+  researchInterests: z.array(z.string()).optional(),
+  hIndex: z.number().int().optional().nullable(),
+  citationsCount: z.number().int().optional().nullable(),
+  recentPublications: z.array(z.any()).optional().nullable(),
   stage: z.enum(['shortlisted', 'drafted', 'contacted', 'interviewing', 'offer_received', 'rejected', 'closed']).default('shortlisted'),
   subjectLine: z.string().max(300).optional().nullable(),
   draftedEmail: z.string().max(20000).optional().nullable(),
@@ -79,15 +90,36 @@ export async function POST(request: Request) {
           name: body.profName || 'Faculty Researcher',
           title: 'Professor',
           university: body.university || 'Target Institution',
-          department: 'Academic Department',
-          country: 'USA',
-          tier: 'R1 / Global Top',
+          department: body.department || 'Academic Department',
+          country: body.country || 'USA',
+          tier: body.tier || 'Global Research Institution',
           labName: body.labName || 'Research Lab',
-          email: `${body.profId.replace(/[^a-zA-Z0-9]/g, '')}@academic.test`,
-          primaryDomain: 'Computer Science & AI',
-          researchInterests: ['Artificial Intelligence', 'Computational Sciences'],
+          labUrl: body.labUrl,
+          email: body.email || `${body.profId.replace(/[^a-zA-Z0-9]/g, '')}@academic.test`,
+          googleScholarUrl: body.googleScholarUrl,
+          primaryDomain: body.primaryDomain || 'Computer Science & AI',
+          researchInterests: body.researchInterests && body.researchInterests.length > 0
+            ? body.researchInterests
+            : ['Artificial Intelligence', 'Computational Sciences'],
           activeFundingIndicator: true,
           acceptingStudents: true,
+          recentPublications: (body.recentPublications as any) ?? undefined,
+          hIndex: body.hIndex ?? null,
+          citationsCount: body.citationsCount ?? null,
+        },
+      });
+    } else if (
+      body.recentPublications &&
+      (!professor.recentPublications || (Array.isArray(professor.recentPublications) && professor.recentPublications.length === 0))
+    ) {
+      await prisma.professor.update({
+        where: { id: professor.id },
+        data: {
+          recentPublications: body.recentPublications as any,
+          ...(body.hIndex != null ? { hIndex: body.hIndex } : {}),
+          ...(body.citationsCount != null ? { citationsCount: body.citationsCount } : {}),
+          ...(body.country ? { country: body.country } : {}),
+          ...(body.tier ? { tier: body.tier } : {}),
         },
       });
     }
