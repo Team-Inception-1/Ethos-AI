@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (authorization.response) return authorization.response;
     if (!sameOrigin(request)) return apiError('FORBIDDEN', 'A same-origin request is required.', 403);
     const body = z.object({
-      action: z.enum(['deposit', 'release', 'dispute', 'confirm']), milestoneId: z.string().min(1),
+      action: z.enum(['deposit', 'release', 'dispute', 'confirm', 'cancel_release', 'cancel']), milestoneId: z.string().min(1),
       provider: z.enum(['SSLCOMMERZ', 'BKASH', 'NAGAD']).optional(),
       note: z.string().max(2000).optional(), reason: z.string().max(2000).optional(),
     }).parse(await request.json());
@@ -26,6 +26,36 @@ export async function POST(request: Request) {
     if (body.action === 'deposit') return pay(actionRequest);
     if (body.action === 'release') return release(actionRequest);
     if (body.action === 'dispute') return dispute(actionRequest);
+    if (body.action === 'cancel_release') {
+      const milestone = await prisma.milestone.findUnique({
+        where: { id: body.milestoneId },
+        include: { application: true },
+      });
+      if (!milestone) return apiError('NOT_FOUND', 'Milestone not found.', 404);
+      if (authorization.user.role === 'STUDENT' && milestone.application.studentId !== authorization.user.id) {
+        return apiError('FORBIDDEN', 'Access denied.', 403);
+      }
+      await prisma.milestone.update({
+        where: { id: body.milestoneId },
+        data: { releaseRequested: false },
+      });
+      return paymentJson({ success: true, message: 'Release request canceled. Funds remain safely in escrow.' });
+    }
+    if (body.action === 'cancel') {
+      const milestone = await prisma.milestone.findUnique({
+        where: { id: body.milestoneId },
+        include: { application: true },
+      });
+      if (!milestone) return apiError('NOT_FOUND', 'Milestone not found.', 404);
+      if (authorization.user.role === 'STUDENT' && milestone.application.studentId !== authorization.user.id) {
+        return apiError('FORBIDDEN', 'Access denied.', 403);
+      }
+      if (milestone.status !== 'PENDING') {
+        return apiError('INVALID_STATE', 'Only pending unpaid milestones can be canceled.', 400);
+      }
+      await prisma.milestone.delete({ where: { id: body.milestoneId } });
+      return paymentJson({ success: true, message: 'Pending milestone canceled successfully.' });
+    }
     if (body.action === 'confirm') {
       const attempt = await prisma.paymentAttempt.findFirst({
         where: { milestoneId: body.milestoneId, status: 'INITIATED', expiresAt: { gt: new Date() } },

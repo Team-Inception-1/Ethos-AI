@@ -255,6 +255,57 @@ export default function PaymentsPage() {
     }
   };
 
+  const handleCancelRelease = async (milestoneId: string) => {
+    setIsProcessing(true);
+    try {
+      const res = await fetch('/api/payments/escrow/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'cancel_release',
+          milestoneId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || '✓ Release request canceled. Funds remain safely in escrow.');
+        await fetchEscrow();
+      } else {
+        showToast(data.error?.message ?? 'Failed to cancel release request.');
+      }
+    } catch {
+      alert('Action failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCancelMilestone = async (milestoneId: string) => {
+    if (!confirm('Are you sure you want to cancel this pending milestone?')) return;
+    setIsProcessing(true);
+    try {
+      const res = await fetch('/api/payments/escrow/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'cancel',
+          milestoneId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'Pending milestone canceled.');
+        await fetchEscrow();
+      } else {
+        showToast(data.error?.message ?? 'Failed to cancel milestone.');
+      }
+    } catch {
+      alert('Action failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const openReceiptForMilestone = (m: MilestoneItem) => {
     const ledger = ledgerEntries.find((l) => l.milestoneId === m.id && l.type === 'RELEASE');
     const receipt = receipts.find((r) => r.ledgerEntryId === ledger?.id);
@@ -468,22 +519,36 @@ export default function PaymentsPage() {
                       <td>
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                           {m.status === 'PENDING' && (
-                            sandboxAvailable ? (
+                            <>
                               <Button size="sm" variant="emerald" glow onClick={() => setPayModalItem(m)}>
-                                Initiate Payment
+                                Pay into Escrow
                               </Button>
-                            ) : (
-                              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>
-                                Sandbox unavailable
-                              </span>
-                            )
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCancelMilestone(m.id)}
+                                title="Cancel and remove this un-funded milestone"
+                              >
+                                Cancel
+                              </Button>
+                            </>
                           )}
                           {m.status === 'HELD' && (
                             <>
                               {m.releaseRequested ? (
-                                <span style={{ fontSize: '12px', color: 'var(--amber)', fontWeight: 700, padding: '4px 8px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '6px', border: '1px solid var(--amber)' }}>
-                                  ⏳ Awaiting Admin Approval
-                                </span>
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '12px', color: 'var(--amber)', fontWeight: 700, padding: '4px 8px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '6px', border: '1px solid var(--amber)' }}>
+                                    ⏳ Awaiting Admin Approval
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCancelRelease(m.id)}
+                                    title="Cancel this release request and keep funds locked safely in escrow"
+                                  >
+                                    Cancel Request
+                                  </Button>
+                                </div>
                               ) : (
                                 <Button size="sm" variant="emerald" onClick={() => setReleaseModalItem(m)}>
                                   Request Release
