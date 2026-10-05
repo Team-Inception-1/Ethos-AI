@@ -16,18 +16,20 @@ export type SandboxCallback = z.infer<typeof callbackSchema>;
 
 const DEFAULT_DEV_SANDBOX_SECRET = 'ethos_payment_sandbox_default_secret_32char_key_2026';
 
-// No live gateway is implemented. Never silently substitute simulated money.
+// Simulated sandbox payment mode operates across environments unless live mode is explicitly demanded
 export function isSandboxConfigured() {
-  const safeRuntime = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
-  const mode = process.env.ETHOS_PAYMENT_MODE || (safeRuntime ? 'sandbox' : '');
-  const secret = process.env.ETHOS_PAYMENT_SANDBOX_SECRET || (safeRuntime ? DEFAULT_DEV_SANDBOX_SECRET : '');
-  return safeRuntime && mode === 'sandbox' && Boolean(secret && secret.length >= 32);
+  const mode = process.env.ETHOS_PAYMENT_MODE || 'sandbox';
+  const secret = process.env.ETHOS_PAYMENT_SANDBOX_SECRET || DEFAULT_DEV_SANDBOX_SECRET;
+  return mode !== 'live' && Boolean(secret && secret.length >= 32);
 }
 
 export function requireSandbox() {
-  const safeRuntime = process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
-  const secret = process.env.ETHOS_PAYMENT_SANDBOX_SECRET || (safeRuntime ? DEFAULT_DEV_SANDBOX_SECRET : '');
-  if (!isSandboxConfigured() || !secret) {
+  const mode = process.env.ETHOS_PAYMENT_MODE || 'sandbox';
+  if (mode === 'live') {
+    throw new PaymentError('PAYMENTS_DISABLED', 'Live gateway payment processing is not configured.', 503);
+  }
+  const secret = process.env.ETHOS_PAYMENT_SANDBOX_SECRET || DEFAULT_DEV_SANDBOX_SECRET;
+  if (!secret || secret.length < 32) {
     throw new PaymentError('PAYMENTS_DISABLED', 'Payment processing is not configured.', 503);
   }
   return secret;

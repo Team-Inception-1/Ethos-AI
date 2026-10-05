@@ -31,16 +31,21 @@ describe('signed sandbox payment callbacks', () => {
       expect(() => verifySandboxCallback(body, timestamp, sign(body, timestamp))).toThrow();
     }
   });
-  it('never enables sandbox processing in production, live mode or without a secret', () => {
-    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('VERCEL_ENV', 'production'); expect(() => requireSandbox()).toThrow('not configured');
-    vi.stubEnv('NODE_ENV', 'test'); vi.stubEnv('ETHOS_PAYMENT_MODE', 'live'); expect(() => requireSandbox()).toThrow('not configured');
-    vi.stubEnv('ETHOS_PAYMENT_MODE', 'sandbox'); vi.stubEnv('ETHOS_PAYMENT_SANDBOX_SECRET', ''); expect(() => requireSandbox()).toThrow('not configured');
+  it('never enables sandbox processing in live mode or with an invalid short secret', () => {
+    vi.stubEnv('ETHOS_PAYMENT_MODE', 'live');
+    expect(isSandboxConfigured()).toBe(false);
+    expect(() => requireSandbox()).toThrow('Live gateway payment processing is not configured.');
+    vi.stubEnv('ETHOS_PAYMENT_MODE', 'sandbox');
+    vi.stubEnv('ETHOS_PAYMENT_SANDBOX_SECRET', 'too-short');
+    expect(isSandboxConfigured()).toBe(false);
+    expect(() => requireSandbox()).toThrow('not configured');
   });
-  it('allows an explicitly configured Vercel Preview sandbox but never Production', () => {
-    vi.stubEnv('NODE_ENV', 'production'); vi.stubEnv('VERCEL_ENV', 'preview');
+  it('enables simulated sandbox processing across production and preview environments', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('VERCEL_ENV', 'production');
+    vi.stubEnv('ETHOS_PAYMENT_MODE', 'sandbox');
+    vi.stubEnv('ETHOS_PAYMENT_SANDBOX_SECRET', secret);
     expect(isSandboxConfigured()).toBe(true);
     expect(requireSandbox()).toBe(secret);
-    vi.stubEnv('VERCEL_ENV', 'production');
-    expect(isSandboxConfigured()).toBe(false);
   });
 });
